@@ -1,6 +1,5 @@
-const CACHE_NAME = 'mentalmap-cache-v0.9.7';
+const CACHE_NAME = 'mentalmap-cache-v0.9.8';
 const ASSETS = [
-  './',
   './index.html',
   './style.css',
   './app.js',
@@ -12,7 +11,10 @@ const ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
+      .then(cache => {
+        // Cache files one by one so if one fails, it doesn't break the whole SW update
+        return Promise.allSettled(ASSETS.map(asset => cache.add(asset)));
+      })
       .then(() => self.skipWaiting())
   );
 });
@@ -23,13 +25,20 @@ self.addEventListener('activate', event => {
       return Promise.all(
         keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+    // Network first, fallback to cache
+    fetch(event.request)
+      .then(networkResponse => {
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      })
+      .catch(() => caches.match(event.request))
   );
 });
