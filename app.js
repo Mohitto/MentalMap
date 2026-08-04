@@ -151,6 +151,7 @@ const emptyState = $('#empty-state');
 const btnToggleView = $('#btn-toggle-view');
 const rankingView = $('#ranking-view');
 const rankingList = $('#ranking-list');
+const appVersion = $('#app-version');
 
 // ═══════════════════════════════════════════
 // STATE
@@ -622,10 +623,10 @@ function startAnimation() {
 
         group.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         
-        // Find corresponding label and position it exactly above the planet
+        // Find corresponding label and position it exactly ON the planet
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
-          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-100% + ${y}px - 22px))`;
+          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         }
       });
       
@@ -703,6 +704,12 @@ function renderRanking() {
       </div>
       <div class="ranking-score">${person.totalScore} <span style="font-size:12px; font-weight:400; color:var(--text-muted);">pkt</span></div>
     `;
+    
+    // Add click listener to edit person
+    item.addEventListener('click', () => {
+      toggleRankingView(true);
+      openEditModal(person.id);
+    });
     
     rankingList.appendChild(item);
   });
