@@ -34,7 +34,7 @@
   --btn-save: linear-gradient(135deg, #06d6a0, #00b4d8);
   --btn-delete: linear-gradient(135deg, #ef476f, #d90429);
 
-  --planet-size: 38px;
+  --planet-size: 19px;
 }
 
 *, *::before, *::after {

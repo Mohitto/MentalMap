@@ -683,7 +683,7 @@ function renderPlanets() {
     const grad = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
     planetEl.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
     planetEl.style.setProperty('--planet-glow', `${grad[0]}66`);
-    planetEl.textContent = person.name.substring(0, 2).toUpperCase();
+    // No initials text — planets are clean colored circles
 
     // Tap to edit
     group.addEventListener('click', () => openEditModal(person.id));
@@ -750,39 +750,10 @@ function startAnimation() {
 
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
-          const labelOffsetY = -52;
+          const labelOffsetY = -34;
           labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y + labelOffsetY}px))`;
         }
       });
-
-      // Collision avoidance — push overlapping planets apart
-      const positions = [];
-      groups.forEach(group => {
-        const person = people.find(p => p.id === group.dataset.id);
-        if (person) {
-          const radius = (radii[person.level] ?? radii[0]) + (person.orbitOffset || 0);
-          positions.push({
-            person,
-            x: Math.cos(person.angle) * radius,
-            y: Math.sin(person.angle) * radius
-          });
-        }
-      });
-      const minDist = 65; // minimum distance between planet centers
-      for (let i = 0; i < positions.length; i++) {
-        for (let j = i + 1; j < positions.length; j++) {
-          const dx = positions[i].x - positions[j].x;
-          const dy = positions[i].y - positions[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < minDist && dist > 0) {
-            const push = (minDist - dist) * 0.002;
-            const angle_i = Math.atan2(positions[i].y, positions[i].x);
-            const angle_j = Math.atan2(positions[j].y, positions[j].x);
-            positions[i].person.angle += push * (angle_i > angle_j ? 1 : -1);
-            positions[j].person.angle -= push * (angle_i > angle_j ? 1 : -1);
-          }
-        }
-      }
 
       // Update orbit rings sizes to match scale
       [3, 2, 1, 0].forEach(level => {
@@ -816,10 +787,12 @@ function toggleRankingView(forceClose = false) {
   if (forceClose || !isHidden) {
     rankingView.classList.add('hidden');
     solarSystem.style.display = 'flex';
+    labelsContainer.style.display = '';
     emptyState.style.display = people.length === 0 ? 'block' : 'none';
   } else {
     rankingView.classList.remove('hidden');
     solarSystem.style.display = 'none';
+    labelsContainer.style.display = 'none';
     emptyState.style.display = 'none';
     renderRanking();
   }
