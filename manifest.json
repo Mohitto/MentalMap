@@ -1,8 +1,8 @@
 {
   "name": "MentalMap",
   "short_name": "MentalMap",
-  "start_url": "/MentalMap/",
-  "scope": "/MentalMap/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0a0a1a",
   "theme_color": "#0a0a1a",

@@ -1,12 +1,12 @@
-const CACHE_NAME = 'mentalmap-cache-v1';
+const CACHE_NAME = 'mentalmap-cache-v2';
 const ASSETS = [
-  '/MentalMap/',
-  '/MentalMap/index.html',
-  '/MentalMap/style.css',
-  '/MentalMap/app.js',
-  '/MentalMap/icon-192.png',
-  '/MentalMap/icon-512.png',
-  '/MentalMap/manifest.json'
+  './',
+  './index.html',
+  './style.css',
+  './app.js',
+  './icon-192.png',
+  './icon-512.png',
+  './manifest.json'
 ];
 
 self.addEventListener('install', event => {
