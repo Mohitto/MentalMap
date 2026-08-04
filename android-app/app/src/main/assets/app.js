@@ -788,6 +788,14 @@ function startAnimation() {
           ring.style.width = `${radii[level] * 2}px`;
           ring.style.height = `${radii[level] * 2}px`;
         }
+        
+        const label = document.querySelector(`.level-label--${level}`);
+        if (label) {
+          label.style.top = `calc(50% - ${radii[level]}px)`;
+          label.style.left = '50%';
+          label.style.right = 'auto';
+          label.style.transform = 'translate(-50%, -100%)'; // Center horizontally, sit perfectly above the line
+        }
       });
     }
 
