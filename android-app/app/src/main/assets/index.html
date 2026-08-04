@@ -9,21 +9,31 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>MentalMap — Mapa Relacji</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW registration failed:', err));
+            });
+        }
+    </script>
+
     <!-- Stars background layer -->
     <div id="stars-bg"></div>
 
     <!-- Main solar system view -->
     <div id="solar-system">
         <!-- Orbital rings -->
-        <div class="orbit-ring" data-level="1"></div>
-        <div class="orbit-ring" data-level="2"></div>
         <div class="orbit-ring" data-level="3"></div>
+        <div class="orbit-ring" data-level="2"></div>
+        <div class="orbit-ring" data-level="1"></div>
+        <div class="orbit-ring" data-level="0"></div>
 
         <!-- Sun (You) -->
         <div id="sun">
@@ -36,6 +46,9 @@
         <div id="planets-container"></div>
     </div>
 
+    <!-- Labels on a separate high z-index layer (outside solar-system for proper stacking) -->
+    <div id="labels-container"></div>
+
     <!-- Level labels -->
     <div id="level-labels">
         <span class="level-label level-label--3">Poziom 3</span>
@@ -43,8 +56,26 @@
         <span class="level-label level-label--1">Poziom 1</span>
     </div>
 
+    <!-- Ranking View -->
+    <div id="ranking-view" class="hidden">
+        <h2 class="ranking-title">Ranking Relacji</h2>
+        <div id="ranking-list"></div>
+    </div>
+
+    <!-- Toggle View Button -->
+    <button id="btn-toggle-view" class="btn-toggle-view">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+    </button>
+
     <!-- Floating Action Button -->
-    <button id="fab-add" aria-label="Dodaj osobę">
+    <button id="fab-add" aria-label="Dodaj nową osobę">
         <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
             <path d="M14 4V24M4 14H24" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
         </svg>
@@ -82,9 +113,9 @@
                 <div id="score-preview" class="score-preview">
                     <div class="score-preview__label">Wynik</div>
                     <div class="score-preview__value">
-                        <span id="score-value">0</span><span class="score-preview__max">/30</span>
+                        <span id="score-value">--</span><span class="score-preview__max">/36</span>
                     </div>
-                    <div id="score-level" class="score-preview__level">Poziom 1</div>
+                    <div id="score-level" class="score-preview__level">Odpowiedz na wszystkie pytania</div>
                 </div>
 
                 <!-- Action buttons -->
@@ -112,6 +143,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
+    <div id="app-version">v0.9.6</div>
     <script src="app.js"></script>
 </body>
 </html>

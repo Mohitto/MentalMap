@@ -9,13 +9,13 @@
   --sun-glow: rgba(255, 170, 0, 0.8);
   --sun-core: #ffcc00;
 
-  --level-3-color: #2dd4bf;
+  --level-1-color: #ef4444;
   --level-2-color: #f59e0b;
-  --level-1-color: #f87171;
+  --level-3-color: #22c55e;
 
-  --ring-3: rgba(45, 212, 191, 0.25);
+  --ring-1: rgba(239, 68, 68, 0.25);
   --ring-2: rgba(245, 158, 11, 0.25);
-  --ring-1: rgba(248, 113, 113, 0.25);
+  --ring-3: rgba(34, 197, 94, 0.25);
 
   --fab-bg: linear-gradient(135deg, #7b2cbf, #4361ee);
   --fab-shadow: rgba(123, 44, 191, 0.5);
@@ -31,9 +31,10 @@
   --input-border: #2a2a45;
 
   --btn-save: linear-gradient(135deg, #06d6a0, #00b4d8);
+  --btn-save: linear-gradient(135deg, #06d6a0, #00b4d8);
   --btn-delete: linear-gradient(135deg, #ef476f, #d90429);
 
-  --planet-size: 44px;
+  --planet-size: 9.5px;
 }
 
 *, *::before, *::after {
@@ -54,9 +55,9 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    STARFIELD BACKGROUND
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #stars-bg {
   position: fixed;
@@ -134,9 +135,9 @@ html, body {
   100% { opacity: 1; }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SOLAR SYSTEM CONTAINER
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #solar-system {
   position: fixed;
@@ -150,9 +151,9 @@ html, body {
   z-index: 1;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SUN
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #sun {
   position: absolute;
@@ -232,9 +233,9 @@ html, body {
   text-shadow: 0 0 10px rgba(255, 200, 0, 0.5);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ORBITAL RINGS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .orbit-ring {
   position: absolute;
@@ -249,13 +250,13 @@ html, body {
   height: 200px;
   border-color: var(--ring-3);
   box-shadow:
-    inset 0 0 20px rgba(45, 212, 191, 0.06),
-    0 0 20px rgba(45, 212, 191, 0.06);
+    inset 0 0 20px rgba(34, 197, 94, 0.06),
+    0 0 20px rgba(34, 197, 94, 0.06);
 }
 
 .orbit-ring[data-level="2"] {
-  width: 340px;
-  height: 340px;
+  width: 320px;
+  height: 320px;
   border-color: var(--ring-2);
   box-shadow:
     inset 0 0 20px rgba(245, 158, 11, 0.06),
@@ -263,17 +264,26 @@ html, body {
 }
 
 .orbit-ring[data-level="1"] {
-  width: 480px;
-  height: 480px;
+  width: 440px;
+  height: 440px;
   border-color: var(--ring-1);
   box-shadow:
-    inset 0 0 20px rgba(248, 113, 113, 0.06),
-    0 0 20px rgba(248, 113, 113, 0.06);
+    inset 0 0 20px rgba(239, 68, 68, 0.06),
+    0 0 20px rgba(239, 68, 68, 0.06);
 }
 
-/* ═══════════════════════════════════════════
+.orbit-ring[data-level="0"] {
+  width: 560px;
+  height: 560px;
+  border-color: rgba(155, 161, 166, 0.25);
+  box-shadow:
+    inset 0 0 20px rgba(155, 161, 166, 0.06),
+    0 0 20px rgba(155, 161, 166, 0.06);
+}
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    LEVEL LABELS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #level-labels {
   position: fixed;
@@ -299,10 +309,10 @@ html, body {
   transform: translateY(-50%);
 }
 
-.level-label--3 {
+.level-label--1 {
   right: calc(50% - 115px);
   top: calc(50% - 90px);
-  color: var(--level-3-color);
+  color: var(--level-1-color);
 }
 
 .level-label--2 {
@@ -311,31 +321,39 @@ html, body {
   color: var(--level-2-color);
 }
 
-.level-label--1 {
+.level-label--3 {
   right: calc(50% - 255px);
   top: calc(50% - 230px);
-  color: var(--level-1-color);
+  color: var(--level-3-color);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PLANETS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #planets-container {
   position: absolute;
+  top: 50%;
+  left: 50%;
   width: 0;
   height: 0;
   z-index: 5;
 }
 
-.planet-group {
+.planet-group,
+.label-group {
   position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.planet-group {
   display: flex;
   flex-direction: column;
   align-items: center;
   cursor: pointer;
   transition: filter 0.2s ease;
-  will-change: transform;
 }
 
 .planet-group:active {
@@ -377,32 +395,53 @@ html, body {
   transform: scale(1.25);
 }
 
+#labels-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  z-index: 150;
+  pointer-events: none;
+}
+
+.label-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 0;
+  height: 0;
+}
+
 .planet-label {
-  margin-top: 5px;
-  font-size: 9px;
+  font-size: 10px;
+  line-height: 1.2;
   font-weight: 500;
-  background: rgba(0, 0, 0, 0.65);
-  padding: 2px 8px;
-  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 4px 8px;
+  border-radius: 8px;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
   letter-spacing: 0.3px;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100px;
   border: 1px solid rgba(255,255,255,0.06);
+  position: absolute;
+  bottom: 12px;
 }
 
 .planet-score {
   font-size: 8px;
   color: var(--text-muted);
-  margin-top: 1px;
+  position: absolute;
+  top: 12px;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FAB BUTTON
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #fab-add {
   position: fixed;
@@ -438,9 +477,131 @@ html, body {
   transform: rotate(90deg);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   TOGGLE VIEW BUTTON & RANKING
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+.btn-toggle-view {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-view:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+#ranking-view {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-color);
+  z-index: 10;
+  padding: 80px 24px 100px;
+  overflow-y: auto;
+}
+
+#ranking-view.hidden {
+  display: none;
+}
+
+.ranking-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+#ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ranking-item {
+  background: var(--card-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.ranking-item:active {
+  transform: scale(0.985);
+  border-color: rgba(255, 255, 255, 0.18);
+  background: #20203a;
+}
+
+#app-version {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: 0.4px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.ranking-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  box-shadow: inset -2px -2px 5px rgba(0,0,0,0.4), inset 2px 2px 5px rgba(255,255,255,0.15);
+}
+
+.ranking-info {
+  flex: 1;
+}
+
+.ranking-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ranking-points {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.ranking-score {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    EMPTY STATE
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #empty-state {
   position: fixed;
@@ -472,9 +633,9 @@ html, body {
   display: none;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SURVEY MODAL
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .modal-overlay {
   position: fixed;
@@ -565,9 +726,9 @@ html, body {
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SURVEY FORM
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 #survey-form {
   overflow-y: auto;
@@ -736,9 +897,9 @@ html, body {
   color: var(--card-selected-border);
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SCORE PREVIEW
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .score-preview {
   background: var(--card-bg);
@@ -800,9 +961,9 @@ html, body {
 .score-preview__level.level-2 { color: var(--level-2-color); }
 .score-preview__level.level-3 { color: var(--level-3-color); }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FORM ACTIONS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .form-actions {
   display: flex;
@@ -842,16 +1003,16 @@ html, body {
   flex: 0.7;
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    RESPONSIVE
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @media (max-width: 380px) {
   .orbit-ring[data-level="3"] { width: 160px; height: 160px; }
   .orbit-ring[data-level="2"] { width: 280px; height: 280px; }
   .orbit-ring[data-level="1"] { width: 400px; height: 400px; }
 
-  :root { --planet-size: 38px; }
+  :root { --planet-size: 19px; }
 
   .planet { font-size: 12px; }
   .planet-label { font-size: 8px; max-width: 65px; }
@@ -870,9 +1031,9 @@ html, body {
   .orbit-ring[data-level="1"] { width: 340px; height: 340px; }
 }
 
-/* ═══════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    iOS SAFE AREAS
-   ═══════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   #fab-add {
