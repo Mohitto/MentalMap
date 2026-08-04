@@ -120,12 +120,12 @@ const SURVEY_QUESTIONS = [
 ];
 
 const GATE_QUESTION = {
-  text: 'Jak często realnie się kontaktujecie (wiadomości, rozmowy, spotkania)?',
+  text: 'Jak często spotykasz się z tą osobą w prawdziwym życiu?',
   answers: [
     { penalty: 0, text: 'Codziennie lub kilka razy w tygodniu.' },
     { penalty: -5, text: 'Kilka razy w miesiącu.' },
     { penalty: -10, text: 'Kilka razy w roku.' },
-    { penalty: -15, text: 'Brak kontaktu, sporadyczne wspomnienia.' }
+    { penalty: -15, text: 'Brak kontaktu.' }
   ]
 };
 
