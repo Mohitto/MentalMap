@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
         webView.webChromeClient = WebChromeClient()
 
         // Load our web app from assets
-        webView.loadUrl("file:///android_asset/index.html")
+        webView.loadUrl("https://mohitto.github.io/MentalMap/")
 
         setContentView(webView)
     }
