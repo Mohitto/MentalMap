@@ -34,7 +34,7 @@
   --btn-save: linear-gradient(135deg, #06d6a0, #00b4d8);
   --btn-delete: linear-gradient(135deg, #ef476f, #d90429);
 
-  --planet-size: 19px;
+  --planet-size: 9.5px;
 }
 
 *, *::before, *::after {
@@ -1007,7 +1007,7 @@ html, body {
   .orbit-ring[data-level="2"] { width: 280px; height: 280px; }
   .orbit-ring[data-level="1"] { width: 400px; height: 400px; }
 
-  :root { --planet-size: 38px; }
+  :root { --planet-size: 19px; }
 
   .planet { font-size: 12px; }
   .planet-label { font-size: 8px; max-width: 65px; }
