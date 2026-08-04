@@ -104,7 +104,7 @@ const SURVEY_QUESTIONS = [
 const STORAGE_KEY = 'mentalmap_people';
 
 // Orbit radii for each level (pixels from center)
-const BASE_RADII = { 3: 130, 2: 210, 1: 290, 0: 380 };
+const BASE_RADII = { 3: 100, 2: 160, 1: 220, 0: 280 };
 
 // Planet gradient presets for visual variety
 const PLANET_GRADIENTS = [
@@ -254,20 +254,28 @@ function updateScorePreview() {
 // ═══════════════════════════════════════════
 
 function loadPeople() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      people = JSON.parse(raw);
-      // Backfill missing properties for backwards compat
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      people = JSON.parse(saved);
+      // MIGRATION: Recalculate levels for old data
+      let migrated = false;
       people.forEach(p => {
+        const correctLevel = getLevel(p.totalScore);
+        if (p.level !== correctLevel) {
+          p.level = correctLevel;
+          p.speed = getRandomSpeed(correctLevel);
+          migrated = true;
+        }
         if (typeof p.angle !== 'number') p.angle = Math.random() * Math.PI * 2;
         if (typeof p.speed !== 'number') p.speed = getRandomSpeed(p.level);
         if (typeof p.gradientIndex !== 'number') p.gradientIndex = Math.floor(Math.random() * PLANET_GRADIENTS.length);
       });
+      if (migrated) savePeople();
+    } catch (e) {
+      console.error('Failed to load data:', e);
+      people = [];
     }
-  } catch (e) {
-    console.error('Failed to load data:', e);
-    people = [];
   }
   renderPlanets();
 }
@@ -308,9 +316,8 @@ function getRandomSpeed(level) {
 
 function getOrbitalRadii() {
   const minDim = Math.min(window.innerWidth, window.innerHeight);
-  // Max required diameter for outer orbit (Level 1) is 240*2 = 480 + 80px (for planet sizes) = 560px
-  // We scale down based on 560 to ensure the outer planet is never cut off
-  const requiredDim = BASE_RADII[0] * 2 + 80;
+  // Base scale on Level 1 so Level 0 can overflow nicely off-screen
+  const requiredDim = BASE_RADII[1] * 2 + 60; // 500
   const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
   return {
     3: BASE_RADII[3] * scale,
