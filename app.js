@@ -190,6 +190,14 @@ const appVersion = $('#app-version');
 
 let people = [];
 let editingId = null;
+let selectedGradientIndex = 0;
+
+function updateColorPickerSelection(index) {
+  selectedGradientIndex = index;
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.classList.toggle('selected', parseInt(s.dataset.index) === index);
+  });
+}
 let animationFrameId = null;
 let lastTimestamp = 0;
 
@@ -218,6 +226,19 @@ function buildSurveyForm() {
   if (!questionsContainer) return;
 
   questionsContainer.innerHTML = '';
+
+  const picker = document.getElementById('color-picker');
+  if (picker) {
+    picker.innerHTML = '';
+    PLANET_GRADIENTS.forEach((grad, index) => {
+      const swatch = document.createElement('div');
+      swatch.className = 'color-swatch';
+      swatch.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
+      swatch.dataset.index = index;
+      swatch.addEventListener('click', () => updateColorPickerSelection(index));
+      picker.appendChild(swatch);
+    });
+  }
 
   // ── Gate question (rendered first, stored separately) ──
   const gateCard = document.createElement('div');
@@ -470,6 +491,7 @@ function bindEvents() {
 function openAddModal() {
   editingId = null;
   surveyForm.reset();
+  updateColorPickerSelection(Math.floor(Math.random() * PLANET_GRADIENTS.length));
   modalTitle.textContent = 'Nowa relacja';
   btnDelete.style.display = 'none';
   resetScorePreview();
@@ -486,6 +508,9 @@ function openEditModal(id) {
   editingId = id;
   surveyForm.reset();
   personNameInput.value = person.name;
+
+  const colorIndex = person.gradientIndex !== undefined ? person.gradientIndex : Math.floor(Math.random() * PLANET_GRADIENTS.length);
+  updateColorPickerSelection(colorIndex);
 
   // Pre-fill gate
   if (typeof person.gateAnswer === 'number') {
@@ -606,6 +631,7 @@ function handleSubmit(e) {
       person.answers = answers;
       person.gateAnswer = gatePenalty;
       person.totalScore = totalScore;
+      person.gradientIndex = selectedGradientIndex;
       const oldLevel = person.level;
       person.level = level;
       // Re-randomize speed if level changed
@@ -622,7 +648,7 @@ function handleSubmit(e) {
       level,
       angle: Math.random() * Math.PI * 2,
       speed: getRandomSpeed(level),
-      gradientIndex: Math.floor(Math.random() * PLANET_GRADIENTS.length)
+      gradientIndex: selectedGradientIndex
     });
   }
 
