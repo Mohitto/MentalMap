@@ -98,13 +98,44 @@ const SURVEY_QUESTIONS = [
       { points: 1, text: 'Próbuje negocjować lub wymusza na tobie tłumaczenie się z podjętej decyzji.' },
       { points: 0, text: 'Nie szanuje twojej granicy, wywołuje poczucie winy lub zmusza cię do zmiany zdania.' }
     ]
+  },
+  {
+    text: 'Jak długo znasz tę osobę?',
+    answers: [
+      { points: 3, text: '3 lata i więcej.' },
+      { points: 2, text: 'Od 1 roku do 3 lat.' },
+      { points: 1, text: 'Od 3 do 12 miesięcy.' },
+      { points: 0, text: 'Mniej niż 3 miesiące.' }
+    ]
+  },
+  {
+    text: 'Czy ta osoba cię inspiruje?',
+    answers: [
+      { points: 3, text: 'Inspiruje mnie do samych dobrych rzeczy.' },
+      { points: 2, text: 'Nie inspiruje mnie wcale.' },
+      { points: 1, text: 'Inspiruje mnie zarówno do dobrych, jak i złych rzeczy.' },
+      { points: 0, text: 'Inspiruje mnie do złych rzeczy.' }
+    ]
   }
 ];
 
+const GATE_QUESTION = {
+  text: 'Jak często realnie się kontaktujecie (wiadomości, rozmowy, spotkania)?',
+  answers: [
+    { penalty: 0, text: 'Codziennie lub kilka razy w tygodniu.' },
+    { penalty: -5, text: 'Kilka razy w miesiącu.' },
+    { penalty: -10, text: 'Kilka razy w roku.' },
+    { penalty: -15, text: 'Brak kontaktu, sporadyczne wspomnienia.' }
+  ]
+};
+
 const STORAGE_KEY = 'mentalmap_people';
+const APP_VERSION = 'v0.9';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 160, 1: 220, 0: 280 };
+
+const LEVEL_SPEEDS = { 3: 0.18, 2: 0.13, 1: 0.09, 0: 0.06 };
 
 // Planet gradient presets for visual variety
 const PLANET_GRADIENTS = [
@@ -170,8 +201,13 @@ function init() {
   buildSurveyForm();
   loadPeople();
   bindEvents();
+  setAppVersion();
   startAnimation();
   updateEmptyState();
+}
+
+function setAppVersion() {
+  if (appVersion) appVersion.textContent = APP_VERSION;
 }
 
 // ═══════════════════════════════════════════
@@ -183,6 +219,41 @@ function buildSurveyForm() {
 
   questionsContainer.innerHTML = '';
 
+  // ── Gate question (rendered first, stored separately) ──
+  const gateCard = document.createElement('div');
+  gateCard.className = 'question-card';
+
+  const gateTitle = document.createElement('h3');
+  gateTitle.textContent = `0. ${GATE_QUESTION.text}`;
+  gateCard.appendChild(gateTitle);
+
+  const gateOptions = document.createElement('div');
+  gateOptions.className = 'options-container';
+
+  GATE_QUESTION.answers.forEach((answer) => {
+    const label = document.createElement('label');
+    label.className = 'answer-option';
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'gate';
+    radio.value = answer.penalty;
+    radio.required = true;
+    radio.addEventListener('change', updateScorePreview);
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'answer-text';
+    textSpan.textContent = answer.text;
+
+    label.appendChild(radio);
+    label.appendChild(textSpan);
+    gateOptions.appendChild(label);
+  });
+
+  gateCard.appendChild(gateOptions);
+  questionsContainer.appendChild(gateCard);
+
+  // ── Regular questions ──
   SURVEY_QUESTIONS.forEach((q, qIndex) => {
     const card = document.createElement('div');
     card.className = 'question-card';
@@ -203,22 +274,14 @@ function buildSurveyForm() {
       radio.name = `q${qIndex}`;
       radio.value = answer.points;
       radio.required = true;
-
-      // Update score preview on selection
       radio.addEventListener('change', updateScorePreview);
 
       const textSpan = document.createElement('span');
       textSpan.className = 'answer-text';
       textSpan.textContent = answer.text;
 
-      const pointsBadge = document.createElement('span');
-      pointsBadge.className = 'answer-points';
-      pointsBadge.textContent = `${answer.points} pkt`;
-
       label.appendChild(radio);
       label.appendChild(textSpan);
-      // We don't append pointsBadge anymore so the user isn't biased
-      // label.appendChild(pointsBadge);
       optionsWrap.appendChild(label);
     });
 
@@ -232,14 +295,36 @@ function buildSurveyForm() {
 // ═══════════════════════════════════════════
 
 function updateScorePreview() {
+  const gateChecked = surveyForm.querySelector('input[name="gate"]:checked');
   let total = 0;
+  let allAnswered = !!gateChecked;
+
   for (let i = 0; i < SURVEY_QUESTIONS.length; i++) {
     const checked = surveyForm.querySelector(`input[name="q${i}"]:checked`);
-    if (checked) total += parseInt(checked.value, 10);
+    if (checked) {
+      total += parseInt(checked.value, 10);
+    } else {
+      allAnswered = false;
+    }
   }
 
+  if (!allAnswered) {
+    if (scoreValue) scoreValue.textContent = '--';
+    if (scoreLevel) {
+      scoreLevel.textContent = 'Odpowiedz na wszystkie pytania';
+      scoreLevel.className = 'score-preview__level';
+    }
+    if (scorePreview) scorePreview.style.setProperty('--score-pct', '0%');
+    return;
+  }
+
+  // Apply gate penalty and clamp to 0
+  const gatePenalty = parseInt(gateChecked.value, 10);
+  total = Math.max(0, total + gatePenalty);
+
   const level = getLevel(total);
-  const pct = Math.round((total / 30) * 100);
+  const maxScore = SURVEY_QUESTIONS.length * 3;
+  const pct = Math.round((total / maxScore) * 100);
 
   if (scoreValue) scoreValue.textContent = total;
   if (scoreLevel) {
@@ -270,25 +355,35 @@ function loadPeople() {
 }
 
 function distributePlanets() {
-  const byLevel = { 3: [], 2: [], 1: [], 0: [] };
-  people.forEach(p => {
+  const byLevel = { 0: [], 1: [], 2: [], 3: [] };
+
+  people.forEach((p) => {
     p.level = getLevel(p.totalScore);
-    if (byLevel[p.level]) byLevel[p.level].push(p);
+
+    if (typeof p.gradientIndex !== 'number') {
+      p.gradientIndex = Math.floor(Math.random() * PLANET_GRADIENTS.length);
+    }
+
+    byLevel[p.level].push(p);
   });
 
-  const levelSpeeds = { 3: 0.12, 2: 0.08, 1: 0.05, 0: 0.03 };
-
-  for (let lvl in byLevel) {
-    const list = byLevel[lvl];
+  Object.entries(byLevel).forEach(([lvl, list]) => {
+    const level = Number(lvl);
     const count = list.length;
-    const speed = levelSpeeds[lvl] || 0.05;
-    
-    list.forEach((p, index) => {
-      p.angle = index * (Math.PI * 2 / count);
-      p.speed = speed;
-      if (typeof p.gradientIndex !== 'number') p.gradientIndex = Math.floor(Math.random() * PLANET_GRADIENTS.length);
-    });
-  }
+    if (!count) return;
+
+    list
+      .sort((a, b) => b.totalScore - a.totalScore || a.name.localeCompare(b.name, 'pl'))
+      .forEach((p, index) => {
+        const angleStep = (Math.PI * 2) / count;
+        const phase = (level * Math.PI) / 9;
+
+        p.angle = phase + index * angleStep;
+        p.speed = getRandomSpeed(level);
+        p.orbitOffset = getOrbitOffsetForScore(p.totalScore, level);
+      });
+  });
+
   savePeople();
 }
 
@@ -314,29 +409,35 @@ function getInitials(name) {
 }
 
 function getLevel(score) {
-  if (score >= 25) return 3;
-  if (score >= 15) return 2;
-  if (score >= 5) return 1;
+  if (score >= 30) return 3;
+  if (score >= 18) return 2;
+  if (score >= 6) return 1;
   return 0;
 }
 
 function getRandomSpeed(level) {
-  // Closer planets orbit slightly faster
-  const baseSpeed = 0.15 + (level * 0.05); // radians per second
-  return baseSpeed + (Math.random() * 0.1 - 0.05);
+  const baseSpeed = LEVEL_SPEEDS[level] ?? LEVEL_SPEEDS[0];
+  return baseSpeed + (Math.random() * 0.03 - 0.015);
 }
 
 function getOrbitalRadii() {
   const minDim = Math.min(window.innerWidth, window.innerHeight);
-  // Base scale on Level 1 so Level 0 can overflow nicely off-screen
-  const requiredDim = BASE_RADII[1] * 2 + 60; // 500
+  const requiredDim = BASE_RADII[0] * 2 + 80;
   const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
+
   return {
     3: BASE_RADII[3] * scale,
     2: BASE_RADII[2] * scale,
     1: BASE_RADII[1] * scale,
     0: BASE_RADII[0] * scale
   };
+}
+
+function getOrbitOffsetForScore(score, level) {
+  if (level === 3) return (score - 33) * 6;
+  if (level === 2) return (score - 24) * 4;
+  if (level === 1) return (score - 12) * 3;
+  return (score - 3) * 8;
 }
 
 // ═══════════════════════════════════════════
@@ -386,6 +487,12 @@ function openEditModal(id) {
   surveyForm.reset();
   personNameInput.value = person.name;
 
+  // Pre-fill gate
+  if (typeof person.gateAnswer === 'number') {
+    const gateRadio = surveyForm.querySelector(`input[name="gate"][value="${person.gateAnswer}"]`);
+    if (gateRadio) gateRadio.checked = true;
+  }
+
   // Pre-fill answers
   person.answers.forEach((pts, i) => {
     const radio = surveyForm.querySelector(`input[name="q${i}"][value="${pts}"]`);
@@ -412,16 +519,16 @@ function closeModal(fromPopState = false) {
 window.addEventListener('popstate', (e) => {
   if (surveyModal.getAttribute('aria-hidden') === 'false') {
     closeModal(true);
-  } else if (rankingView.style.display === 'block') {
+  } else if (!rankingView.classList.contains('hidden')) {
     toggleRankingView(true); // Close ranking view
   }
 });
 
 function resetScorePreview() {
-  if (scoreValue) scoreValue.textContent = '0';
+  if (scoreValue) scoreValue.textContent = '--';
   if (scoreLevel) {
-    scoreLevel.textContent = 'Poziom 1';
-    scoreLevel.className = 'score-preview__level level-1';
+    scoreLevel.textContent = 'Odpowiedz na wszystkie pytania';
+    scoreLevel.className = 'score-preview__level';
   }
   if (scorePreview) scorePreview.style.setProperty('--score-pct', '0%');
 }
@@ -436,10 +543,13 @@ function handleSubmit(e) {
   const name = personNameInput.value.trim();
   if (!name) return;
 
+  // Check gate
+  const gateChecked = surveyForm.querySelector('input[name="gate"]:checked');
+
   // Collect all answers
   const answers = [];
   let totalScore = 0;
-  let allAnswered = true;
+  let allAnswered = !!gateChecked;
 
   for (let i = 0; i < SURVEY_QUESTIONS.length; i++) {
     const checked = surveyForm.querySelector(`input[name="q${i}"]:checked`);
@@ -454,24 +564,37 @@ function handleSubmit(e) {
   }
 
   if (!allAnswered) {
-    // Scroll to first unanswered question
+    // Scroll to first unanswered question (gate is card[0], regular are card[1..N])
+    const cards = questionsContainer.querySelectorAll('.question-card');
+
+    if (!gateChecked) {
+      if (cards[0]) {
+        cards[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        cards[0].style.outline = '2px solid #ef476f';
+        cards[0].style.outlineOffset = '4px';
+        setTimeout(() => { cards[0].style.outline = ''; cards[0].style.outlineOffset = ''; }, 2000);
+      }
+      return;
+    }
+
     for (let i = 0; i < SURVEY_QUESTIONS.length; i++) {
       const checked = surveyForm.querySelector(`input[name="q${i}"]:checked`);
       if (!checked) {
-        const cards = questionsContainer.querySelectorAll('.question-card');
-        if (cards[i]) {
-          cards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
-          cards[i].style.outline = '2px solid #ef476f';
-          cards[i].style.outlineOffset = '4px';
-          setTimeout(() => {
-            cards[i].style.outline = '';
-            cards[i].style.outlineOffset = '';
-          }, 2000);
+        const card = cards[i + 1]; // +1 because gate is cards[0]
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.outline = '2px solid #ef476f';
+          card.style.outlineOffset = '4px';
+          setTimeout(() => { card.style.outline = ''; card.style.outlineOffset = ''; }, 2000);
         }
         return;
       }
     }
   }
+
+  // Apply gate penalty and clamp
+  const gatePenalty = gateChecked ? parseInt(gateChecked.value, 10) : 0;
+  totalScore = Math.max(0, totalScore + gatePenalty);
 
   const level = getLevel(totalScore);
 
@@ -481,6 +604,7 @@ function handleSubmit(e) {
     if (person) {
       person.name = name;
       person.answers = answers;
+      person.gateAnswer = gatePenalty;
       person.totalScore = totalScore;
       const oldLevel = person.level;
       person.level = level;
@@ -493,6 +617,7 @@ function handleSubmit(e) {
       id: uuid(),
       name,
       answers,
+      gateAnswer: gatePenalty,
       totalScore,
       level,
       angle: Math.random() * Math.PI * 2,
@@ -617,19 +742,48 @@ function startAnimation() {
         person.angle += person.speed * safeDt;
         if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
 
-        const radius = radii[person.level] || radii[0];
+        const radius = (radii[person.level] ?? radii[0]) + (person.orbitOffset || 0);
         const x = Math.cos(person.angle) * radius;
         const y = Math.sin(person.angle) * radius;
 
         group.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
-        
-        // Find corresponding label and position it exactly ABOVE the planet
+
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
-          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-100% + ${y}px - 22px))`;
+          const labelOffsetY = -52;
+          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y + labelOffsetY}px))`;
         }
       });
-      
+
+      // Collision avoidance — push overlapping planets apart
+      const positions = [];
+      groups.forEach(group => {
+        const person = people.find(p => p.id === group.dataset.id);
+        if (person) {
+          const radius = (radii[person.level] ?? radii[0]) + (person.orbitOffset || 0);
+          positions.push({
+            person,
+            x: Math.cos(person.angle) * radius,
+            y: Math.sin(person.angle) * radius
+          });
+        }
+      });
+      const minDist = 65; // minimum distance between planet centers
+      for (let i = 0; i < positions.length; i++) {
+        for (let j = i + 1; j < positions.length; j++) {
+          const dx = positions[i].x - positions[j].x;
+          const dy = positions[i].y - positions[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < minDist && dist > 0) {
+            const push = (minDist - dist) * 0.002;
+            const angle_i = Math.atan2(positions[i].y, positions[i].x);
+            const angle_j = Math.atan2(positions[j].y, positions[j].x);
+            positions[i].person.angle += push * (angle_i > angle_j ? 1 : -1);
+            positions[j].person.angle -= push * (angle_i > angle_j ? 1 : -1);
+          }
+        }
+      }
+
       // Update orbit rings sizes to match scale
       [3, 2, 1, 0].forEach(level => {
         const ring = document.querySelector(`.orbit-ring[data-level="${level}"]`);
@@ -650,6 +804,11 @@ function startAnimation() {
 // ═══════════════════════════════════════════
 // RANKING VIEW
 // ═══════════════════════════════════════════
+
+function openPersonFromRanking(id) {
+  toggleRankingView(true);
+  requestAnimationFrame(() => openEditModal(id));
+}
 
 function toggleRankingView(forceClose = false) {
   const isHidden = rankingView.classList.contains('hidden');
@@ -704,11 +863,18 @@ function renderRanking() {
       </div>
       <div class="ranking-score">${person.totalScore} <span style="font-size:12px; font-weight:400; color:var(--text-muted);">pkt</span></div>
     `;
-    
-    // Add click listener to edit person
-    item.addEventListener('click', () => {
-      toggleRankingView(true);
-      openEditModal(person.id);
+
+    item.setAttribute('role', 'button');
+    item.tabIndex = 0;
+
+    const openFromRanking = () => openPersonFromRanking(person.id);
+
+    item.addEventListener('click', openFromRanking);
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openFromRanking();
+      }
     });
     
     rankingList.appendChild(item);

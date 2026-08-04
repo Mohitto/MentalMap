@@ -44,10 +44,10 @@
 
         <!-- Planets will be dynamically inserted here -->
         <div id="planets-container"></div>
-        
-        <!-- Labels on a separate high z-index layer -->
-        <div id="labels-container"></div>
     </div>
+
+    <!-- Labels on a separate high z-index layer (outside solar-system for proper stacking) -->
+    <div id="labels-container"></div>
 
     <!-- Level labels -->
     <div id="level-labels">
@@ -55,9 +55,6 @@
         <span class="level-label level-label--2">Poziom 2</span>
         <span class="level-label level-label--1">Poziom 1</span>
     </div>
-
-    <!-- App Version -->
-    <div id="app-version">v0.91</div>
 
     <!-- Ranking View -->
     <div id="ranking-view" class="hidden">
@@ -116,9 +113,9 @@
                 <div id="score-preview" class="score-preview">
                     <div class="score-preview__label">Wynik</div>
                     <div class="score-preview__value">
-                        <span id="score-value">0</span><span class="score-preview__max">/30</span>
+                        <span id="score-value">--</span><span class="score-preview__max">/36</span>
                     </div>
-                    <div id="score-level" class="score-preview__level">Poziom 1</div>
+                    <div id="score-level" class="score-preview__level">Odpowiedz na wszystkie pytania</div>
                 </div>
 
                 <!-- Action buttons -->
@@ -146,6 +143,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
+    <div id="app-version">v0.9</div>
     <script src="app.js"></script>
 </body>
 </html>
