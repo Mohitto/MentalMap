@@ -134,6 +134,7 @@ const $$ = (sel) => document.querySelectorAll(sel);
 
 const solarSystem = $('#solar-system');
 const planetsContainer = $('#planets-container');
+const labelsContainer = $('#labels-container');
 const fabAdd = $('#fab-add');
 const surveyModal = $('#survey-modal');
 const surveyForm = $('#survey-form');
@@ -316,14 +317,14 @@ function getRandomSpeed(level) {
 
 function getOrbitalRadii() {
   const minDim = Math.min(window.innerWidth, window.innerHeight);
-  // Base scale on Level 1 so Level 0 can overflow nicely off-screen
-  const requiredDim = BASE_RADII[1] * 2 + 60; // 500
+  // Base scale on Level 3 so Level 4 can overflow nicely off-screen
+  const requiredDim = BASE_RADII[3] * 2 + 60; // 500
   const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
   return {
-    3: BASE_RADII[3] * scale,
-    2: BASE_RADII[2] * scale,
     1: BASE_RADII[1] * scale,
-    0: BASE_RADII[0] * scale
+    2: BASE_RADII[2] * scale,
+    3: BASE_RADII[3] * scale,
+    4: BASE_RADII[4] * scale
   };
 }
 
@@ -526,28 +527,40 @@ function updateEmptyState() {
 // ═══════════════════════════════════════════
 
 function renderPlanets() {
-  if (!planetsContainer) return;
-
-  // Remove old planets
+  if (!planetsContainer || !labelsContainer) return;
   planetsContainer.innerHTML = '';
+  labelsContainer.innerHTML = '';
+
+  emptyState.style.display = people.length === 0 ? 'block' : 'none';
 
   people.forEach(person => {
+    // Planet Group
     const group = document.createElement('div');
     group.className = 'planet-group';
     group.dataset.id = person.id;
 
-    // Planet sphere
+    // The planet
     const planetEl = document.createElement('div');
     planetEl.className = 'planet';
     const grad = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
     planetEl.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
     planetEl.style.setProperty('--planet-glow', `${grad[0]}66`);
-    planetEl.textContent = getInitials(person.name);
+    planetEl.textContent = person.name.substring(0, 2).toUpperCase();
+
+    // Tap to edit
+    group.addEventListener('click', () => openEditModal(person.id));
+
+    group.appendChild(planetEl);
+    planetsContainer.appendChild(group);
+
+    // Label Group
+    const labelGroup = document.createElement('div');
+    labelGroup.className = 'label-group';
+    labelGroup.dataset.id = person.id;
 
     // Name label
     const label = document.createElement('div');
     label.className = 'planet-label';
-    // Split name onto two lines (first name, then rest)
     const nameParts = person.name.trim().split(' ');
     if (nameParts.length > 1) {
       label.innerHTML = `<strong>${nameParts[0]}</strong><br>${nameParts.slice(1).join(' ')}`;
@@ -560,13 +573,9 @@ function renderPlanets() {
     scoreBadge.className = 'planet-score';
     scoreBadge.textContent = `${person.totalScore} pkt`;
 
-    // Tap to edit
-    group.addEventListener('click', () => openEditModal(person.id));
-
-    group.appendChild(planetEl);
-    group.appendChild(label);
-    group.appendChild(scoreBadge);
-    planetsContainer.appendChild(group);
+    labelGroup.appendChild(label);
+    labelGroup.appendChild(scoreBadge);
+    labelsContainer.appendChild(labelGroup);
   });
 }
 
@@ -595,11 +604,26 @@ function startAnimation() {
         person.angle += person.speed * safeDt;
         if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
 
-        const radius = radii[person.level] || 170;
+        const radius = radii[person.level] || radii[4];
         const x = Math.cos(person.angle) * radius;
         const y = Math.sin(person.angle) * radius;
 
         group.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+        
+        // Find corresponding label and position it above the planet
+        const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
+        if (labelGroup) {
+          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px - 28px))`;
+        }
+      });
+      
+      // Update orbit rings sizes to match scale
+      [1, 2, 3, 4].forEach(level => {
+        const ring = document.querySelector(`.orbit-ring[data-level="${level}"]`);
+        if (ring) {
+          ring.style.width = `${radii[level] * 2}px`;
+          ring.style.height = `${radii[level] * 2}px`;
+        }
       });
     }
 
