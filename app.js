@@ -750,7 +750,7 @@ function startAnimation() {
 
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
-          const labelOffsetY = 38; // text displayed under the planet
+          const labelOffsetY = 0; // centered on the planet
           labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y + labelOffsetY}px))`;
         }
       });
