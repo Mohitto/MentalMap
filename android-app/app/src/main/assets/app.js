@@ -709,7 +709,7 @@ function renderPlanets() {
     // Score indicator
     const scoreBadge = document.createElement('div');
     scoreBadge.className = 'planet-score';
-    scoreBadge.textContent = `${person.totalScore} pkt`;
+    scoreBadge.textContent = `${person.totalScore}`;
 
     labelGroup.appendChild(label);
     labelGroup.appendChild(scoreBadge);
