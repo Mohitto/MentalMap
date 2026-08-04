@@ -348,6 +348,8 @@ function updateScorePreview() {
   const pct = Math.round((total / maxScore) * 100);
 
   if (scoreValue) scoreValue.textContent = total;
+  const maxScoreLabel = document.querySelector('.score-preview__max');
+  if (maxScoreLabel) maxScoreLabel.textContent = `/${maxScore}`;
   if (scoreLevel) {
     scoreLevel.textContent = `Poziom ${level}`;
     scoreLevel.className = `score-preview__level level-${level}`;
