@@ -403,7 +403,6 @@ function distributePlanets() {
 
         p.angle = phase + index * angleStep;
         p.speed = getRandomSpeed(level);
-        p.orbitOffset = getOrbitOffsetForScore(p.totalScore, level);
       });
   });
 
@@ -456,12 +455,6 @@ function getOrbitalRadii() {
   };
 }
 
-function getOrbitOffsetForScore(score, level) {
-  if (level === 3) return (34.5 - score) * 6;
-  if (level === 2) return (24.5 - score) * 6;
-  if (level === 1) return (14.5 - score) * 6;
-  return (4.5 - score) * 6;
-}
 
 // ═══════════════════════════════════════════
 // EVENT BINDING
@@ -770,7 +763,11 @@ function startAnimation() {
         person.angle += person.speed * safeDt;
         if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
 
-        const radius = (radii[person.level] ?? radii[0]) + (person.orbitOffset || 0);
+        const maxPossibleScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
+        const fraction = Math.max(0, Math.min(1, person.totalScore / maxPossibleScore));
+        const maxRadius = radii[0];
+        const minRadius = radii[3];
+        const radius = maxRadius - fraction * (maxRadius - minRadius);
         const x = Math.cos(person.angle) * radius;
         const y = Math.sin(person.angle) * radius;
 
