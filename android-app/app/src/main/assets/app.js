@@ -303,9 +303,7 @@ function getRandomSpeed(level) {
 
 function getOrbitalRadii() {
   const minDim = Math.min(window.innerWidth, window.innerHeight);
-  // Max required diameter for outer orbit (Level 1) is 240*2 = 480 + 80px (for planet sizes) = 560px
-  // We scale down based on 560 to ensure the outer planet is never cut off
-  const scale = minDim < 560 ? (minDim / 560) : 1;
+  const scale = minDim < 600 ? (minDim / 600) : 1;
   return {
     3: BASE_RADII[3] * scale,
     2: BASE_RADII[2] * scale,

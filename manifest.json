@@ -1,22 +1,21 @@
 {
-    "name": "MentalMap",
-    "short_name": "MentalMap",
-    "description": "Twoja mapa relacji w formie układu planetarnego",
-    "start_url": "/index.html",
-    "display": "standalone",
-    "background_color": "#0a0a1a",
-    "theme_color": "#0a0a1a",
-    "orientation": "portrait",
-    "icons": [
-        {
-            "src": "icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        }
-    ]
+  "name": "MentalMap",
+  "short_name": "MentalMap",
+  "start_url": "/MentalMap/",
+  "scope": "/MentalMap/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
