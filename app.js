@@ -259,26 +259,36 @@ function loadPeople() {
   if (saved) {
     try {
       people = JSON.parse(saved);
-      // MIGRATION: Recalculate levels for old data
-      let migrated = false;
-      people.forEach(p => {
-        const correctLevel = getLevel(p.totalScore);
-        if (p.level !== correctLevel) {
-          p.level = correctLevel;
-          p.speed = getRandomSpeed(correctLevel);
-          migrated = true;
-        }
-        if (typeof p.angle !== 'number') p.angle = Math.random() * Math.PI * 2;
-        if (typeof p.speed !== 'number') p.speed = getRandomSpeed(p.level);
-        if (typeof p.gradientIndex !== 'number') p.gradientIndex = Math.floor(Math.random() * PLANET_GRADIENTS.length);
-      });
-      if (migrated) savePeople();
     } catch (e) {
       console.error('Failed to load data:', e);
       people = [];
     }
   }
+  distributePlanets();
   renderPlanets();
+}
+
+function distributePlanets() {
+  const byLevel = { 1: [], 2: [], 3: [], 4: [] };
+  people.forEach(p => {
+    p.level = getLevel(p.totalScore);
+    if (byLevel[p.level]) byLevel[p.level].push(p);
+  });
+
+  const levelSpeeds = { 1: 0.12, 2: 0.08, 3: 0.05, 4: 0.03 };
+
+  for (let lvl in byLevel) {
+    const list = byLevel[lvl];
+    const count = list.length;
+    const speed = levelSpeeds[lvl] || 0.05;
+    
+    list.forEach((p, index) => {
+      p.angle = index * (Math.PI * 2 / count);
+      p.speed = speed;
+      if (typeof p.gradientIndex !== 'number') p.gradientIndex = Math.floor(Math.random() * PLANET_GRADIENTS.length);
+    });
+  }
+  savePeople();
 }
 
 function savePeople() {
@@ -490,6 +500,7 @@ function handleSubmit(e) {
     });
   }
 
+  distributePlanets();
   savePeople();
   renderPlanets();
   updateEmptyState();
@@ -505,6 +516,7 @@ function handleDelete(e) {
 
   if (confirm(`Czy na pewno chcesz usunąć ${person.name} z Twojej mapy?`)) {
     people = people.filter(p => p.id !== editingId);
+    distributePlanets();
     savePeople();
     renderPlanets();
     updateEmptyState();
@@ -610,10 +622,10 @@ function startAnimation() {
 
         group.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         
-        // Find corresponding label and position it above the planet
+        // Find corresponding label and position it exactly above the planet
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
-          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px - 28px))`;
+          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-100% + ${y}px - 22px))`;
         }
       });
       
