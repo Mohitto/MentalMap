@@ -270,13 +270,13 @@ function loadPeople() {
 }
 
 function distributePlanets() {
-  const byLevel = { 1: [], 2: [], 3: [], 4: [] };
+  const byLevel = { 3: [], 2: [], 1: [], 0: [] };
   people.forEach(p => {
     p.level = getLevel(p.totalScore);
     if (byLevel[p.level]) byLevel[p.level].push(p);
   });
 
-  const levelSpeeds = { 1: 0.12, 2: 0.08, 3: 0.05, 4: 0.03 };
+  const levelSpeeds = { 3: 0.12, 2: 0.08, 1: 0.05, 0: 0.03 };
 
   for (let lvl in byLevel) {
     const list = byLevel[lvl];
@@ -317,7 +317,7 @@ function getLevel(score) {
   if (score >= 25) return 3;
   if (score >= 15) return 2;
   if (score >= 5) return 1;
-  return 0; // Below 5 points (outside levels)
+  return 0;
 }
 
 function getRandomSpeed(level) {
@@ -328,14 +328,14 @@ function getRandomSpeed(level) {
 
 function getOrbitalRadii() {
   const minDim = Math.min(window.innerWidth, window.innerHeight);
-  // Base scale on Level 3 so Level 4 can overflow nicely off-screen
-  const requiredDim = BASE_RADII[3] * 2 + 60; // 500
+  // Base scale on Level 1 so Level 0 can overflow nicely off-screen
+  const requiredDim = BASE_RADII[1] * 2 + 60; // 500
   const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
   return {
-    1: BASE_RADII[1] * scale,
-    2: BASE_RADII[2] * scale,
     3: BASE_RADII[3] * scale,
-    4: BASE_RADII[4] * scale
+    2: BASE_RADII[2] * scale,
+    1: BASE_RADII[1] * scale,
+    0: BASE_RADII[0] * scale
   };
 }
 
@@ -617,21 +617,21 @@ function startAnimation() {
         person.angle += person.speed * safeDt;
         if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
 
-        const radius = radii[person.level] || radii[4];
+        const radius = radii[person.level] || radii[0];
         const x = Math.cos(person.angle) * radius;
         const y = Math.sin(person.angle) * radius;
 
         group.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         
-        // Find corresponding label and position it exactly ON the planet
+        // Find corresponding label and position it exactly ABOVE the planet
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
-          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-100% + ${y}px - 22px))`;
         }
       });
       
       // Update orbit rings sizes to match scale
-      [1, 2, 3, 4].forEach(level => {
+      [3, 2, 1, 0].forEach(level => {
         const ring = document.querySelector(`.orbit-ring[data-level="${level}"]`);
         if (ring) {
           ring.style.width = `${radii[level] * 2}px`;
