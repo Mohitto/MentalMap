@@ -111,9 +111,9 @@ const SURVEY_QUESTIONS = [
   {
     text: 'Czy ta osoba cię inspiruje?',
     answers: [
-      { points: 3, text: 'Inspiruje mnie do samych dobrych rzeczy.' },
-      { points: 2, text: 'Nie inspiruje mnie wcale.' },
-      { points: 1, text: 'Inspiruje mnie zarówno do dobrych, jak i złych rzeczy.' },
+      { points: 6, text: 'Inspiruje mnie do samych dobrych rzeczy.' },
+      { points: 4, text: 'Nie inspiruje mnie wcale.' },
+      { points: 2, text: 'Inspiruje mnie zarówno do dobrych, jak i złych rzeczy.' },
       { points: 0, text: 'Inspiruje mnie do złych rzeczy.' }
     ]
   }
@@ -344,7 +344,7 @@ function updateScorePreview() {
   total = Math.max(0, total + gatePenalty);
 
   const level = getLevel(total);
-  const maxScore = SURVEY_QUESTIONS.length * 3;
+  const maxScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
   const pct = Math.round((total / maxScore) * 100);
 
   if (scoreValue) scoreValue.textContent = total;
