@@ -123,9 +123,9 @@ const GATE_QUESTION = {
   text: 'Jak często spotykasz się z tą osobą w prawdziwym życiu?',
   answers: [
     { penalty: 0, text: 'Codziennie lub kilka razy w tygodniu.' },
-    { penalty: -5, text: 'Kilka razy w miesiącu.' },
-    { penalty: -10, text: 'Kilka razy w roku.' },
-    { penalty: -15, text: 'Brak kontaktu.' }
+    { penalty: -4, text: 'Raz lub kilka razy w miesiącu.' },
+    { penalty: -6, text: 'Raz lub kilka razy w roku.' },
+    { penalty: -10, text: 'Brak kontaktu.' }
   ]
 };
 
@@ -433,8 +433,8 @@ function getInitials(name) {
 
 function getLevel(score) {
   if (score >= 30) return 3;
-  if (score >= 18) return 2;
-  if (score >= 6) return 1;
+  if (score >= 20) return 2;
+  if (score >= 10) return 1;
   return 0;
 }
 
@@ -457,10 +457,10 @@ function getOrbitalRadii() {
 }
 
 function getOrbitOffsetForScore(score, level) {
-  if (level === 3) return (score - 33) * 6;
-  if (level === 2) return (score - 24) * 4;
-  if (level === 1) return (score - 12) * 3;
-  return (score - 3) * 8;
+  if (level === 3) return (34.5 - score) * 6;
+  if (level === 2) return (24.5 - score) * 6;
+  if (level === 1) return (14.5 - score) * 6;
+  return (4.5 - score) * 6;
 }
 
 // ═══════════════════════════════════════════
