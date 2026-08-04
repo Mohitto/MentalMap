@@ -104,7 +104,7 @@ const SURVEY_QUESTIONS = [
 const STORAGE_KEY = 'mentalmap_people';
 
 // Orbit radii for each level (pixels from center)
-const BASE_RADII = { 3: 100, 2: 170, 1: 240 };
+const BASE_RADII = { 3: 130, 2: 210, 1: 290, 0: 380 };
 
 // Planet gradient presets for visual variety
 const PLANET_GRADIENTS = [
@@ -147,6 +147,9 @@ const scoreValue = $('#score-value');
 const scoreLevel = $('#score-level');
 const scorePreview = $('.score-preview');
 const emptyState = $('#empty-state');
+const btnToggleView = $('#btn-toggle-view');
+const rankingView = $('#ranking-view');
+const rankingList = $('#ranking-list');
 
 // ═══════════════════════════════════════════
 // STATE
@@ -212,7 +215,8 @@ function buildSurveyForm() {
 
       label.appendChild(radio);
       label.appendChild(textSpan);
-      label.appendChild(pointsBadge);
+      // We don't append pointsBadge anymore so the user isn't biased
+      // label.appendChild(pointsBadge);
       optionsWrap.appendChild(label);
     });
 
@@ -290,9 +294,10 @@ function getInitials(name) {
 }
 
 function getLevel(score) {
-  if (score >= 20) return 3;
-  if (score >= 10) return 2;
-  return 1;
+  if (score >= 25) return 3;
+  if (score >= 15) return 2;
+  if (score >= 5) return 1;
+  return 0; // Below 5 points (outside levels)
 }
 
 function getRandomSpeed(level) {
@@ -305,11 +310,13 @@ function getOrbitalRadii() {
   const minDim = Math.min(window.innerWidth, window.innerHeight);
   // Max required diameter for outer orbit (Level 1) is 240*2 = 480 + 80px (for planet sizes) = 560px
   // We scale down based on 560 to ensure the outer planet is never cut off
-  const scale = minDim < 560 ? (minDim / 560) : 1;
+  const requiredDim = BASE_RADII[0] * 2 + 80;
+  const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
   return {
     3: BASE_RADII[3] * scale,
     2: BASE_RADII[2] * scale,
-    1: BASE_RADII[1] * scale
+    1: BASE_RADII[1] * scale,
+    0: BASE_RADII[0] * scale
   };
 }
 
@@ -347,6 +354,7 @@ function openAddModal() {
   btnDelete.style.display = 'none';
   resetScorePreview();
   surveyModal.setAttribute('aria-hidden', 'false');
+  history.pushState({ modalOpen: true }, '');
   // Focus name input after animation
   setTimeout(() => personNameInput?.focus(), 400);
 }
@@ -370,12 +378,25 @@ function openEditModal(id) {
 
   updateScorePreview();
   surveyModal.setAttribute('aria-hidden', 'false');
+  history.pushState({ modalOpen: true }, '');
 }
 
-function closeModal() {
+function closeModal(fromPopState = false) {
   surveyModal.setAttribute('aria-hidden', 'true');
   editingId = null;
+  if (!fromPopState && history.state && history.state.modalOpen) {
+    history.back();
+  }
 }
+
+// Handle hardware back button
+window.addEventListener('popstate', (e) => {
+  if (surveyModal.getAttribute('aria-hidden') === 'false') {
+    closeModal(true);
+  } else if (rankingView.style.display === 'block') {
+    toggleRankingView(true); // Close ranking view
+  }
+});
 
 function resetScorePreview() {
   if (scoreValue) scoreValue.textContent = '0';
@@ -519,7 +540,13 @@ function renderPlanets() {
     // Name label
     const label = document.createElement('div');
     label.className = 'planet-label';
-    label.textContent = person.name;
+    // Split name onto two lines (first name, then rest)
+    const nameParts = person.name.trim().split(' ');
+    if (nameParts.length > 1) {
+      label.innerHTML = `<strong>${nameParts[0]}</strong><br>${nameParts.slice(1).join(' ')}`;
+    } else {
+      label.innerHTML = `<strong>${person.name}</strong>`;
+    }
 
     // Score indicator
     const scoreBadge = document.createElement('div');
@@ -575,6 +602,70 @@ function startAnimation() {
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   animationFrameId = requestAnimationFrame(animate);
 }
+
+// ═══════════════════════════════════════════
+// RANKING VIEW
+// ═══════════════════════════════════════════
+
+function toggleRankingView(forceClose = false) {
+  const isHidden = rankingView.classList.contains('hidden');
+  
+  if (forceClose || !isHidden) {
+    rankingView.classList.add('hidden');
+    solarSystem.style.display = 'flex';
+    emptyState.style.display = people.length === 0 ? 'block' : 'none';
+  } else {
+    rankingView.classList.remove('hidden');
+    solarSystem.style.display = 'none';
+    emptyState.style.display = 'none';
+    renderRanking();
+  }
+}
+
+function renderRanking() {
+  rankingList.innerHTML = '';
+  
+  // Sort descending by score
+  const sortedPeople = [...people].sort((a, b) => b.totalScore - a.totalScore);
+  
+  if (sortedPeople.length === 0) {
+    rankingList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 40px;">Brak osób w rankingu.</div>';
+    return;
+  }
+  
+  sortedPeople.forEach(person => {
+    const item = document.createElement('div');
+    item.className = 'ranking-item';
+    
+    // Gradient colors
+    const colors = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
+    
+    // Initials
+    const initials = person.name.substring(0, 2).toUpperCase();
+    
+    // Level name
+    let levelName = 'Poza orbitami';
+    let levelColor = '#9ba1a6';
+    if (person.level === 3) { levelName = 'Poziom 3'; levelColor = 'var(--level-3-color)'; }
+    else if (person.level === 2) { levelName = 'Poziom 2'; levelColor = 'var(--level-2-color)'; }
+    else if (person.level === 1) { levelName = 'Poziom 1'; levelColor = 'var(--level-1-color)'; }
+    
+    item.innerHTML = `
+      <div class="ranking-avatar" style="background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
+        ${initials}
+      </div>
+      <div class="ranking-info">
+        <div class="ranking-name">${person.name}</div>
+        <div class="ranking-points" style="color: ${levelColor}; font-weight: 600;">${levelName}</div>
+      </div>
+      <div class="ranking-score">${person.totalScore} <span style="font-size:12px; font-weight:400; color:var(--text-muted);">pkt</span></div>
+    `;
+    
+    rankingList.appendChild(item);
+  });
+}
+
+btnToggleView.addEventListener('click', () => toggleRankingView());
 
 // ═══════════════════════════════════════════
 // BOOT
