@@ -130,7 +130,7 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.4';
+const APP_VERSION = 'v0.9.16';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 160, 1: 220, 0: 280 };
@@ -437,6 +437,23 @@ function getLevel(score) {
   return 0;
 }
 
+// Indicator questions: indices 2 (Q3), 5 (Q6), 11 (Q12)
+const INDICATOR_QUESTION_INDICES = [2, 5, 11];
+
+function getPlanetIndicators(answers) {
+  let plusCount = 0;
+  let minusCount = 0;
+
+  INDICATOR_QUESTION_INDICES.forEach(qi => {
+    if (!answers || answers[qi] === undefined) return;
+    const maxPts = Math.max(...SURVEY_QUESTIONS[qi].answers.map(a => a.points));
+    if (answers[qi] === maxPts) plusCount++;
+    else if (answers[qi] === 0) minusCount++;
+  });
+
+  return { plusCount, minusCount };
+}
+
 function getRandomSpeed(level) {
   const baseSpeed = LEVEL_SPEEDS[level] ?? LEVEL_SPEEDS[0];
   return baseSpeed + (Math.random() * 0.03 - 0.015);
@@ -704,7 +721,26 @@ function renderPlanets() {
     const grad = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
     planetEl.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
     planetEl.style.setProperty('--planet-glow', `${grad[0]}66`);
-    // No initials text — planets are clean colored circles
+
+    // +/- indicators from questions 3, 6, 12
+    const { plusCount, minusCount } = getPlanetIndicators(person.answers);
+    if (plusCount > 0 || minusCount > 0) {
+      const indicatorWrap = document.createElement('div');
+      indicatorWrap.className = 'planet-indicators';
+      for (let i = 0; i < plusCount; i++) {
+        const s = document.createElement('span');
+        s.className = 'planet-ind planet-ind--plus';
+        s.textContent = '+';
+        indicatorWrap.appendChild(s);
+      }
+      for (let i = 0; i < minusCount; i++) {
+        const s = document.createElement('span');
+        s.className = 'planet-ind planet-ind--minus';
+        s.textContent = '−';
+        indicatorWrap.appendChild(s);
+      }
+      planetEl.appendChild(indicatorWrap);
+    }
 
     // Tap to edit
     group.addEventListener('click', () => openEditModal(person.id));
