@@ -9,6 +9,35 @@
 // ═══════════════════════════════════════════
 
 const SURVEY_QUESTIONS = [
+  // ── Indicator questions (2, 3, 4) ──
+  {
+    text: 'Jak ta osoba reaguje, gdy mówisz o swoim małym sukcesie lub czymś dla ciebie ważnym?',
+    answers: [
+      { points: 3, text: 'Aktywnie dopytuje o szczegóły i skupia się na tym, co mówisz.' },
+      { points: 2, text: 'Reaguje krótko, ale pozytywnie (np. pisze "super", "gratulacje").' },
+      { points: 1, text: 'Ignoruje wiadomość, nie czyta jej lub odhacza, zostawiając jedynie reakcję (np. lajka).' },
+      { points: 0, text: 'Umniejsza znaczenie twojego sukcesu lub natychmiast przekierowuje rozmowę na siebie.' }
+    ]
+  },
+  {
+    text: 'Jak wygląda wsparcie w sytuacjach, gdy potrzebujesz pomocy?',
+    answers: [
+      { points: 3, text: 'Proponuje pomoc, zanim wprost o nią poprosisz.' },
+      { points: 2, text: 'Pomaga, gdy jasno i bezpośrednio sformułujesz prośbę.' },
+      { points: 1, text: 'Szuka wymówek, kalkuluje lub zgadza się, ale z widoczną niechęcią.' },
+      { points: 0, text: 'Całkowicie odcina się od problemu, nie daje żadnego wsparcia.' }
+    ]
+  },
+  {
+    text: 'Czy ta osoba cię inspiruje?',
+    answers: [
+      { points: 6, text: 'Inspiruje mnie do samych dobrych rzeczy.' },
+      { points: 4, text: 'Nie inspiruje mnie wcale.' },
+      { points: 2, text: 'Inspiruje mnie zarówno do dobrych, jak i złych rzeczy.' },
+      { points: 0, text: 'Inspiruje mnie do złych rzeczy.' }
+    ]
+  },
+  // ── Remaining questions ──
   {
     text: 'Kto inicjuje kontakt (pisze pierwszy, proponuje spotkania)?',
     answers: [
@@ -28,15 +57,6 @@ const SURVEY_QUESTIONS = [
     ]
   },
   {
-    text: 'Jak ta osoba reaguje, gdy mówisz o swoim małym sukcesie lub czymś dla ciebie ważnym?',
-    answers: [
-      { points: 3, text: 'Aktywnie dopytuje o szczegóły i skupia się na tym, co mówisz.' },
-      { points: 2, text: 'Reaguje krótko, ale pozytywnie (np. pisze "super", "gratulacje").' },
-      { points: 1, text: 'Ignoruje wiadomość, nie czyta jej lub odhacza, zostawiając jedynie reakcję (np. lajka).' },
-      { points: 0, text: 'Umniejsza znaczenie twojego sukcesu lub natychmiast przekierowuje rozmowę na siebie.' }
-    ]
-  },
-  {
     text: 'Jak rozwiązujecie różnice zdań i konflikty?',
     answers: [
       { points: 3, text: 'Logicznie analizujecie problem i wspólnie dochodzicie do obiektywnej prawdy.' },
@@ -52,24 +72,6 @@ const SURVEY_QUESTIONS = [
       { points: 2, text: 'Odpowiada z opóźnieniem, ale odnosi się do sedna sprawy.' },
       { points: 1, text: 'Odpisuje tylko czasem i nie zawsze odnosi się do sedna sprawy.' },
       { points: 0, text: 'Wiadomości są systematycznie ignorowane.' }
-    ]
-  },
-  {
-    text: 'Jak wygląda wsparcie w sytuacjach, gdy potrzebujesz pomocy?',
-    answers: [
-      { points: 3, text: 'Proponuje pomoc, zanim wprost o nią poprosisz.' },
-      { points: 2, text: 'Pomaga, gdy jasno i bezpośrednio sformułujesz prośbę.' },
-      { points: 1, text: 'Szuka wymówek, kalkuluje lub zgadza się, ale z widoczną niechęcią.' },
-      { points: 0, text: 'Całkowicie odcina się od problemu, nie daje żadnego wsparcia.' }
-    ]
-  },
-  {
-    text: 'Jak głęboko możecie porozmawiać (osobiste przemyślenia, prywatne sprawy)?',
-    answers: [
-      { points: 3, text: 'Swobodnie wymieniacie się myślami, bez obawy o ocenę.' },
-      { points: 2, text: 'Rozmawiacie ostrożnie, dawkując sobie prywatne informacje.' },
-      { points: 1, text: 'Tematy zatrzymują się na płytkich sprawach (np. pogoda, codzienne obowiązki).' },
-      { points: 0, text: 'Musisz ukrywać swoje poglądy i myśli z obawy przed atakiem lub krytyką.' }
     ]
   },
   {
@@ -107,15 +109,6 @@ const SURVEY_QUESTIONS = [
       { points: 1, text: 'Od 3 do 12 miesięcy.' },
       { points: 0, text: 'Mniej niż 3 miesiące.' }
     ]
-  },
-  {
-    text: 'Czy ta osoba cię inspiruje?',
-    answers: [
-      { points: 6, text: 'Inspiruje mnie do samych dobrych rzeczy.' },
-      { points: 4, text: 'Nie inspiruje mnie wcale.' },
-      { points: 2, text: 'Inspiruje mnie zarówno do dobrych, jak i złych rzeczy.' },
-      { points: 0, text: 'Inspiruje mnie do złych rzeczy.' }
-    ]
   }
 ];
 
@@ -130,7 +123,7 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.4';
+const APP_VERSION = 'v0.9.19';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 160, 1: 220, 0: 280 };
@@ -245,7 +238,7 @@ function buildSurveyForm() {
   gateCard.className = 'question-card';
 
   const gateTitle = document.createElement('h3');
-  gateTitle.textContent = `0. ${GATE_QUESTION.text}`;
+  gateTitle.textContent = `1. ${GATE_QUESTION.text}`;
   gateCard.appendChild(gateTitle);
 
   const gateOptions = document.createElement('div');
@@ -280,7 +273,7 @@ function buildSurveyForm() {
     card.className = 'question-card';
 
     const title = document.createElement('h3');
-    title.textContent = `${qIndex + 1}. ${q.text}`;
+    title.textContent = `${qIndex + 2}. ${q.text}`;
     card.appendChild(title);
 
     const optionsWrap = document.createElement('div');
@@ -373,6 +366,24 @@ function loadPeople() {
       people = [];
     }
   }
+  // ── Migrate old 12-question data to new 11-question order ──
+  // Old: [Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8,Q9,Q10,Q11,Q12] (indices 0-11)
+  // New: [Q3,Q6,Q12,Q1,Q2,Q4,Q5,Q8,Q9,Q10,Q11]  (Q7 deleted)
+  // Mapping: new[0]=old[2], new[1]=old[5], new[2]=old[11],
+  //          new[3]=old[0], new[4]=old[1], new[5]=old[3],
+  //          new[6]=old[4], new[7]=old[7], new[8]=old[8],
+  //          new[9]=old[9], new[10]=old[10]
+  const OLD_TO_NEW = [2, 5, 11, 0, 1, 3, 4, 7, 8, 9, 10];
+  people.forEach(p => {
+    if (p.answers && p.answers.length === 12 && !p._migrated) {
+      const oldAnswers = [...p.answers];
+      p.answers = OLD_TO_NEW.map(oldIdx => oldAnswers[oldIdx]);
+      // Recalculate totalScore without deleted Q7
+      const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
+      p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
+      p._migrated = true;
+    }
+  });
   distributePlanets();
   renderPlanets();
 }
@@ -435,6 +446,23 @@ function getLevel(score) {
   if (score >= 20) return 2;
   if (score >= 10) return 1;
   return 0;
+}
+
+// Indicator questions: indices 0, 1, 2 (first three survey questions)
+const INDICATOR_QUESTION_INDICES = [0, 1, 2];
+
+function getPlanetIndicators(answers) {
+  let plusCount = 0;
+  let minusCount = 0;
+
+  INDICATOR_QUESTION_INDICES.forEach(qi => {
+    if (!answers || answers[qi] === undefined) return;
+    const maxPts = Math.max(...SURVEY_QUESTIONS[qi].answers.map(a => a.points));
+    if (answers[qi] === maxPts) plusCount++;
+    else if (answers[qi] === 0) minusCount++;
+  });
+
+  return { plusCount, minusCount };
 }
 
 function getRandomSpeed(level) {
@@ -704,7 +732,27 @@ function renderPlanets() {
     const grad = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
     planetEl.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
     planetEl.style.setProperty('--planet-glow', `${grad[0]}66`);
-    // No initials text — planets are clean colored circles
+
+    // +/- indicators from questions 3, 6, 12
+    const { plusCount, minusCount } = getPlanetIndicators(person.answers);
+    if (plusCount > 0 || minusCount > 0) {
+      const totalIndicators = plusCount + minusCount;
+      const indicatorWrap = document.createElement('div');
+      indicatorWrap.className = 'planet-indicators' + (totalIndicators === 3 ? ' planet-indicators--pyramid' : '');
+      for (let i = 0; i < plusCount; i++) {
+        const s = document.createElement('span');
+        s.className = 'planet-ind planet-ind--plus';
+        s.textContent = '+';
+        indicatorWrap.appendChild(s);
+      }
+      for (let i = 0; i < minusCount; i++) {
+        const s = document.createElement('span');
+        s.className = 'planet-ind planet-ind--minus';
+        s.textContent = '−';
+        indicatorWrap.appendChild(s);
+      }
+      planetEl.appendChild(indicatorWrap);
+    }
 
     // Tap to edit
     group.addEventListener('click', () => openEditModal(person.id));
