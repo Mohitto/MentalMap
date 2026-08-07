@@ -1,8 +1,8 @@
-const CACHE_NAME = 'mentalmap-cache-v0.9.18';
+const CACHE_NAME = 'mentalmap-cache-v0.9.19';
 const ASSETS = [
   './index.html',
-  './style.css?v=0.9.18',
-  './app.js?v=0.9.18',
+  './style.css?v=0.9.19',
+  './app.js?v=0.9.19',
   './icon-192.png',
   './icon-512.png',
   './manifest.json'

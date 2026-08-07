@@ -123,7 +123,7 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.18';
+const APP_VERSION = 'v0.9.19';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 160, 1: 220, 0: 280 };
