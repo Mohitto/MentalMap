@@ -123,7 +123,7 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.19';
+const APP_VERSION = 'v0.9.20';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 160, 1: 220, 0: 280 };
@@ -442,9 +442,9 @@ function getInitials(name) {
 }
 
 function getLevel(score) {
-  if (score >= 30) return 3;
-  if (score >= 20) return 2;
-  if (score >= 10) return 1;
+  if (score >= 28) return 3;
+  if (score >= 18) return 2;
+  if (score >= 8) return 1;
   return 0;
 }
 
@@ -501,10 +501,62 @@ function bindEvents() {
 
   // Close modal on Escape key
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && surveyModal?.getAttribute('aria-hidden') === 'false') {
-      closeModal();
+    if (e.key === 'Escape') {
+      if (surveyModal?.getAttribute('aria-hidden') === 'false') closeModal();
+      if (infoModal?.getAttribute('aria-hidden') === 'false') closeInfoModal();
     }
   });
+
+  // Bind orbit ring clicks for level info
+  $$('.orbit-ring').forEach(ring => {
+    ring.addEventListener('click', (e) => {
+      if (e.target.closest('.planet-group')) return;
+      const level = parseInt(ring.dataset.level, 10);
+      if (level >= 1 && level <= 3) openInfoModal(level);
+    });
+  });
+
+  $('#btn-close-info')?.addEventListener('click', () => closeInfoModal());
+  $('#info-modal')?.addEventListener('click', e => {
+    if (e.target === $('#info-modal')) closeInfoModal();
+  });
+}
+
+// ═══════════════════════════════════════════
+// INFO MODAL
+// ═══════════════════════════════════════════
+
+const infoModal = $('#info-modal');
+const infoTitle = $('#info-title');
+const infoContentText = $('#info-content-text');
+
+const LEVEL_DESCRIPTIONS = {
+  1: 'To ludzie, którzy widzą Cię z zewnątrz — znają Twoje imię, wiedzą czym się zajmujesz, mają ogólny obraz tego, jaki jesteś. I to jest w porządku, że na tym się kończy. Nie muszą wiedzieć więcej, a Ty nie musisz im nic tłumaczyć — nie mają wpływu na to, co czujesz, ani na Twoje decyzje. To zdrowa, naturalna granica, nie chłód czy dystans z premedytacją.',
+  2: 'Tu wpuszczasz kogoś odrobinę głębiej — mówisz o tym, co dzieje się teraz w Twoim życiu, jakie masz plany, co myślisz o różnych sprawach. Ci ludzie mogą Cię wspierać, dawać szczerą informację zwrotną, czasem nawet delikatnie negocjować z Tobą granice — bo jest między Wami wzajemność, zbudowana na wspólnych chwilach i sprawdzonym w praktyce zaufaniu. Ale wciąż nie mają wglądu w to, co dzieje się głębiej w Tobie.',
+  3: 'Z tymi osobami możesz być całkowicie sobą — bez masek, bez skracania, bez tłumaczenia się. Dzielisz się tym, co Cię boli, czego się boisz, jaka jest Twoja historia i co Cię naprawdę porusza od wewnątrz. Ci ludzie mają realny wpływ na to, jak myślisz o samym sobie — mogą coś w Tobie poruszyć, uleczyć, albo pomóc Ci zobaczyć siebie w nowym świetle. To najbardziej wrażliwa przestrzeń Twojego życia.'
+};
+
+const LEVEL_COLORS = {
+  1: 'var(--level-1-color)',
+  2: 'var(--level-2-color)',
+  3: 'var(--level-3-color)'
+};
+
+function openInfoModal(level) {
+  if (!infoModal || !LEVEL_DESCRIPTIONS[level]) return;
+  infoTitle.textContent = `Poziom ${level}`;
+  infoTitle.style.color = LEVEL_COLORS[level];
+  infoContentText.textContent = LEVEL_DESCRIPTIONS[level];
+  infoModal.setAttribute('aria-hidden', 'false');
+  history.pushState({ infoModalOpen: true }, '');
+}
+
+function closeInfoModal(fromPopState = false) {
+  if (!infoModal) return;
+  infoModal.setAttribute('aria-hidden', 'true');
+  if (!fromPopState && history.state && history.state.infoModalOpen) {
+    history.back();
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -567,8 +619,10 @@ function closeModal(fromPopState = false) {
 window.addEventListener('popstate', (e) => {
   if (surveyModal.getAttribute('aria-hidden') === 'false') {
     closeModal(true);
+  } else if (infoModal?.getAttribute('aria-hidden') === 'false') {
+    closeInfoModal(true);
   } else if (!rankingView.classList.contains('hidden')) {
-    toggleRankingView(true); // Close ranking view
+    toggleRankingView(true);
   }
 });
 
@@ -799,7 +853,22 @@ function startAnimation() {
 
     // Don't process huge delta (e.g. tab was backgrounded)
     const safeDt = Math.min(dt, 0.1);
-    const radii = getOrbitalRadii();
+
+    // Calculate responsive scale
+    const minDim = Math.min(window.innerWidth, window.innerHeight);
+    const requiredDim = BASE_RADII[0] * 2 + 80;
+    const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
+    const outerRadius = BASE_RADII[0] * scale;  // radius for score 0
+    const innerRadius = BASE_RADII[3] * scale;   // radius for max score
+
+    // Max possible score from survey
+    const maxPossibleScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
+
+    // Convert a score to a radius (higher score = closer to sun = smaller radius)
+    const scoreToRadius = (score) => {
+      const fraction = Math.max(0, Math.min(1, score / maxPossibleScore));
+      return outerRadius - fraction * (outerRadius - innerRadius);
+    };
 
     const groups = planetsContainer?.querySelectorAll('.planet-group');
     if (groups) {
@@ -811,11 +880,7 @@ function startAnimation() {
         person.angle += person.speed * safeDt;
         if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
 
-        const maxPossibleScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
-        const fraction = Math.max(0, Math.min(1, person.totalScore / maxPossibleScore));
-        const maxRadius = radii[0];
-        const minRadius = radii[3];
-        const radius = maxRadius - fraction * (maxRadius - minRadius);
+        const radius = scoreToRadius(person.totalScore);
         const x = Math.cos(person.angle) * radius;
         const y = Math.sin(person.angle) * radius;
 
@@ -823,25 +888,31 @@ function startAnimation() {
 
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
-          const labelOffsetY = 0; // centered on the planet
-          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y + labelOffsetY}px))`;
+          labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         }
       });
 
-      // Update orbit rings sizes to match scale
+      // Size orbit rings based on score thresholds
+      // Level 3 ring: inner edge at score 28 (planets 28-36 inside)
+      // Level 2 ring: inner edge at score 18 (planets 18-27 inside)
+      // Level 1 ring: inner edge at score 8  (planets 8-17 inside)
+      // Level 0 ring: outer boundary at score 0
+      const ringThresholds = { 3: 28, 2: 18, 1: 8, 0: 0 };
+
       [3, 2, 1, 0].forEach(level => {
+        const r = scoreToRadius(ringThresholds[level]);
         const ring = document.querySelector(`.orbit-ring[data-level="${level}"]`);
         if (ring) {
-          ring.style.width = `${radii[level] * 2}px`;
-          ring.style.height = `${radii[level] * 2}px`;
+          ring.style.width = `${r * 2}px`;
+          ring.style.height = `${r * 2}px`;
         }
-        
+
         const label = document.querySelector(`.level-label--${level}`);
         if (label) {
-          label.style.top = `calc(50% - ${radii[level]}px)`;
+          label.style.top = `calc(50% - ${r}px)`;
           label.style.left = '50%';
           label.style.right = 'auto';
-          label.style.transform = 'translate(-50%, -100%)'; // Center horizontally, sit perfectly above the line
+          label.style.transform = 'translate(-50%, -100%)';
         }
       });
     }

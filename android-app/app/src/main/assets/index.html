@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.19">
+    <link rel="stylesheet" href="style.css?v=0.9.20">
 </head>
 <body>
     <script>
@@ -150,13 +150,28 @@
         </div>
     </div>
 
+    <!-- Info modal -->
+    <div id="info-modal" class="modal-overlay" aria-hidden="true">
+        <div class="info-container">
+            <div class="info-header">
+                <h2 id="info-title">Poziom</h2>
+                <button type="button" class="btn-icon" id="btn-close-info" aria-label="Zamknij">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="info-content" id="info-content-text"></div>
+        </div>
+    </div>
+
     <!-- Empty state message -->
     <div id="empty-state">
         <p>Dodaj swoją pierwszą relację</p>
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.19</div>
-    <script src="app.js?v=0.9.19"></script>
+    <div id="app-version">v0.9.20</div>
+    <script src="app.js?v=0.9.20"></script>
 </body>
 </html>
