@@ -123,7 +123,7 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.35';
+const APP_VERSION = 'v0.9.36';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 250, 1: 400, 0: 600 };
@@ -1062,8 +1062,19 @@ function setupMapNavigation() {
   // Apply initial transform
   applyMapTransform();
 
+  const isInteractiveBlocked = () => {
+    const ranking = document.getElementById('ranking-view');
+    const survey = document.getElementById('survey-modal');
+    const info = document.getElementById('info-modal');
+    if (ranking && !ranking.classList.contains('hidden')) return true;
+    if (survey && survey.getAttribute('aria-hidden') === 'false') return true;
+    if (info && info.getAttribute('aria-hidden') === 'false') return true;
+    return false;
+  };
+
   // ── Mouse wheel zoom ──
-  viewport.addEventListener('wheel', (e) => {
+  document.addEventListener('wheel', (e) => {
+    if (isInteractiveBlocked()) return;
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.92 : 1.08;
     mapScale = Math.max(MAP_SCALE_MIN, Math.min(MAP_SCALE_MAX, mapScale * delta));
@@ -1071,10 +1082,11 @@ function setupMapNavigation() {
   }, { passive: false });
 
   // ── Mouse drag pan (left button) ──
-  viewport.addEventListener('mousedown', (e) => {
+  document.addEventListener('mousedown', (e) => {
+    if (isInteractiveBlocked()) return;
     if (e.button !== 0) return;
     // Don't pan if clicking on interactive elements
-    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-toggle-view')) return;
+    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-top')) return;
     isPanning = true;
     panStartX = e.clientX;
     panStartY = e.clientY;
@@ -1103,8 +1115,9 @@ function setupMapNavigation() {
   let touchStartTime = 0;
   let touchMoved = false;
 
-  viewport.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-toggle-view')) return;
+  document.addEventListener('touchstart', (e) => {
+    if (isInteractiveBlocked()) return;
+    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-toggle-view') || e.target.closest('.btn-top')) return;
 
     if (e.touches.length === 1) {
       isPanning = true;
@@ -1124,7 +1137,8 @@ function setupMapNavigation() {
     }
   }, { passive: true });
 
-  viewport.addEventListener('touchmove', (e) => {
+  document.addEventListener('touchmove', (e) => {
+    if (isInteractiveBlocked()) return;
     if (e.target.closest('.planet-group')) return;
 
     if (isPanning && e.touches.length === 1) {
@@ -1149,7 +1163,7 @@ function setupMapNavigation() {
     }
   }, { passive: false });
 
-  viewport.addEventListener('touchend', (e) => {
+  document.addEventListener('touchend', (e) => {
     if (e.touches.length < 2) pinchActive = false;
     if (e.touches.length === 0) {
       isPanning = false;
@@ -1158,13 +1172,16 @@ function setupMapNavigation() {
   }, { passive: true });
 
   // ── Tilt with right-click drag (desktop) ──
-  viewport.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('contextmenu', (e) => {
+    if (!isInteractiveBlocked()) e.preventDefault();
+  });
 
   let isTilting = false;
   let tiltStartY = 0;
   let tiltStartVal = 0;
 
-  viewport.addEventListener('mousedown', (e) => {
+  document.addEventListener('mousedown', (e) => {
+    if (isInteractiveBlocked()) return;
     if (e.button === 2) { // right click
       isTilting = true;
       tiltStartY = e.clientY;
