@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.20">
+    <link rel="stylesheet" href="style.css?v=0.9.21">
 </head>
 <body>
     <script>
@@ -27,13 +27,16 @@
     <!-- Stars background layer -->
     <div id="stars-bg"></div>
 
+    <!-- Map viewport for pan/zoom/tilt -->
+    <div id="map-viewport">
+
     <!-- Main solar system view -->
     <div id="solar-system">
-        <!-- Orbital rings -->
-        <div class="orbit-ring" data-level="3"></div>
-        <div class="orbit-ring" data-level="2"></div>
-        <div class="orbit-ring" data-level="1"></div>
+        <!-- Orbital rings: outer first (bottom), inner last (top) for correct click handling -->
         <div class="orbit-ring" data-level="0"></div>
+        <div class="orbit-ring" data-level="1"></div>
+        <div class="orbit-ring" data-level="2"></div>
+        <div class="orbit-ring" data-level="3"></div>
 
         <!-- Sun (You) -->
         <div id="sun">
@@ -54,6 +57,8 @@
         <span class="level-label level-label--2">Poziom 2</span>
         <span class="level-label level-label--1">Poziom 1</span>
     </div>
+
+    </div><!-- /map-viewport -->
 
     <!-- Ranking View -->
     <div id="ranking-view" class="hidden">
@@ -171,7 +176,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.20</div>
-    <script src="app.js?v=0.9.20"></script>
+    <div id="app-version">v0.9.21</div>
+    <script src="app.js?v=0.9.21"></script>
 </body>
 </html>

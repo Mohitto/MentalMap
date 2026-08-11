@@ -123,10 +123,10 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.20';
+const APP_VERSION = 'v0.9.21';
 
-// Orbit radii for each level (pixels from center)
-const BASE_RADII = { 3: 100, 2: 160, 1: 220, 0: 280 };
+// Orbit radii for each level (pixels from center) — larger for map-style navigation
+const BASE_RADII = { 3: 200, 2: 340, 1: 480, 0: 600 };
 
 const LEVEL_SPEEDS = { 3: 0.18, 2: 0.13, 1: 0.09, 0: 0.06 };
 
@@ -193,6 +193,19 @@ function updateColorPickerSelection(index) {
 }
 let animationFrameId = null;
 let lastTimestamp = 0;
+
+// Pan / Zoom / Tilt state
+let mapScale = 0.55;
+let mapPanX = 0;
+let mapPanY = 0;
+let mapTiltX = 0;
+const MAP_SCALE_MIN = 0.25;
+const MAP_SCALE_MAX = 3;
+let isPanning = false;
+let panStartX = 0, panStartY = 0;
+let panStartMapX = 0, panStartMapY = 0;
+let lastPinchDist = 0;
+let pinchActive = false;
 
 // ═══════════════════════════════════════════
 // INITIALIZATION
@@ -510,11 +523,15 @@ function bindEvents() {
   // Bind orbit ring clicks for level info
   $$('.orbit-ring').forEach(ring => {
     ring.addEventListener('click', (e) => {
+      e.stopPropagation(); // prevent outer rings from catching inner ring clicks
       if (e.target.closest('.planet-group')) return;
       const level = parseInt(ring.dataset.level, 10);
       if (level >= 1 && level <= 3) openInfoModal(level);
     });
   });
+
+  // Setup map viewport pan/zoom/tilt
+  setupMapNavigation();
 
   $('#btn-close-info')?.addEventListener('click', () => closeInfoModal());
   $('#info-modal')?.addEventListener('click', e => {
@@ -1007,6 +1024,147 @@ function renderRanking() {
 }
 
 btnToggleView.addEventListener('click', () => toggleRankingView());
+
+// ═══════════════════════════════════════════
+// MAP NAVIGATION (Pan / Zoom / Tilt)
+// ═══════════════════════════════════════════
+
+function applyMapTransform() {
+  const viewport = document.getElementById('map-viewport');
+  if (!viewport) return;
+  viewport.style.transform =
+    `translate(${mapPanX}px, ${mapPanY}px) scale(${mapScale}) rotateX(${mapTiltX}deg)`;
+}
+
+function setupMapNavigation() {
+  const viewport = document.getElementById('map-viewport');
+  if (!viewport) return;
+
+  // Apply initial transform
+  applyMapTransform();
+
+  // ── Mouse wheel zoom ──
+  viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.92 : 1.08;
+    mapScale = Math.max(MAP_SCALE_MIN, Math.min(MAP_SCALE_MAX, mapScale * delta));
+    applyMapTransform();
+  }, { passive: false });
+
+  // ── Mouse drag pan (left button) ──
+  viewport.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    // Don't pan if clicking on interactive elements
+    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-toggle-view')) return;
+    isPanning = true;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panStartMapX = mapPanX;
+    panStartMapY = mapPanY;
+    viewport.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    mapPanX = panStartMapX + (e.clientX - panStartX);
+    mapPanY = panStartMapY + (e.clientY - panStartY);
+    applyMapTransform();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isPanning) {
+      isPanning = false;
+      const vp = document.getElementById('map-viewport');
+      if (vp) vp.style.cursor = '';
+    }
+  });
+
+  // ── Touch: pan (1 finger) + pinch zoom (2 fingers) ──
+  let touchStartTime = 0;
+  let touchMoved = false;
+
+  viewport.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-toggle-view')) return;
+
+    if (e.touches.length === 1) {
+      isPanning = true;
+      pinchActive = false;
+      panStartX = e.touches[0].clientX;
+      panStartY = e.touches[0].clientY;
+      panStartMapX = mapPanX;
+      panStartMapY = mapPanY;
+      touchStartTime = Date.now();
+      touchMoved = false;
+    } else if (e.touches.length === 2) {
+      isPanning = false;
+      pinchActive = true;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist = Math.sqrt(dx * dx + dy * dy);
+    }
+  }, { passive: true });
+
+  viewport.addEventListener('touchmove', (e) => {
+    if (e.target.closest('.planet-group')) return;
+
+    if (isPanning && e.touches.length === 1) {
+      const dx = e.touches[0].clientX - panStartX;
+      const dy = e.touches[0].clientY - panStartY;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) touchMoved = true;
+      mapPanX = panStartMapX + dx;
+      mapPanY = panStartMapY + dy;
+      applyMapTransform();
+      e.preventDefault();
+    } else if (pinchActive && e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (lastPinchDist > 0) {
+        const scaleDelta = dist / lastPinchDist;
+        mapScale = Math.max(MAP_SCALE_MIN, Math.min(MAP_SCALE_MAX, mapScale * scaleDelta));
+        applyMapTransform();
+      }
+      lastPinchDist = dist;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  viewport.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pinchActive = false;
+    if (e.touches.length === 0) {
+      isPanning = false;
+      // If it was a quick tap without dragging, let click events pass through
+    }
+  }, { passive: true });
+
+  // ── Tilt with right-click drag (desktop) ──
+  viewport.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  let isTilting = false;
+  let tiltStartY = 0;
+  let tiltStartVal = 0;
+
+  viewport.addEventListener('mousedown', (e) => {
+    if (e.button === 2) { // right click
+      isTilting = true;
+      tiltStartY = e.clientY;
+      tiltStartVal = mapTiltX;
+      e.preventDefault();
+    }
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isTilting) return;
+    const dy = e.clientY - tiltStartY;
+    mapTiltX = Math.max(0, Math.min(60, tiltStartVal + dy * 0.3));
+    applyMapTransform();
+  });
+
+  window.addEventListener('mouseup', (e) => {
+    if (e.button === 2) isTilting = false;
+  });
+}
 
 // ═══════════════════════════════════════════
 // BOOT
