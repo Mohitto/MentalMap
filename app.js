@@ -123,7 +123,7 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.32';
+const APP_VERSION = 'v0.9.35';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 250, 1: 400, 0: 600 };
@@ -642,7 +642,7 @@ window.addEventListener('popstate', (e) => {
   } else if (!rankingView.classList.contains('hidden')) {
     toggleRankingView(true);
   }
-
+});
   const btnIncognito = document.getElementById('btn-incognito');
   if (btnIncognito) {
     btnIncognito.addEventListener('click', () => {
@@ -650,8 +650,6 @@ window.addEventListener('popstate', (e) => {
       btnIncognito.classList.toggle('active-mode');
     });
   }
-});
-
 function resetScorePreview() {
   if (scoreValue) scoreValue.textContent = '--';
   if (scoreLevel) {
