@@ -123,10 +123,10 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.21';
+const APP_VERSION = 'v0.9.23';
 
-// Orbit radii for each level (pixels from center) — larger for map-style navigation
-const BASE_RADII = { 3: 200, 2: 340, 1: 480, 0: 600 };
+// Orbit radii for each level (pixels from center) — 2x larger for map-style navigation
+const BASE_RADII = { 3: 400, 2: 680, 1: 960, 0: 1200 };
 
 const LEVEL_SPEEDS = { 3: 0.18, 2: 0.13, 1: 0.09, 0: 0.06 };
 
@@ -871,12 +871,9 @@ function startAnimation() {
     // Don't process huge delta (e.g. tab was backgrounded)
     const safeDt = Math.min(dt, 0.1);
 
-    // Calculate responsive scale
-    const minDim = Math.min(window.innerWidth, window.innerHeight);
-    const requiredDim = BASE_RADII[0] * 2 + 80;
-    const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
-    const outerRadius = BASE_RADII[0] * scale;  // radius for score 0
-    const innerRadius = BASE_RADII[3] * scale;   // radius for max score
+    // No responsive auto-scaling here anymore — rely on mapScale from the navigation system
+    const outerRadius = BASE_RADII[0];  // radius for score 0
+    const innerRadius = BASE_RADII[3];  // radius for max score
 
     // Max possible score from survey
     const maxPossibleScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
