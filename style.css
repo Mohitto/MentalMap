@@ -1108,27 +1108,15 @@ html, body {
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 @media (max-width: 380px) {
-  .orbit-ring[data-level="3"] { width: 160px; height: 160px; }
-  .orbit-ring[data-level="2"] { width: 280px; height: 280px; }
-  .orbit-ring[data-level="1"] { width: 400px; height: 400px; }
-
   :root { --planet-size: 19px; }
 
   .planet { font-size: 12px; }
   .planet-label { font-size: 8px; max-width: 65px; }
-
-  .level-label--3 { right: calc(50% - 95px); top: calc(50% - 70px); }
-  .level-label--2 { right: calc(50% - 155px); top: calc(50% - 130px); }
-  .level-label--1 { right: calc(50% - 215px); top: calc(50% - 190px); }
 }
 
 @media (max-height: 600px) {
   .sun-core { width: 44px; height: 44px; }
   .sun-glow { width: 90px; height: 90px; }
-
-  .orbit-ring[data-level="3"] { width: 140px; height: 140px; }
-  .orbit-ring[data-level="2"] { width: 240px; height: 240px; }
-  .orbit-ring[data-level="1"] { width: 340px; height: 340px; }
 }
 
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
