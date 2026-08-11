@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.31">
+    <link rel="stylesheet" href="style.css?v=0.9.33">
 </head>
 <body>
     <script>
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Toggle View Button -->
-    <button id="btn-toggle-view" class="btn-toggle-view">
+    <button id="btn-toggle-view" class="btn-top" style="right: 24px;" aria-label="Ranking">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="8" y1="6" x2="21" y2="6"></line>
             <line x1="8" y1="12" x2="21" y2="12"></line>
@@ -75,6 +75,14 @@
             <line x1="3" y1="6" x2="3.01" y2="6"></line>
             <line x1="3" y1="12" x2="3.01" y2="12"></line>
             <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+    </button>
+
+    <!-- Incognito Button -->
+    <button id="btn-incognito" class="btn-top" style="right: 76px;" aria-label="Tryb Incognito">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
         </svg>
     </button>
 
@@ -176,7 +184,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.31</div>
-    <script src="app.js?v=0.9.31"></script>
+    <div id="app-version">v0.9.33</div>
+    <script src="app.js?v=0.9.33"></script>
 </body>
 </html>

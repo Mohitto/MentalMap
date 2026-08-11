@@ -488,10 +488,9 @@ html, body {
    TOGGLE VIEW BUTTON & RANKING
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-.btn-toggle-view {
+.btn-top {
   position: fixed;
   top: 24px;
-  right: 24px;
   width: 44px;
   height: 44px;
   border-radius: 12px;
@@ -508,9 +507,27 @@ html, body {
   transition: all 0.2s ease;
 }
 
-.btn-toggle-view:active {
+.btn-top:active {
   transform: scale(0.9);
   background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-top.active-mode {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Incognito mode styles */
+body.incognito-mode .planet-label {
+  filter: blur(4px);
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+body.incognito-mode .ranking-name {
+  filter: blur(4px);
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
 }
 
 #ranking-view {

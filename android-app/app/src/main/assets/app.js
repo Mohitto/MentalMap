@@ -233,6 +233,7 @@ function buildSurveyForm() {
 
   questionsContainer.innerHTML = '';
 
+
   const picker = document.getElementById('color-picker');
   if (picker) {
     picker.innerHTML = '';
@@ -641,6 +642,14 @@ window.addEventListener('popstate', (e) => {
   } else if (!rankingView.classList.contains('hidden')) {
     toggleRankingView(true);
   }
+
+  const btnIncognito = document.getElementById('btn-incognito');
+  if (btnIncognito) {
+    btnIncognito.addEventListener('click', () => {
+      document.body.classList.toggle('incognito-mode');
+      btnIncognito.classList.toggle('active-mode');
+    });
+  }
 });
 
 function resetScorePreview() {
@@ -808,8 +817,8 @@ function renderPlanets() {
     const { plusCount, minusCount } = getPlanetIndicators(person.answers);
     let customGlow = null;
     
-    if (plusCount === 1 && minusCount === 0) customGlow = '0 0 8px 2px #4ade80'; // +
-    else if (plusCount === 2 && minusCount === 0) customGlow = '0 0 12px 4px #4ade80'; // ++
+    if (plusCount === 1 && minusCount === 0) customGlow = '0 0 8px 2px #86efac'; // +
+    else if (plusCount === 2 && minusCount === 0) customGlow = '0 0 12px 4px #86efac'; // ++
     else if (plusCount === 3 && minusCount === 0) customGlow = '0 0 12px 4px #16a34a'; // +++
     else if (plusCount === 0 && minusCount === 1) customGlow = '0 0 8px 2px #ef4444'; // -
     else if (plusCount === 0 && minusCount === 2) customGlow = '0 0 8px 2px #000000'; // --
