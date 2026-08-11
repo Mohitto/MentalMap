@@ -123,10 +123,10 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.28';
+const APP_VERSION = 'v0.9.30';
 
 // Orbit radii for each level (pixels from center)
-const BASE_RADII = { 3: 50, 2: 225, 1: 500, 0: 700 };
+const BASE_RADII = { 3: 75, 2: 250, 1: 500, 0: 700 };
 
 const LEVEL_SPEEDS = { 3: 0.18, 2: 0.13, 1: 0.09, 0: 0.06 };
 
@@ -875,13 +875,37 @@ function startAnimation() {
     const outerRadius = BASE_RADII[0];  // radius for score 0
     const innerRadius = BASE_RADII[3];  // radius for max score
 
-    // Max possible score from survey
-    const maxPossibleScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
-
-    // Convert a score to a radius (higher score = closer to sun = smaller radius)
+    // Map score strictly into its level's visual bounds
     const scoreToRadius = (score) => {
-      const fraction = Math.max(0, Math.min(1, score / maxPossibleScore));
-      return outerRadius - fraction * (outerRadius - innerRadius);
+      const level = getLevel(score);
+      const padding = 16; // Prevent planets from touching the ring lines
+
+      let minR, maxR, minScore, maxScore;
+      if (level === 3) {
+        minR = 25; // Close to sun
+        maxR = Math.max(minR + 1, BASE_RADII[3] - padding);
+        minScore = 28;
+        maxScore = 36;
+      } else if (level === 2) {
+        minR = BASE_RADII[3] + padding;
+        maxR = BASE_RADII[2] - padding;
+        minScore = 18;
+        maxScore = 27;
+      } else if (level === 1) {
+        minR = BASE_RADII[2] + padding;
+        maxR = BASE_RADII[1] - padding;
+        minScore = 8;
+        maxScore = 17;
+      } else {
+        minR = BASE_RADII[1] + padding;
+        maxR = BASE_RADII[0] - padding;
+        minScore = 0;
+        maxScore = 7;
+      }
+
+      // Inverse map: higher score -> lower radius (closer to sun)
+      const fraction = (score - minScore) / (maxScore - minScore || 1);
+      return maxR - fraction * (maxR - minR);
     };
 
     const groups = planetsContainer?.querySelectorAll('.planet-group');
@@ -906,15 +930,9 @@ function startAnimation() {
         }
       });
 
-      // Size orbit rings based on score thresholds
-      // Level 3 ring: inner edge at score 28 (planets 28-36 inside)
-      // Level 2 ring: inner edge at score 18 (planets 18-27 inside)
-      // Level 1 ring: inner edge at score 8  (planets 8-17 inside)
-      // Level 0 ring: outer boundary at score 0
-      const ringThresholds = { 3: 28, 2: 18, 1: 8, 0: 0 };
-
+      // Draw orbital rings based on exact BASE_RADII values
       [3, 2, 1, 0].forEach(level => {
-        const r = scoreToRadius(ringThresholds[level]);
+        const r = BASE_RADII[level];
         const ring = document.querySelector(`.orbit-ring[data-level="${level}"]`);
         if (ring) {
           ring.style.width = `${r * 2}px`;
