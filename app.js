@@ -123,7 +123,7 @@ const GATE_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.31';
+const APP_VERSION = 'v0.9.32';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 250, 1: 400, 0: 600 };
@@ -804,25 +804,22 @@ function renderPlanets() {
     planetEl.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
     planetEl.style.setProperty('--planet-glow', `${grad[0]}66`);
 
-    // +/- indicators from questions 3, 6, 12
+    // +/- indicators converted to background glow
     const { plusCount, minusCount } = getPlanetIndicators(person.answers);
-    if (plusCount > 0 || minusCount > 0) {
-      const totalIndicators = plusCount + minusCount;
-      const indicatorWrap = document.createElement('div');
-      indicatorWrap.className = 'planet-indicators' + (totalIndicators === 3 ? ' planet-indicators--pyramid' : '');
-      for (let i = 0; i < plusCount; i++) {
-        const s = document.createElement('span');
-        s.className = 'planet-ind planet-ind--plus';
-        s.textContent = '+';
-        indicatorWrap.appendChild(s);
-      }
-      for (let i = 0; i < minusCount; i++) {
-        const s = document.createElement('span');
-        s.className = 'planet-ind planet-ind--minus';
-        s.textContent = '−';
-        indicatorWrap.appendChild(s);
-      }
-      planetEl.appendChild(indicatorWrap);
+    let customGlow = null;
+    
+    if (plusCount === 1 && minusCount === 0) customGlow = '0 0 8px 2px #4ade80'; // +
+    else if (plusCount === 2 && minusCount === 0) customGlow = '0 0 12px 4px #4ade80'; // ++
+    else if (plusCount === 3 && minusCount === 0) customGlow = '0 0 12px 4px #16a34a'; // +++
+    else if (plusCount === 0 && minusCount === 1) customGlow = '0 0 8px 2px #ef4444'; // -
+    else if (plusCount === 0 && minusCount === 2) customGlow = '0 0 8px 2px #000000'; // --
+    else if (plusCount === 0 && minusCount === 3) customGlow = '0 0 12px 4px #000000'; // ---
+    else if (plusCount === 1 && minusCount === 1) customGlow = '0 0 8px 2px #f97316'; // +-
+    else if (plusCount === 2 && minusCount === 1) customGlow = '0 0 8px 2px #166534'; // ++-
+    else if (plusCount === 1 && minusCount === 2) customGlow = '0 0 12px 4px #f97316'; // --+ (user wrote --+, which implies 2 minus 1 plus)
+    
+    if (customGlow) {
+      planetEl.style.setProperty('--custom-glow', customGlow);
     }
 
     // Tap to edit
