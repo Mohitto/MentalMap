@@ -516,18 +516,16 @@ html, body {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Incognito mode styles */
-body.incognito-mode .planet-label {
-  filter: blur(4px);
-  opacity: 0.6;
-  pointer-events: none;
-  user-select: none;
-}
+/* Incognito mode styles (Censored blocks) */
+body.incognito-mode .planet-label,
 body.incognito-mode .ranking-name {
-  filter: blur(4px);
-  opacity: 0.6;
+  color: transparent !important;
+  text-shadow: none !important;
+  background-color: #475569 !important;
+  border-radius: 4px;
   pointer-events: none;
   user-select: none;
+  filter: none;
 }
 
 #ranking-view {
