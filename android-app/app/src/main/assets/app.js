@@ -168,12 +168,13 @@ const SURVEY_QUESTIONS = [
 ];
 
 const GATE_QUESTION = {
-  text: 'Jak często się widzicie?',
+  text: 'Jak często spotykasz się z tą osobą w prawdziwym życiu?',
   answers: [
-    { points: 3, text: 'Przynajmniej raz w tygodniu.' },
-    { points: 2, text: 'Przynajmniej raz w miesiącu.' },
-    { points: 1, text: 'Przynajmniej raz w roku.' },
-    { points: 0, text: 'Mniej niż raz w roku.' }
+    { penalty: 0, text: 'Codziennie lub kilka razy w tygodniu.' },
+    { penalty: -4, text: 'Raz lub kilka razy w miesiącu.' },
+    { penalty: -6, text: 'Raz lub kilka razy w roku.' },
+    { penalty: -10, text: 'Brak kontaktu.' },
+    { penalty: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
   ]
 };
 
@@ -189,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.38';
+const APP_VERSION = 'v0.9.39';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 250, 1: 400, 0: 600 };
@@ -331,7 +332,7 @@ function buildSurveyForm() {
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'gate';
-    radio.value = answer.points;
+    radio.value = answer.penalty;
     radio.required = true;
     radio.addEventListener('change', updateScorePreview);
 
@@ -450,15 +451,14 @@ function updateScorePreview() {
     return;
   }
 
-  // Add gate points and clamp to 0
-  const gatePoints = parseInt(gateChecked.value, 10);
-  total = Math.max(0, total + gatePoints);
+  // Apply gate penalty and clamp to 0
+  const gatePenalty = parseInt(gateChecked.value, 10);
+  total = Math.max(0, total + gatePenalty);
 
   const level = getLevel(total);
   const secretCap = secretChecked ? parseInt(secretChecked.value, 10) : 3;
   const cappedLevel = Math.min(level, secretCap);
-  const gateMax = Math.max(...GATE_QUESTION.answers.map(a => a.points));
-  const maxScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0) + gateMax;
+  const maxScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
   const pct = Math.round((total / maxScore) * 100);
 
   if (scoreValue) scoreValue.textContent = total;
@@ -515,14 +515,8 @@ function loadPeople() {
     }
     if (p.secretCap === undefined) p.secretCap = 3;
   });
-  // ── Migrate gate from penalty system to points system (v0.9.38) ──
-  const PENALTY_TO_POINTS = { 0: 3, '-4': 2, '-6': 1, '-10': 0 };
+  // ── Recalculate scores with current thresholds ──
   people.forEach(p => {
-    if (!p._migratedGate && p.gateAnswer !== undefined && p.gateAnswer <= 0) {
-      p.gateAnswer = PENALTY_TO_POINTS[String(p.gateAnswer)] ?? 0;
-      p._migratedGate = true;
-    }
-    // Recalculate totalScore with new gate points system
     if (p.answers) {
       const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
       p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
@@ -872,9 +866,9 @@ function handleSubmit(e) {
     }
   }
 
-  // Add gate points and clamp
-  const gatePoints = gateChecked ? parseInt(gateChecked.value, 10) : 0;
-  totalScore = Math.max(0, totalScore + gatePoints);
+  // Apply gate penalty and clamp
+  const gatePenalty = gateChecked ? parseInt(gateChecked.value, 10) : 0;
+  totalScore = Math.max(0, totalScore + gatePenalty);
 
   const level = getLevel(totalScore);
   const cappedLevel = Math.min(level, secretCap);
@@ -885,7 +879,7 @@ function handleSubmit(e) {
     if (person) {
       person.name = name;
       person.answers = answers;
-      person.gateAnswer = gatePoints;
+      person.gateAnswer = gatePenalty;
       person.totalScore = totalScore;
       person.gradientIndex = selectedGradientIndex;
       person.secretCap = secretCap;
@@ -900,7 +894,7 @@ function handleSubmit(e) {
       id: uuid(),
       name,
       answers,
-      gateAnswer: gatePoints,
+      gateAnswer: gatePenalty,
       totalScore,
       level: cappedLevel,
       secretCap,
