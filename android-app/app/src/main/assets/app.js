@@ -1,7 +1,7 @@
 /**
  * MentalMap — Planetary Relationship Mapper
  * Maps your relationships as planets orbiting you (the Sun).
- * Scoring: 0-9 pts = Level 1 (farthest), 10-19 = Level 2, 20-30 = Level 3 (closest).
+ * Scoring: 0-11 = Level 0, 12-24 = Level 1, 25-37 = Level 2, 38-50 = Level 3 (closest).
  */
 
 // ═══════════════════════════════════════════
@@ -9,14 +9,15 @@
 // ═══════════════════════════════════════════
 
 const SURVEY_QUESTIONS = [
-  // ── Indicator questions (2, 3, 4) ──
+  // ── Indicator questions (indices 0, 1, 2) ──
   {
     text: 'Jak ta osoba reaguje, gdy mówisz o swoim małym sukcesie lub czymś dla ciebie ważnym?',
     answers: [
       { points: 3, text: 'Aktywnie dopytuje o szczegóły i skupia się na tym, co mówisz.' },
       { points: 2, text: 'Reaguje krótko, ale pozytywnie (np. pisze "super", "gratulacje").' },
       { points: 1, text: 'Ignoruje wiadomość, nie czyta jej lub odhacza, zostawiając jedynie reakcję (np. lajka).' },
-      { points: 0, text: 'Umniejsza znaczenie twojego sukcesu lub natychmiast przekierowuje rozmowę na siebie.' }
+      { points: 0, text: 'Umniejsza znaczenie twojego sukcesu lub natychmiast przekierowuje rozmowę na siebie.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -25,7 +26,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Proponuje pomoc, zanim wprost o nią poprosisz.' },
       { points: 2, text: 'Pomaga, gdy jasno i bezpośrednio sformułujesz prośbę.' },
       { points: 1, text: 'Szuka wymówek, kalkuluje lub zgadza się, ale z widoczną niechęcią.' },
-      { points: 0, text: 'Całkowicie odcina się od problemu, nie daje żadnego wsparcia.' }
+      { points: 0, text: 'Całkowicie odcina się od problemu, nie daje żadnego wsparcia.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -34,7 +36,8 @@ const SURVEY_QUESTIONS = [
       { points: 6, text: 'Inspiruje mnie do samych dobrych rzeczy.' },
       { points: 4, text: 'Nie inspiruje mnie wcale.' },
       { points: 2, text: 'Inspiruje mnie zarówno do dobrych, jak i złych rzeczy.' },
-      { points: 0, text: 'Inspiruje mnie do złych rzeczy.' }
+      { points: 0, text: 'Inspiruje mnie do złych rzeczy.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   // ── Remaining questions ──
@@ -44,7 +47,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Inicjatywa jest rozłożona po równo.' },
       { points: 2, text: 'Zazwyczaj to ta druga osoba inicjuje kontakt.' },
       { points: 1, text: 'Zazwyczaj to ja inicjuję kontakt.' },
-      { points: 0, text: 'Kontakt wychodzi wyłącznie z mojej inicjatywy.' }
+      { points: 0, text: 'Kontakt wychodzi wyłącznie z mojej inicjatywy.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -53,7 +57,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Mam więcej energii, czuję spokój i stabilność.' },
       { points: 2, text: 'Czuję się normalnie, rozmowa mnie nie męczy.' },
       { points: 1, text: 'Czuję lekkie zmęczenie, potrzebuję chwili dla siebie.' },
-      { points: 0, text: 'Czuję się całkowicie pozbawiony energii, zirytowany lub niespokojny.' }
+      { points: 0, text: 'Czuję się całkowicie pozbawiony energii, zirytowany lub niespokojny.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -62,7 +67,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Logicznie analizujecie problem i wspólnie dochodzicie do obiektywnej prawdy.' },
       { points: 2, text: 'Ktoś ustępuje, żeby nie podejmować trudnego tematu i uniknąć kłótni.' },
       { points: 1, text: 'Druga strona walczy o to, by mieć rację, bez względu na to, jaka ona jest.' },
-      { points: 0, text: 'Pojawia się agresja słowna, wytykanie problemów lub "ciche dni".' }
+      { points: 0, text: 'Pojawia się agresja słowna, wytykanie problemów lub "ciche dni".' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -71,7 +77,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Rozmowa jest płynna, a jeśli nastąpiło opóźnienie, osoba odpowiada na każdą nadesłaną wcześniej wiadomość.' },
       { points: 2, text: 'Odpowiada z opóźnieniem, ale odnosi się do sedna sprawy.' },
       { points: 1, text: 'Odpisuje tylko czasem i nie zawsze odnosi się do sedna sprawy.' },
-      { points: 0, text: 'Wiadomości są systematycznie ignorowane.' }
+      { points: 0, text: 'Wiadomości są systematycznie ignorowane.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -80,7 +87,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Wspólnie dążycie do spotkań i szukacie na nie czasu.' },
       { points: 2, text: 'Druga osoba stara się spotkać, ale to ty nie masz dla niej czasu.' },
       { points: 1, text: 'To ty próbujesz się spotkać i ciągle jest problem z ustaleniem terminu.' },
-      { points: 0, text: 'Spotkanie się na żywo jest niemożliwe.' }
+      { points: 0, text: 'Spotkanie się na żywo jest niemożliwe.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -89,7 +97,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Pamięta szczegóły, fakty z twojego życia i sama do nich wraca w kolejnych rozmowach.' },
       { points: 2, text: 'Pamięta najważniejsze rzeczy, ale zapomina o drobnostkach.' },
       { points: 1, text: 'Musisz powtarzać te same rzeczy wiele razy, mówisz jak "grochem o ścianę".' },
-      { points: 0, text: 'Nie pamięta niczego, nie kojarzy podstawowych faktów na twój temat.' }
+      { points: 0, text: 'Nie pamięta niczego, nie kojarzy podstawowych faktów na twój temat.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -98,7 +107,8 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Od razu akceptuje twoją decyzję i nie próbuje jej zmieniać.' },
       { points: 2, text: 'Akceptuje to, ale widać, że na chwilę psuje jej się humor.' },
       { points: 1, text: 'Próbuje negocjować lub wymusza na tobie tłumaczenie się z podjętej decyzji.' },
-      { points: 0, text: 'Nie szanuje twojej granicy, wywołuje poczucie winy lub zmusza cię do zmiany zdania.' }
+      { points: 0, text: 'Nie szanuje twojej granicy, wywołuje poczucie winy lub zmusza cię do zmiany zdania.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
@@ -107,7 +117,57 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: '3 lata i więcej.' },
       { points: 2, text: 'Od 1 roku do 3 lat.' },
       { points: 1, text: 'Od 3 do 12 miesięcy.' },
-      { points: 0, text: 'Mniej niż 3 miesiące.' }
+      { points: 0, text: 'Mniej niż 3 miesiące.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    ]
+  },
+  {
+    text: 'Jak ta osoba okazuje wdzięczność za udzieloną pomoc?',
+    answers: [
+      { points: 3, text: 'Stara się odwdzięczyć z nawiązką.' },
+      { points: 2, text: 'Stara się wyrównać rachunek.' },
+      { points: 1, text: 'Po prostu dziękuje.' },
+      { points: 0, text: 'Nie okazuje wdzięczności wcale.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    ]
+  },
+  {
+    text: 'Jak ta osoba zachowuje się wobec ciebie w towarzystwie innych?',
+    answers: [
+      { points: 3, text: 'Staje po twojej stronie lub przynajmniej milczy, gdy ktoś cię atakuje.' },
+      { points: 2, text: 'Zachowuje neutralność, nie komentuje.' },
+      { points: 1, text: 'Zmienia zdanie pod wpływem grupy, dystansuje się od ciebie.' },
+      { points: 0, text: 'Przyłącza się do krytyki lub cię ośmiesza.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    ]
+  },
+  {
+    text: 'Czy ta osoba była przy tobie w trudnym momencie twojego życia?',
+    answers: [
+      { points: 3, text: 'Była obecna i aktywnie pomagała bez proszenia.' },
+      { points: 2, text: 'Wiedziała co się dzieje i sprawdziła jak się czujesz.' },
+      { points: 1, text: 'Dowiedziała się z opóźnienia lub od kogoś innego.' },
+      { points: 0, text: 'Nie wiedziała, nie pytała lub zniknęła w tym czasie.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    ]
+  },
+  {
+    text: 'Czy ta osoba mówi ci prawdę, nawet gdy jest trudna?',
+    answers: [
+      { points: 3, text: 'Powie ci wprost, gdy robisz coś głupiego, nawet jeśli to nieprzyjemne.' },
+      { points: 2, text: 'Mówi prawdę, ale ostrożnie i wybiórczo.' },
+      { points: 1, text: 'Zawsze mówi to, co chcesz usłyszeć.' },
+      { points: 0, text: 'Aktywnie manipuluje informacjami lub kłamie.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    ]
+  },
+  {
+    text: 'Jak ta osoba traktuje twój czas?',
+    answers: [
+      { points: 2, text: 'Nie spóźnia się, uprzedza jeśli coś się zmienia.' },
+      { points: 1, text: 'Zdarza się, że czekasz lub coś odpada w ostatniej chwili.' },
+      { points: 0, text: 'Regularnie zawodzi bez uprzedzenia.' },
+      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   }
 ];
@@ -118,12 +178,24 @@ const GATE_QUESTION = {
     { penalty: 0, text: 'Codziennie lub kilka razy w tygodniu.' },
     { penalty: -4, text: 'Raz lub kilka razy w miesiącu.' },
     { penalty: -6, text: 'Raz lub kilka razy w roku.' },
-    { penalty: -10, text: 'Brak kontaktu.' }
+    { penalty: -10, text: 'Brak kontaktu.' },
+    { penalty: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+  ]
+};
+
+const SECRET_QUESTION = {
+  text: 'Czy ta osoba dochowuje powierzonych jej sekretów?',
+  answers: [
+    { cap: 3, text: 'Zawsze dochowuje sekretów.' },
+    { cap: 2, text: 'Zdarzyło się, że powiedziała coś, czego nie powinna.' },
+    { cap: 1, text: 'Nie potrafi dochować sekretów.' },
+    { cap: 0, text: 'Bez przerwy obgaduje za plecami.' },
+    { cap: 3, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
   ]
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.36';
+const APP_VERSION = 'v0.9.37';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 250, 1: 400, 0: 600 };
@@ -316,6 +388,40 @@ function buildSurveyForm() {
     card.appendChild(optionsWrap);
     questionsContainer.appendChild(card);
   });
+
+  // ── Secret/Cap question (rendered after regular questions) ──
+  const secretCard = document.createElement('div');
+  secretCard.className = 'question-card';
+
+  const secretTitle = document.createElement('h3');
+  secretTitle.textContent = `${SURVEY_QUESTIONS.length + 2}. ${SECRET_QUESTION.text}`;
+  secretCard.appendChild(secretTitle);
+
+  const secretOptions = document.createElement('div');
+  secretOptions.className = 'options-container';
+
+  SECRET_QUESTION.answers.forEach((answer) => {
+    const label = document.createElement('label');
+    label.className = 'answer-option';
+
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'secret';
+    radio.value = answer.cap;
+    radio.required = true;
+    radio.addEventListener('change', updateScorePreview);
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'answer-text';
+    textSpan.textContent = answer.text;
+
+    label.appendChild(radio);
+    label.appendChild(textSpan);
+    secretOptions.appendChild(label);
+  });
+
+  secretCard.appendChild(secretOptions);
+  questionsContainer.appendChild(secretCard);
 }
 
 // ═══════════════════════════════════════════
@@ -336,6 +442,10 @@ function updateScorePreview() {
     }
   }
 
+  // Check secret cap question
+  const secretChecked = surveyForm.querySelector('input[name="secret"]:checked');
+  if (!secretChecked) allAnswered = false;
+
   if (!allAnswered) {
     if (scoreValue) scoreValue.textContent = '--';
     if (scoreLevel) {
@@ -351,6 +461,8 @@ function updateScorePreview() {
   total = Math.max(0, total + gatePenalty);
 
   const level = getLevel(total);
+  const secretCap = secretChecked ? parseInt(secretChecked.value, 10) : 3;
+  const cappedLevel = Math.min(level, secretCap);
   const maxScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
   const pct = Math.round((total / maxScore) * 100);
 
@@ -358,8 +470,8 @@ function updateScorePreview() {
   const maxScoreLabel = document.querySelector('.score-preview__max');
   if (maxScoreLabel) maxScoreLabel.textContent = `/${maxScore}`;
   if (scoreLevel) {
-    scoreLevel.textContent = `Poziom ${level}`;
-    scoreLevel.className = `score-preview__level level-${level}`;
+    scoreLevel.textContent = `Poziom ${cappedLevel}`;
+    scoreLevel.className = `score-preview__level level-${cappedLevel}`;
   }
   if (scorePreview) {
     scorePreview.style.setProperty('--score-pct', `${pct}%`);
@@ -398,6 +510,22 @@ function loadPeople() {
       p._migrated = true;
     }
   });
+  // ── Migrate 11-question data to 16-question format ──
+  people.forEach(p => {
+    if (p.answers && p.answers.length === 11 && !p._migrated16) {
+      // Pad with 0s for 5 new questions
+      p.answers = [...p.answers, 0, 0, 0, 0, 0];
+      // Set default secretCap (no limit) for old records
+      if (p.secretCap === undefined) p.secretCap = 3;
+      // Recalculate with new thresholds
+      const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
+      p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
+      p.level = Math.min(getLevel(p.totalScore), p.secretCap);
+      p._migrated16 = true;
+    }
+    // Also handle already migrated records that just need secretCap
+    if (p.secretCap === undefined) p.secretCap = 3;
+  });
   distributePlanets();
   renderPlanets();
 }
@@ -406,7 +534,7 @@ function distributePlanets() {
   const byLevel = { 0: [], 1: [], 2: [], 3: [] };
 
   people.forEach((p) => {
-    p.level = getLevel(p.totalScore);
+    p.level = Math.min(getLevel(p.totalScore), p.secretCap !== undefined ? p.secretCap : 3);
 
     if (typeof p.gradientIndex !== 'number') {
       p.gradientIndex = Math.floor(Math.random() * PLANET_GRADIENTS.length);
@@ -456,9 +584,9 @@ function getInitials(name) {
 }
 
 function getLevel(score) {
-  if (score >= 28) return 3;
-  if (score >= 18) return 2;
-  if (score >= 8) return 1;
+  if (score >= 38) return 3;
+  if (score >= 25) return 2;
+  if (score >= 12) return 1;
   return 0;
 }
 
@@ -617,6 +745,12 @@ function openEditModal(id) {
     if (radio) radio.checked = true;
   });
 
+  // Restore secret cap
+  if (person.secretCap !== undefined) {
+    const secretRadio = surveyForm.querySelector(`input[name="secret"][value="${person.secretCap}"]`);
+    if (secretRadio) secretRadio.checked = true;
+  }
+
   modalTitle.textContent = `Edytuj: ${person.name}`;
   btnDelete.style.display = 'flex';
 
@@ -689,6 +823,11 @@ function handleSubmit(e) {
     }
   }
 
+  // Check secret cap
+  const secretChecked = surveyForm.querySelector('input[name="secret"]:checked');
+  if (!secretChecked) allAnswered = false;
+  const secretCap = secretChecked ? parseInt(secretChecked.value, 10) : 3;
+
   if (!allAnswered) {
     // Scroll to first unanswered question (gate is card[0], regular are card[1..N])
     const cards = questionsContainer.querySelectorAll('.question-card');
@@ -716,6 +855,18 @@ function handleSubmit(e) {
         return;
       }
     }
+
+    // Check secret question
+    if (!secretChecked) {
+      const secretCardEl = cards[SURVEY_QUESTIONS.length + 1]; // +1 for gate offset
+      if (secretCardEl) {
+        secretCardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        secretCardEl.style.outline = '2px solid #ef476f';
+        secretCardEl.style.outlineOffset = '4px';
+        setTimeout(() => { secretCardEl.style.outline = ''; secretCardEl.style.outlineOffset = ''; }, 2000);
+      }
+      return;
+    }
   }
 
   // Apply gate penalty and clamp
@@ -723,6 +874,7 @@ function handleSubmit(e) {
   totalScore = Math.max(0, totalScore + gatePenalty);
 
   const level = getLevel(totalScore);
+  const cappedLevel = Math.min(level, secretCap);
 
   if (editingId) {
     // Update existing
@@ -733,10 +885,11 @@ function handleSubmit(e) {
       person.gateAnswer = gatePenalty;
       person.totalScore = totalScore;
       person.gradientIndex = selectedGradientIndex;
+      person.secretCap = secretCap;
       const oldLevel = person.level;
-      person.level = level;
+      person.level = cappedLevel;
       // Re-randomize speed if level changed
-      if (oldLevel !== level) person.speed = getRandomSpeed(level);
+      if (oldLevel !== cappedLevel) person.speed = getRandomSpeed(cappedLevel);
     }
   } else {
     // Add new person
@@ -746,9 +899,10 @@ function handleSubmit(e) {
       answers,
       gateAnswer: gatePenalty,
       totalScore,
-      level,
+      level: cappedLevel,
+      secretCap,
       angle: Math.random() * Math.PI * 2,
-      speed: getRandomSpeed(level),
+      speed: getRandomSpeed(cappedLevel),
       gradientIndex: selectedGradientIndex
     });
   }
@@ -888,23 +1042,23 @@ function startAnimation() {
       if (level === 3) {
         minR = 25; // Close to sun
         maxR = Math.max(minR + 1, BASE_RADII[3] - padding);
-        minScore = 28;
-        maxScore = 36;
+        minScore = 38;
+        maxScore = 50;
       } else if (level === 2) {
         minR = BASE_RADII[3] + padding;
         maxR = BASE_RADII[2] - padding;
-        minScore = 18;
-        maxScore = 27;
+        minScore = 25;
+        maxScore = 37;
       } else if (level === 1) {
         minR = BASE_RADII[2] + padding;
         maxR = BASE_RADII[1] - padding;
-        minScore = 8;
-        maxScore = 17;
+        minScore = 12;
+        maxScore = 24;
       } else {
         minR = BASE_RADII[1] + padding;
         maxR = BASE_RADII[0] - padding;
         minScore = 0;
-        maxScore = 7;
+        maxScore = 11;
       }
 
       // Inverse map: higher score -> lower radius (closer to sun)
