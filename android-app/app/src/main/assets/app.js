@@ -14,19 +14,19 @@ const SURVEY_QUESTIONS = [
     text: 'Jak ta osoba reaguje, gdy mówisz o swoim małym sukcesie lub czymś dla ciebie ważnym?',
     answers: [
       { points: 3, text: 'Aktywnie dopytuje o szczegóły i skupia się na tym, co mówisz.' },
-      { points: 2, text: 'Reaguje krótko, ale pozytywnie (np. pisze "super", "gratulacje").' },
-      { points: 1, text: 'Ignoruje wiadomość, nie czyta jej lub odhacza, zostawiając jedynie reakcję (np. lajka).' },
-      { points: 0, text: 'Umniejsza znaczenie twojego sukcesu lub natychmiast przekierowuje rozmowę na siebie.' },
+      { points: 2, text: 'Reaguje krótko, ale pozytywnie, napisze że gratuluje albo że super, bez wdawania się w szczegóły.' },
+      { points: 0, text: 'Nie odnosi się do tematu, ignoruje wiadomość, ewentualnie zostawi "lajka".' },
+      { points: -3, text: 'Umniejsza znaczenie Twojego sukcesu lub od razu skupia się na sobie.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
     text: 'Jak wygląda wsparcie w sytuacjach, gdy potrzebujesz pomocy?',
     answers: [
-      { points: 3, text: 'Proponuje pomoc, zanim wprost o nią poprosisz.' },
-      { points: 2, text: 'Pomaga, gdy jasno i bezpośrednio sformułujesz prośbę.' },
-      { points: 1, text: 'Szuka wymówek, kalkuluje lub zgadza się, ale z widoczną niechęcią.' },
-      { points: 0, text: 'Całkowicie odcina się od problemu, nie daje żadnego wsparcia.' },
+      { points: 3, text: 'Proponuje pomoc, zanim w ogóle o nią poprosisz.' },
+      { points: 2, text: 'Pomaga, gdy poprosisz o pomoc wprost.' },
+      { points: 0, text: 'Szuka wymówek, kalkuluje lub zgadza się, ale z widoczną niechęcią.' },
+      { points: -3, text: 'Całkowicie odcina się od problemu, nie oferuje żadnej pomocy.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
@@ -34,31 +34,28 @@ const SURVEY_QUESTIONS = [
     text: 'Czy ta osoba cię inspiruje?',
     answers: [
       { points: 6, text: 'Inspiruje mnie do samych dobrych rzeczy.' },
-      { points: 4, text: 'Nie inspiruje mnie wcale.' },
-      { points: 2, text: 'Inspiruje mnie zarówno do dobrych, jak i złych rzeczy.' },
-      { points: 0, text: 'Inspiruje mnie do złych rzeczy.' },
-      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+      { points: 3, text: 'Nie inspiruje mnie ani do dobrych ani do złych rzeczy.' },
+      { points: 0, text: 'Inspiruje mnie zarówno do dobrych jak i złych rzeczy.' },
+      { points: -3, text: 'Inspiruje mnie do samych złych rzeczy.' }
     ]
   },
   // ── Remaining questions ──
   {
-    text: 'Kto inicjuje kontakt (pisze pierwszy, proponuje spotkania)?',
+    text: 'Kto inicjuje kontakt (pisze, lub dzwoni pierwszy, proponuje spotkania)?',
     answers: [
       { points: 3, text: 'Inicjatywa jest rozłożona po równo.' },
       { points: 2, text: 'Zazwyczaj to ta druga osoba inicjuje kontakt.' },
-      { points: 1, text: 'Zazwyczaj to ja inicjuję kontakt.' },
-      { points: 0, text: 'Kontakt wychodzi wyłącznie z mojej inicjatywy.' },
-      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+      { points: 0, text: 'Zazwyczaj to ja inicjuję kontakt.' },
+      { points: -3, text: 'Nie ma kontaktu do czasu aż ja go nie zainicjuję.' }
     ]
   },
   {
     text: 'Jak się czujesz po spotkaniu lub rozmowie z tą osobą?',
     answers: [
-      { points: 3, text: 'Mam więcej energii, czuję spokój i stabilność.' },
-      { points: 2, text: 'Czuję się normalnie, rozmowa mnie nie męczy.' },
-      { points: 1, text: 'Czuję lekkie zmęczenie, potrzebuję chwili dla siebie.' },
-      { points: 0, text: 'Czuję się całkowicie pozbawiony energii, zirytowany lub niespokojny.' },
-      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+      { points: 3, text: 'Mam więcej energii, czuję się zainspirowany, mam ochotę spotkać się znów.' },
+      { points: 2, text: 'Czuję się normalnie, ani lepiej, ani gorzej, rozmowa mnie nie męczy.' },
+      { points: 0, text: 'Czuję lekkie zmęczenie, potrzebuję chwili dla siebie.' },
+      { points: -3, text: 'Czuję się wyładowany z energii, zirytowany lub niespokojny.' }
     ]
   },
   {
@@ -67,28 +64,26 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Logicznie analizujecie problem i wspólnie dochodzicie do obiektywnej prawdy.' },
       { points: 2, text: 'Ktoś ustępuje, żeby nie podejmować trudnego tematu i uniknąć kłótni.' },
       { points: 1, text: 'Druga strona walczy o to, by mieć rację, bez względu na to, jaka ona jest.' },
-      { points: 0, text: 'Pojawia się agresja słowna, wytykanie problemów lub "ciche dni".' },
+      { points: -3, text: 'Pojawia się agresja słowna, wytykanie problemów lub "ciche dni".' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
-    text: 'Jak wyglądają odpowiedzi na twoje wiadomości?',
+    text: 'Jak wygląda kontakt z tą osobą (wiadomości/telefony)?',
     answers: [
-      { points: 3, text: 'Rozmowa jest płynna, a jeśli nastąpiło opóźnienie, osoba odpowiada na każdą nadesłaną wcześniej wiadomość.' },
-      { points: 2, text: 'Odpowiada z opóźnieniem, ale odnosi się do sedna sprawy.' },
-      { points: 1, text: 'Odpisuje tylko czasem i nie zawsze odnosi się do sedna sprawy.' },
-      { points: 0, text: 'Wiadomości są systematycznie ignorowane.' },
-      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+      { points: 3, text: 'Rozmowa jest płynna, zawsze odbiera, a jeśli nastąpiło opóźnienie w odpowiedzi, odnosi się do każdej wiadomości i zawsze oddzwania.' },
+      { points: 2, text: 'Zdarza się że nie odbierze, ale oddzwania. Odpowiada często z opóźnieniem, ale zawsze wraca do sedna sprawy.' },
+      { points: 1, text: 'Często nie odbiera, odpisuje tylko czasem, wtedy kiedy ma na to ochotę, nie zawsze na temat.' },
+      { points: -3, text: 'Nie odbiera telefonów, a wiadomości są systematycznie ignorowane.' }
     ]
   },
   {
     text: 'Jak wygląda sposób umawiania się na spotkania?',
     answers: [
       { points: 3, text: 'Wspólnie dążycie do spotkań i szukacie na nie czasu.' },
-      { points: 2, text: 'Druga osoba stara się spotkać, ale to ty nie masz dla niej czasu.' },
-      { points: 1, text: 'To ty próbujesz się spotkać i ciągle jest problem z ustaleniem terminu.' },
-      { points: 0, text: 'Spotkanie się na żywo jest niemożliwe.' },
-      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+      { points: 2, text: 'Druga osoba stara się spotkać, ale Ty nie masz dla niej czasu.' },
+      { points: 1, text: 'Ty próbujesz się spotkać i ciągle jest problem z ustaleniem terminu.' },
+      { points: 0, text: 'Spotkanie na żywo nie jest możliwe, albo nikomu z was na tym nie zależy.' }
     ]
   },
   {
@@ -97,7 +92,7 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Pamięta szczegóły, fakty z twojego życia i sama do nich wraca w kolejnych rozmowach.' },
       { points: 2, text: 'Pamięta najważniejsze rzeczy, ale zapomina o drobnostkach.' },
       { points: 1, text: 'Musisz powtarzać te same rzeczy wiele razy, mówisz jak "grochem o ścianę".' },
-      { points: 0, text: 'Nie pamięta niczego, nie kojarzy podstawowych faktów na twój temat.' },
+      { points: -3, text: 'Nie pamięta niczego, nie kojarzy podstawowych faktów na twój temat.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
@@ -107,7 +102,7 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: 'Od razu akceptuje twoją decyzję i nie próbuje jej zmieniać.' },
       { points: 2, text: 'Akceptuje to, ale widać, że na chwilę psuje jej się humor.' },
       { points: 1, text: 'Próbuje negocjować lub wymusza na tobie tłumaczenie się z podjętej decyzji.' },
-      { points: 0, text: 'Nie szanuje twojej granicy, wywołuje poczucie winy lub zmusza cię do zmiany zdania.' },
+      { points: -3, text: 'Nie szanuje twojej granicy, wywołuje poczucie winy lub zmusza cię do zmiany zdania.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
@@ -117,10 +112,10 @@ const SURVEY_QUESTIONS = [
       { points: 3, text: '3 lata i więcej.' },
       { points: 2, text: 'Od 1 roku do 3 lat.' },
       { points: 1, text: 'Od 3 do 12 miesięcy.' },
-      { points: 0, text: 'Mniej niż 3 miesiące.' },
-      { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+      { points: 0, text: 'Mniej niż 3 miesiące.' }
     ]
   },
+  // ── New questions (indices 11-15) ──
   {
     text: 'Jak ta osoba okazuje wdzięczność za udzieloną pomoc?',
     answers: [
@@ -134,30 +129,30 @@ const SURVEY_QUESTIONS = [
   {
     text: 'Jak ta osoba zachowuje się wobec ciebie w towarzystwie innych?',
     answers: [
-      { points: 3, text: 'Staje po twojej stronie lub przynajmniej milczy, gdy ktoś cię atakuje.' },
-      { points: 2, text: 'Zachowuje neutralność, nie komentuje.' },
-      { points: 1, text: 'Zmienia zdanie pod wpływem grupy, dystansuje się od ciebie.' },
-      { points: 0, text: 'Przyłącza się do krytyki lub cię ośmiesza.' },
+      { points: 3, text: 'Staje w Twojej obronie.' },
+      { points: 2, text: 'Zachowuje neutralność, nie komentuje, milczy gdy ktoś Cię atakuje.' },
+      { points: 0, text: 'Zmienia zachowanie pod wpływem otoczenia.' },
+      { points: -3, text: 'Wykorzystuje okazję by sobie na Tobie poużywać, przyłącza się do ataku.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
     text: 'Czy ta osoba była przy tobie w trudnym momencie twojego życia?',
     answers: [
-      { points: 3, text: 'Była obecna i aktywnie pomagała bez proszenia.' },
-      { points: 2, text: 'Wiedziała co się dzieje i sprawdziła jak się czujesz.' },
-      { points: 1, text: 'Dowiedziała się z opóźnienia lub od kogoś innego.' },
-      { points: 0, text: 'Nie wiedziała, nie pytała lub zniknęła w tym czasie.' },
+      { points: 3, text: 'Była obecna, starała się pomagać i martwiła się.' },
+      { points: 2, text: 'Pytała tylko co u Ciebie, bez oferowania pomocy.' },
+      { points: 1, text: 'Nie interesowała się zbytnio lub dowiedziała się z opóźnienia.' },
+      { points: -3, text: 'Wiedziała co się dzieje ale "zniknęła" na ten czas.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
   {
     text: 'Czy ta osoba mówi ci prawdę, nawet gdy jest trudna?',
     answers: [
-      { points: 3, text: 'Powie ci wprost, gdy robisz coś głupiego, nawet jeśli to nieprzyjemne.' },
+      { points: 3, text: 'Mówi wprost, gdy robisz coś głupiego, nawet jeśli jest to nieprzyjemne.' },
       { points: 2, text: 'Mówi prawdę, ale ostrożnie i wybiórczo.' },
-      { points: 1, text: 'Zawsze mówi to, co chcesz usłyszeć.' },
-      { points: 0, text: 'Aktywnie manipuluje informacjami lub kłamie.' },
+      { points: 1, text: 'Mówi tylko to co chcesz usłyszeć.' },
+      { points: -3, text: 'Nie jesteś w stanie dowiedzieć się od niej prawdy jaka jest.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   },
@@ -166,20 +161,19 @@ const SURVEY_QUESTIONS = [
     answers: [
       { points: 2, text: 'Nie spóźnia się, uprzedza jeśli coś się zmienia.' },
       { points: 1, text: 'Zdarza się, że czekasz lub coś odpada w ostatniej chwili.' },
-      { points: 0, text: 'Regularnie zawodzi bez uprzedzenia.' },
+      { points: -3, text: 'Regularnie zawodzi bez uprzedzenia.' },
       { points: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
     ]
   }
 ];
 
 const GATE_QUESTION = {
-  text: 'Jak często spotykasz się z tą osobą w prawdziwym życiu?',
+  text: 'Jak często się widzicie?',
   answers: [
-    { penalty: 0, text: 'Codziennie lub kilka razy w tygodniu.' },
-    { penalty: -4, text: 'Raz lub kilka razy w miesiącu.' },
-    { penalty: -6, text: 'Raz lub kilka razy w roku.' },
-    { penalty: -10, text: 'Brak kontaktu.' },
-    { penalty: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    { points: 3, text: 'Przynajmniej raz w tygodniu.' },
+    { points: 2, text: 'Przynajmniej raz w miesiącu.' },
+    { points: 1, text: 'Przynajmniej raz w roku.' },
+    { points: 0, text: 'Mniej niż raz w roku.' }
   ]
 };
 
@@ -195,7 +189,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.37';
+const APP_VERSION = 'v0.9.38';
 
 // Orbit radii for each level (pixels from center)
 const BASE_RADII = { 3: 100, 2: 250, 1: 400, 0: 600 };
@@ -337,7 +331,7 @@ function buildSurveyForm() {
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'gate';
-    radio.value = answer.penalty;
+    radio.value = answer.points;
     radio.required = true;
     radio.addEventListener('change', updateScorePreview);
 
@@ -456,14 +450,15 @@ function updateScorePreview() {
     return;
   }
 
-  // Apply gate penalty and clamp to 0
-  const gatePenalty = parseInt(gateChecked.value, 10);
-  total = Math.max(0, total + gatePenalty);
+  // Add gate points and clamp to 0
+  const gatePoints = parseInt(gateChecked.value, 10);
+  total = Math.max(0, total + gatePoints);
 
   const level = getLevel(total);
   const secretCap = secretChecked ? parseInt(secretChecked.value, 10) : 3;
   const cappedLevel = Math.min(level, secretCap);
-  const maxScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0);
+  const gateMax = Math.max(...GATE_QUESTION.answers.map(a => a.points));
+  const maxScore = SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(...q.answers.map(a => a.points)), 0) + gateMax;
   const pct = Math.round((total / maxScore) * 100);
 
   if (scoreValue) scoreValue.textContent = total;
@@ -515,16 +510,24 @@ function loadPeople() {
     if (p.answers && p.answers.length === 11 && !p._migrated16) {
       // Pad with 0s for 5 new questions
       p.answers = [...p.answers, 0, 0, 0, 0, 0];
-      // Set default secretCap (no limit) for old records
       if (p.secretCap === undefined) p.secretCap = 3;
-      // Recalculate with new thresholds
-      const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
-      p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
-      p.level = Math.min(getLevel(p.totalScore), p.secretCap);
       p._migrated16 = true;
     }
-    // Also handle already migrated records that just need secretCap
     if (p.secretCap === undefined) p.secretCap = 3;
+  });
+  // ── Migrate gate from penalty system to points system (v0.9.38) ──
+  const PENALTY_TO_POINTS = { 0: 3, '-4': 2, '-6': 1, '-10': 0 };
+  people.forEach(p => {
+    if (!p._migratedGate && p.gateAnswer !== undefined && p.gateAnswer <= 0) {
+      p.gateAnswer = PENALTY_TO_POINTS[String(p.gateAnswer)] ?? 0;
+      p._migratedGate = true;
+    }
+    // Recalculate totalScore with new gate points system
+    if (p.answers) {
+      const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
+      p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
+      p.level = Math.min(getLevel(p.totalScore), p.secretCap !== undefined ? p.secretCap : 3);
+    }
   });
   distributePlanets();
   renderPlanets();
@@ -869,9 +872,9 @@ function handleSubmit(e) {
     }
   }
 
-  // Apply gate penalty and clamp
-  const gatePenalty = gateChecked ? parseInt(gateChecked.value, 10) : 0;
-  totalScore = Math.max(0, totalScore + gatePenalty);
+  // Add gate points and clamp
+  const gatePoints = gateChecked ? parseInt(gateChecked.value, 10) : 0;
+  totalScore = Math.max(0, totalScore + gatePoints);
 
   const level = getLevel(totalScore);
   const cappedLevel = Math.min(level, secretCap);
@@ -882,7 +885,7 @@ function handleSubmit(e) {
     if (person) {
       person.name = name;
       person.answers = answers;
-      person.gateAnswer = gatePenalty;
+      person.gateAnswer = gatePoints;
       person.totalScore = totalScore;
       person.gradientIndex = selectedGradientIndex;
       person.secretCap = secretCap;
@@ -897,7 +900,7 @@ function handleSubmit(e) {
       id: uuid(),
       name,
       answers,
-      gateAnswer: gatePenalty,
+      gateAnswer: gatePoints,
       totalScore,
       level: cappedLevel,
       secretCap,
