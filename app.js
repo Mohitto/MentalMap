@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.40';
+const APP_VERSION = 'v0.9.41';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -228,6 +228,7 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 const solarSystem = $('#solar-system');
+const orbitLinesContainer = $('#orbit-lines-container');
 const planetsContainer = $('#planets-container');
 const labelsContainer = $('#labels-container');
 const fabAdd = $('#fab-add');
@@ -976,6 +977,7 @@ function renderPlanets() {
   if (!planetsContainer || !labelsContainer) return;
   planetsContainer.innerHTML = '';
   labelsContainer.innerHTML = '';
+  if (orbitLinesContainer) orbitLinesContainer.innerHTML = '';
 
   emptyState.style.display = people.length === 0 ? 'block' : 'none';
 
@@ -1040,6 +1042,22 @@ function renderPlanets() {
     labelGroup.appendChild(scoreBadge);
     labelsContainer.appendChild(labelGroup);
   });
+
+  // Draw individual orbit lines
+  if (orbitLinesContainer) {
+    [3, 2, 1, 0].forEach(level => {
+      const band = dynamicLayout[level];
+      if (!band) return;
+      
+      band.orbits.forEach(orbit => {
+        const line = document.createElement('div');
+        line.className = `orbit-line orbit-line--${level}`;
+        line.style.width = `${orbit.radius * 2}px`;
+        line.style.height = `${orbit.radius * 2}px`;
+        orbitLinesContainer.appendChild(line);
+      });
+    });
+  }
 }
 
 // ═══════════════════════════════════════════
