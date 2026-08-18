@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.44';
+const APP_VERSION = 'v0.9.45';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1223,9 +1223,9 @@ function centerCameraOnPlanet(id) {
   const y = Math.sin(person.angle) * radius;
 
   // Center on planet
+  if (mapScale < 1.5) mapScale = 1.5;
   mapPanX = -x * mapScale;
   mapPanY = -y * mapScale;
-  if (mapScale < 1.5) mapScale = 1.5;
 
   const viewport = document.getElementById('map-viewport');
   if (viewport) {
