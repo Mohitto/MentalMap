@@ -190,13 +190,12 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.49';
+const APP_VERSION = 'v0.9.50';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
 const ORBIT_SPACING = 40;    // px between unique-score orbits within a level
 const LEVEL_GAP = 25;        // px gap between level bands
-const LEVEL_SPEEDS = { 3: 0.18, 2: 0.13, 1: 0.09, 0: 0.06 };
 
 // Computed dynamic layout (recalculated when planets change)
 let dynamicLayout = {}; // { level: { innerR, outerR, orbits: [{score, radius}] } }
@@ -609,7 +608,7 @@ function distributePlanets() {
         const phase = (level * Math.PI) / 9;
 
         p.angle = phase + index * angleStep;
-        p.speed = getRandomSpeed(level);
+        p.speed = getSpeedByScore(p.totalScore);
       });
   });
 
@@ -661,9 +660,11 @@ function getPlanetIndicators(answers) {
   return { plusCount, minusCount };
 }
 
-function getRandomSpeed(level) {
-  const baseSpeed = LEVEL_SPEEDS[level] ?? LEVEL_SPEEDS[0];
-  return baseSpeed + (Math.random() * 0.03 - 0.015);
+function getSpeedByScore(score) {
+  const clamped = Math.min(Math.max(score, 0), 50);
+  const minSpeed = 0.04;
+  const maxSpeed = 0.25;
+  return minSpeed + (clamped / 50) * (maxSpeed - minSpeed);
 }
 
 
