@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.58';
+const APP_VERSION = 'v0.9.59';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -668,7 +668,13 @@ function getPlanetGlowStyle(person) {
   if (score === -2) return { glow: '0 0 12px 4px #ef4444', color: '#ef4444' }; // Czerwony
   if (score === -3) return { glow: '0 0 12px 4px #000000', color: '#000000' }; // Czarny
   
-  // score === 0 (np. 3x średnie, lub balans najlepsza+najgorsza)
+  if (score === 0) {
+    if (best === 1 && worst === 1 && medium === 1) {
+      return { glow: '0 0 8px 2px #f97316', color: '#f97316' }; // Pomarańczowy
+    }
+    return { glow: null, color: null }; // 3x średnia (brak glow)
+  }
+  
   return { glow: null, color: null };
 }
 
