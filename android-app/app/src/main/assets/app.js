@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.54';
+const APP_VERSION = 'v0.9.55';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -661,7 +661,24 @@ function getPlanetIndicators(answers) {
 }
 
 function getPlanetGlowStyle(person) {
-  const { plusCount, minusCount } = getPlanetIndicators(person.answers);
+  const ans = person.answers || [];
+  
+  // NEW RULE: Jeśli ktoś ma na 2. pytanie (index 1) najlepszą odpowiedź, 
+  // a na 3. (index 2) i 4. (index 3) nie ma najgorszej odpowiedzi, to jasno zielono.
+  const q2Max = Math.max(...SURVEY_QUESTIONS[1].answers.map(a => a.points));
+  const q3Min = Math.min(...SURVEY_QUESTIONS[2].answers.map(a => a.points));
+  const q4Min = Math.min(...SURVEY_QUESTIONS[3].answers.map(a => a.points));
+
+  const hasQ2Best = ans[1] === q2Max;
+  const hasQ3NotWorst = ans[2] !== undefined && ans[2] > q3Min;
+  const hasQ4NotWorst = ans[3] !== undefined && ans[3] > q4Min;
+
+  if (hasQ2Best && hasQ3NotWorst && hasQ4NotWorst) {
+    return { glow: '0 0 12px 4px #86efac', color: '#86efac' };
+  }
+
+  // OLD RULES FALLBACK
+  const { plusCount, minusCount } = getPlanetIndicators(ans);
   
   if (plusCount === 1 && minusCount === 0) return { glow: '0 0 8px 2px #86efac', color: '#86efac' };
   if (plusCount === 2 && minusCount === 0) return { glow: '0 0 12px 4px #86efac', color: '#86efac' };
