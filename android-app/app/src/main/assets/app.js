@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.56';
+const APP_VERSION = 'v0.9.57';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
