@@ -190,12 +190,16 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.39';
+const APP_VERSION = 'v0.9.40';
 
-// Orbit radii for each level (pixels from center)
-const BASE_RADII = { 3: 100, 2: 250, 1: 400, 0: 600 };
-
+// Dynamic orbit configuration
+const ORBIT_START = 60;      // px from center to first orbit
+const ORBIT_SPACING = 40;    // px between unique-score orbits within a level
+const LEVEL_GAP = 25;        // px gap between level bands
 const LEVEL_SPEEDS = { 3: 0.18, 2: 0.13, 1: 0.09, 0: 0.06 };
+
+// Computed dynamic layout (recalculated when planets change)
+let dynamicLayout = {}; // { level: { innerR, outerR, orbits: [{score, radius}] } }
 
 // Planet gradient presets for visual variety
 const PLANET_GRADIENTS = [
@@ -527,6 +531,34 @@ function loadPeople() {
   renderPlanets();
 }
 
+function computeDynamicRadii(byLevel) {
+  const layout = {};
+  let currentRadius = ORBIT_START;
+
+  // Process from innermost (level 3) to outermost (level 0)
+  for (const level of [3, 2, 1, 0]) {
+    const planets = byLevel[level];
+    if (!planets || planets.length === 0) continue;
+
+    // Get unique scores, sorted descending (highest score = closest to sun)
+    const uniqueScores = [...new Set(planets.map(p => p.totalScore))].sort((a, b) => b - a);
+
+    const innerR = currentRadius;
+    const orbits = uniqueScores.map((score, i) => ({
+      score,
+      radius: currentRadius + i * ORBIT_SPACING + ORBIT_SPACING / 2
+    }));
+
+    currentRadius += uniqueScores.length * ORBIT_SPACING;
+    const outerR = currentRadius;
+
+    layout[level] = { innerR, outerR, orbits };
+    currentRadius += LEVEL_GAP;
+  }
+
+  return layout;
+}
+
 function distributePlanets() {
   const byLevel = { 0: [], 1: [], 2: [], 3: [] };
 
@@ -540,14 +572,24 @@ function distributePlanets() {
     byLevel[p.level].push(p);
   });
 
+  // Compute dynamic layout
+  dynamicLayout = computeDynamicRadii(byLevel);
+
+  // Assign orbit radii and angles per level
   Object.entries(byLevel).forEach(([lvl, list]) => {
     const level = Number(lvl);
     const count = list.length;
-    if (!count) return;
+    if (!count || !dynamicLayout[level]) return;
+
+    const levelData = dynamicLayout[level];
 
     list
       .sort((a, b) => b.totalScore - a.totalScore || a.name.localeCompare(b.name, 'pl'))
       .forEach((p, index) => {
+        // Find the orbit for this planet's score
+        const orbit = levelData.orbits.find(o => o.score === p.totalScore);
+        p.orbitRadius = orbit ? orbit.radius : levelData.orbits[0].radius;
+
         const angleStep = (Math.PI * 2) / count;
         const phase = (level * Math.PI) / 9;
 
@@ -609,18 +651,6 @@ function getRandomSpeed(level) {
   return baseSpeed + (Math.random() * 0.03 - 0.015);
 }
 
-function getOrbitalRadii() {
-  const minDim = Math.min(window.innerWidth, window.innerHeight);
-  const requiredDim = BASE_RADII[0] * 2 + 80;
-  const scale = minDim < requiredDim ? (minDim / requiredDim) : 1;
-
-  return {
-    3: BASE_RADII[3] * scale,
-    2: BASE_RADII[2] * scale,
-    1: BASE_RADII[1] * scale,
-    0: BASE_RADII[0] * scale
-  };
-}
 
 
 // ═══════════════════════════════════════════
@@ -1026,43 +1056,6 @@ function startAnimation() {
     // Don't process huge delta (e.g. tab was backgrounded)
     const safeDt = Math.min(dt, 0.1);
 
-    // No responsive auto-scaling here anymore — rely on mapScale from the navigation system
-    const outerRadius = BASE_RADII[0];  // radius for score 0
-    const innerRadius = BASE_RADII[3];  // radius for max score
-
-    // Map score strictly into its level's visual bounds
-    const scoreToRadius = (score) => {
-      const level = getLevel(score);
-      const padding = 16; // Prevent planets from touching the ring lines
-
-      let minR, maxR, minScore, maxScore;
-      if (level === 3) {
-        minR = 25; // Close to sun
-        maxR = Math.max(minR + 1, BASE_RADII[3] - padding);
-        minScore = 38;
-        maxScore = 50;
-      } else if (level === 2) {
-        minR = BASE_RADII[3] + padding;
-        maxR = BASE_RADII[2] - padding;
-        minScore = 25;
-        maxScore = 37;
-      } else if (level === 1) {
-        minR = BASE_RADII[2] + padding;
-        maxR = BASE_RADII[1] - padding;
-        minScore = 12;
-        maxScore = 24;
-      } else {
-        minR = BASE_RADII[1] + padding;
-        maxR = BASE_RADII[0] - padding;
-        minScore = 0;
-        maxScore = 11;
-      }
-
-      // Inverse map: higher score -> lower radius (closer to sun)
-      const fraction = (score - minScore) / (maxScore - minScore || 1);
-      return maxR - fraction * (maxR - minR);
-    };
-
     const groups = planetsContainer?.querySelectorAll('.planet-group');
     if (groups) {
       groups.forEach(group => {
@@ -1073,7 +1066,7 @@ function startAnimation() {
         person.angle += person.speed * safeDt;
         if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
 
-        const radius = scoreToRadius(person.totalScore);
+        const radius = person.orbitRadius || 100;
         const x = Math.cos(person.angle) * radius;
         const y = Math.sin(person.angle) * radius;
 
@@ -1085,17 +1078,28 @@ function startAnimation() {
         }
       });
 
-      // Draw orbital rings based on exact BASE_RADII values
+      // Draw orbital rings dynamically based on dynamicLayout
       [3, 2, 1, 0].forEach(level => {
-        const r = BASE_RADII[level];
         const ring = document.querySelector(`.orbit-ring[data-level="${level}"]`);
+        const label = document.querySelector(`.level-label--${level}`);
+        const band = dynamicLayout[level];
+
+        if (!band) {
+          // No planets on this level — hide ring and label
+          if (ring) { ring.style.display = 'none'; }
+          if (label) { label.style.display = 'none'; }
+          return;
+        }
+
+        const r = band.outerR;
         if (ring) {
+          ring.style.display = '';
           ring.style.width = `${r * 2}px`;
           ring.style.height = `${r * 2}px`;
         }
 
-        const label = document.querySelector(`.level-label--${level}`);
         if (label) {
+          label.style.display = '';
           label.style.top = `calc(50% - ${r}px)`;
           label.style.left = '50%';
           label.style.right = 'auto';
