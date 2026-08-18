@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.55';
+const APP_VERSION = 'v0.9.56';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -643,53 +643,32 @@ function getLevel(score) {
   return 0;
 }
 
-// Indicator questions: indices 0, 1, 2 (first three survey questions)
-const INDICATOR_QUESTION_INDICES = [0, 1, 2];
-
-function getPlanetIndicators(answers) {
-  let plusCount = 0;
-  let minusCount = 0;
-
-  INDICATOR_QUESTION_INDICES.forEach(qi => {
-    if (!answers || answers[qi] === undefined) return;
-    const maxPts = Math.max(...SURVEY_QUESTIONS[qi].answers.map(a => a.points));
-    if (answers[qi] === maxPts) plusCount++;
-    else if (answers[qi] === 0) minusCount++;
-  });
-
-  return { plusCount, minusCount };
-}
-
 function getPlanetGlowStyle(person) {
+  let best = 0, worst = 0, medium = 0;
   const ans = person.answers || [];
   
-  // NEW RULE: Jeśli ktoś ma na 2. pytanie (index 1) najlepszą odpowiedź, 
-  // a na 3. (index 2) i 4. (index 3) nie ma najgorszej odpowiedzi, to jasno zielono.
-  const q2Max = Math.max(...SURVEY_QUESTIONS[1].answers.map(a => a.points));
-  const q3Min = Math.min(...SURVEY_QUESTIONS[2].answers.map(a => a.points));
-  const q4Min = Math.min(...SURVEY_QUESTIONS[3].answers.map(a => a.points));
-
-  const hasQ2Best = ans[1] === q2Max;
-  const hasQ3NotWorst = ans[2] !== undefined && ans[2] > q3Min;
-  const hasQ4NotWorst = ans[3] !== undefined && ans[3] > q4Min;
-
-  if (hasQ2Best && hasQ3NotWorst && hasQ4NotWorst) {
-    return { glow: '0 0 12px 4px #86efac', color: '#86efac' };
-  }
-
-  // OLD RULES FALLBACK
-  const { plusCount, minusCount } = getPlanetIndicators(ans);
+  // Rule evaluates exactly questions 2, 3, and 4 (indices 1, 2, 3)
+  [1, 2, 3].forEach(qi => {
+    if (ans[qi] === undefined) return;
+    const qAnswers = SURVEY_QUESTIONS[qi].answers;
+    const maxPts = Math.max(...qAnswers.map(a => a.points));
+    const minPts = Math.min(...qAnswers.map(a => a.points));
+    
+    if (ans[qi] === maxPts) best++;
+    else if (ans[qi] === minPts) worst++;
+    else medium++;
+  });
   
-  if (plusCount === 1 && minusCount === 0) return { glow: '0 0 8px 2px #86efac', color: '#86efac' };
-  if (plusCount === 2 && minusCount === 0) return { glow: '0 0 12px 4px #86efac', color: '#86efac' };
-  if (plusCount === 3 && minusCount === 0) return { glow: '0 0 12px 4px #16a34a', color: '#16a34a' };
-  if (plusCount === 0 && minusCount === 1) return { glow: '0 0 8px 2px #ef4444', color: '#ef4444' };
-  if (plusCount === 0 && minusCount === 2) return { glow: '0 0 8px 2px #000000', color: '#000000' };
-  if (plusCount === 0 && minusCount === 3) return { glow: '0 0 12px 4px #000000', color: '#000000' };
-  if (plusCount === 1 && minusCount === 1) return { glow: '0 0 8px 2px #f97316', color: '#f97316' };
-  if (plusCount === 2 && minusCount === 1) return { glow: '0 0 8px 2px #166534', color: '#166534' };
-  if (plusCount === 1 && minusCount === 2) return { glow: '0 0 12px 4px #f97316', color: '#f97316' };
+  const score = best - worst;
   
+  if (score === 3) return { glow: '0 0 12px 4px #16a34a', color: '#16a34a' }; // Ciemno zielony
+  if (score === 2) return { glow: '0 0 12px 4px #86efac', color: '#86efac' }; // Jasno zielony (mocny)
+  if (score === 1) return { glow: '0 0 8px 2px #86efac', color: '#86efac' }; // Jasno zielony (słabszy)
+  if (score === -1) return { glow: '0 0 8px 2px #f97316', color: '#f97316' }; // Pomarańczowy
+  if (score === -2) return { glow: '0 0 12px 4px #ef4444', color: '#ef4444' }; // Czerwony
+  if (score === -3) return { glow: '0 0 12px 4px #000000', color: '#000000' }; // Czarny
+  
+  // score === 0 (np. 3x średnie, lub balans najlepsza+najgorsza)
   return { glow: null, color: null };
 }
 
