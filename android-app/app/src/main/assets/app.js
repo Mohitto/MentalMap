@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.47';
+const APP_VERSION = 'v0.9.48';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1112,17 +1112,20 @@ function renderPlanets() {
     // +/- indicators converted to background glow
     const { plusCount, minusCount } = getPlanetIndicators(person.answers);
     let customGlow = null;
+    let customGlowColor = null;
     
-    if (plusCount === 1 && minusCount === 0) customGlow = '0 0 8px 2px #86efac'; // +
-    else if (plusCount === 2 && minusCount === 0) customGlow = '0 0 12px 4px #86efac'; // ++
-    else if (plusCount === 3 && minusCount === 0) customGlow = '0 0 12px 4px #16a34a'; // +++
-    else if (plusCount === 0 && minusCount === 1) customGlow = '0 0 8px 2px #ef4444'; // -
-    else if (plusCount === 0 && minusCount === 2) customGlow = '0 0 8px 2px #000000'; // --
-    else if (plusCount === 0 && minusCount === 3) customGlow = '0 0 12px 4px #000000'; // ---
-    else if (plusCount === 1 && minusCount === 1) customGlow = '0 0 8px 2px #f97316'; // +-
-    else if (plusCount === 2 && minusCount === 1) customGlow = '0 0 8px 2px #166534'; // ++-
-    else if (plusCount === 1 && minusCount === 2) customGlow = '0 0 12px 4px #f97316'; // --+ (user wrote --+, which implies 2 minus 1 plus)
+    if (plusCount === 1 && minusCount === 0) { customGlow = '0 0 8px 2px #86efac'; customGlowColor = '#86efac'; }
+    else if (plusCount === 2 && minusCount === 0) { customGlow = '0 0 12px 4px #86efac'; customGlowColor = '#86efac'; }
+    else if (plusCount === 3 && minusCount === 0) { customGlow = '0 0 12px 4px #16a34a'; customGlowColor = '#16a34a'; }
+    else if (plusCount === 0 && minusCount === 1) { customGlow = '0 0 8px 2px #ef4444'; customGlowColor = '#ef4444'; }
+    else if (plusCount === 0 && minusCount === 2) { customGlow = '0 0 8px 2px #000000'; customGlowColor = '#000000'; }
+    else if (plusCount === 0 && minusCount === 3) { customGlow = '0 0 12px 4px #000000'; customGlowColor = '#000000'; }
+    else if (plusCount === 1 && minusCount === 1) { customGlow = '0 0 8px 2px #f97316'; customGlowColor = '#f97316'; }
+    else if (plusCount === 2 && minusCount === 1) { customGlow = '0 0 8px 2px #166534'; customGlowColor = '#166534'; }
+    else if (plusCount === 1 && minusCount === 2) { customGlow = '0 0 12px 4px #f97316'; customGlowColor = '#f97316'; }
     
+    person.orbitLineColor = customGlowColor || grad[0];
+
     if (customGlow) {
       planetEl.style.setProperty('--custom-glow', customGlow);
     }
@@ -1190,6 +1193,18 @@ function renderPlanets() {
         line.className = `orbit-line orbit-line--${level}`;
         line.style.width = `${orbit.radius * 2}px`;
         line.style.height = `${orbit.radius * 2}px`;
+        
+        // Find planet to get its line color
+        const planetWithScore = people.find(p => p.totalScore === orbit.score);
+        if (planetWithScore && planetWithScore.orbitLineColor) {
+          // If it's pure black, use a dark red or dark gray so it's not totally invisible? 
+          // Let's just use the exact color but with 50% opacity so it looks like an orbit
+          let hex = planetWithScore.orbitLineColor;
+          if (hex === '#000000') hex = '#444444'; // Slightly visible dark gray
+          line.style.borderColor = hex;
+          line.style.opacity = '0.6';
+        }
+
         orbitLinesContainer.appendChild(line);
       });
     });
