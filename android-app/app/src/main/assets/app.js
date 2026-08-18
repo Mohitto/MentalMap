@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.41';
+const APP_VERSION = 'v0.9.42';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -246,7 +246,7 @@ const scorePreview = $('.score-preview');
 const emptyState = $('#empty-state');
 const btnToggleView = $('#btn-toggle-view');
 const rankingView = $('#ranking-view');
-const rankingList = $('#ranking-list');
+const summaryContainer = $('#summary-container');
 const appVersion = $('#app-version');
 
 // ═══════════════════════════════════════════
@@ -255,6 +255,7 @@ const appVersion = $('#app-version');
 
 let people = [];
 let editingId = null;
+let selectedPlanetId = null; // Currently selected planet (menu open)
 let selectedGradientIndex = 0;
 
 function updateColorPickerSelection(index) {
@@ -278,6 +279,13 @@ let panStartX = 0, panStartY = 0;
 let panStartMapX = 0, panStartMapY = 0;
 let lastPinchDist = 0;
 let pinchActive = false;
+
+// Close menu when clicking outside
+document.addEventListener('click', (e) => {
+  if (selectedPlanetId && !e.target.closest('.planet-group')) {
+    closePlanetMenu();
+  }
+});
 
 // ═══════════════════════════════════════════
 // INITIALIZATION
@@ -744,13 +752,14 @@ function openAddModal() {
   modalTitle.textContent = 'Nowa relacja';
   btnDelete.style.display = 'none';
   resetScorePreview();
+  surveyModal.removeAttribute('data-mode');
   surveyModal.setAttribute('aria-hidden', 'false');
   history.pushState({ modalOpen: true }, '');
   // Focus name input after animation
   setTimeout(() => personNameInput?.focus(), 400);
 }
 
-function openEditModal(id) {
+function openEditModal(id, mode = 'survey') {
   const person = people.find(p => p.id === id);
   if (!person) return;
 
@@ -783,8 +792,77 @@ function openEditModal(id) {
   btnDelete.style.display = 'flex';
 
   updateScorePreview();
+
+  // Handle modal mode
+  surveyModal.setAttribute('data-mode', mode);
+  if (mode === 'summary') {
+    generateSummary(person);
+  } else if (summaryContainer) {
+    summaryContainer.innerHTML = '';
+  }
+
   surveyModal.setAttribute('aria-hidden', 'false');
   history.pushState({ modalOpen: true }, '');
+}
+
+function generateSummary(person) {
+  if (!summaryContainer) return;
+  summaryContainer.innerHTML = '';
+
+  let html = '';
+
+  // Gate check
+  if (typeof person.gateAnswer === 'number' && person.gateAnswer < 0) {
+    const answerObj = GATE_QUESTION.answers.find(a => a.penalty === person.gateAnswer);
+    if (answerObj) {
+      html += `
+        <div class="summary-item">
+          <div class="summary-item__question">${GATE_QUESTION.text}</div>
+          <div class="summary-item__answer">Twoja odpowiedź: ${answerObj.text}</div>
+          <div class="summary-item__score">${person.gateAnswer} pkt</div>
+        </div>
+      `;
+    }
+  }
+
+  // Regular questions check
+  person.answers.forEach((pts, i) => {
+    const q = SURVEY_QUESTIONS[i];
+    if (!q) return;
+    
+    // Some questions might have 0 as max if they are all negative, but typically index 0 is max
+    const maxPts = Math.max(...q.answers.map(a => a.points));
+    if (pts < maxPts) {
+      const answerObj = q.answers.find(a => a.points === pts);
+      html += `
+        <div class="summary-item">
+          <div class="summary-item__question">${q.text}</div>
+          <div class="summary-item__answer">Twoja odpowiedź: ${answerObj ? answerObj.text : '-'}</div>
+          <div class="summary-item__score">${pts} / ${maxPts} pkt</div>
+        </div>
+      `;
+    }
+  });
+
+  // Secret question check
+  if (typeof person.secretCap === 'number' && person.secretCap < 3) {
+    const answerObj = SECRET_QUESTION.answers.find(a => a.cap === person.secretCap);
+    if (answerObj) {
+      html += `
+        <div class="summary-item">
+          <div class="summary-item__question">${SECRET_QUESTION.text}</div>
+          <div class="summary-item__answer">Twoja odpowiedź: ${answerObj.text}</div>
+          <div class="summary-item__score">Limit poziomu: max ${person.secretCap}</div>
+        </div>
+      `;
+    }
+  }
+
+  if (html === '') {
+    html = '<div style="text-align:center; color:var(--text-muted); padding:20px;">Ta osoba uzyskała maksymalną liczbę punktów we wszystkich kategoriach!</div>';
+  }
+
+  summaryContainer.innerHTML = html;
 }
 
 function closeModal(fromPopState = false) {
@@ -1012,8 +1090,29 @@ function renderPlanets() {
       planetEl.style.setProperty('--custom-glow', customGlow);
     }
 
-    // Tap to edit
-    group.addEventListener('click', () => openEditModal(person.id));
+    // Planet Menu
+    const menu = document.createElement('div');
+    menu.className = 'planet-menu';
+    menu.innerHTML = `
+      <div class="planet-menu-item action-color" data-action="color" title="Edycja wizualna">🖌️</div>
+      <div class="planet-menu-item action-survey" data-action="survey" title="Edycja ankiety">✔️</div>
+      <div class="planet-menu-item action-summary" data-action="summary" title="Podsumowanie">≡</div>
+    `;
+
+    menu.querySelectorAll('.planet-menu-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handlePlanetAction(person.id, btn.dataset.action);
+      });
+    });
+
+    group.appendChild(menu);
+
+    // Click to select planet
+    group.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePlanetMenu(person.id);
+    });
 
     group.appendChild(planetEl);
     planetsContainer.appendChild(group);
@@ -1061,6 +1160,67 @@ function renderPlanets() {
 }
 
 // ═══════════════════════════════════════════
+// PLANET INTERACTION & MENU
+// ═══════════════════════════════════════════
+
+function togglePlanetMenu(id) {
+  if (selectedPlanetId === id) {
+    closePlanetMenu();
+    return;
+  }
+  
+  closePlanetMenu();
+  
+  selectedPlanetId = id;
+  const group = planetsContainer?.querySelector(`.planet-group[data-id="${id}"]`);
+  if (group) {
+    group.classList.add('is-active');
+  }
+
+  centerCameraOnPlanet(id);
+}
+
+function closePlanetMenu() {
+  if (selectedPlanetId) {
+    const group = planetsContainer?.querySelector(`.planet-group[data-id="${selectedPlanetId}"]`);
+    if (group) {
+      group.classList.remove('is-active');
+    }
+    selectedPlanetId = null;
+  }
+}
+
+function centerCameraOnPlanet(id) {
+  const person = people.find(p => p.id === id);
+  if (!person) return;
+
+  const radius = person.orbitRadius || 100;
+  const x = Math.cos(person.angle) * radius;
+  const y = Math.sin(person.angle) * radius;
+
+  // Center on planet
+  mapPanX = -x * mapScale;
+  mapPanY = -y * mapScale;
+  if (mapScale < 1.5) mapScale = 1.5;
+
+  const viewport = document.getElementById('map-viewport');
+  if (viewport) {
+    viewport.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+    applyMapTransform();
+    
+    // Remove transition after animation ends
+    setTimeout(() => {
+      if (viewport) viewport.style.transition = '';
+    }, 500);
+  }
+}
+
+function handlePlanetAction(id, action) {
+  closePlanetMenu();
+  openEditModal(id, action);
+}
+
+// ═══════════════════════════════════════════
 // ORBITAL ANIMATION
 // ═══════════════════════════════════════════
 
@@ -1080,9 +1240,11 @@ function startAnimation() {
         const person = people.find(p => p.id === group.dataset.id);
         if (!person) return;
 
-        // Advance angle
-        person.angle += person.speed * safeDt;
-        if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
+        // Advance angle only if no planet menu is open
+        if (!selectedPlanetId) {
+          person.angle += person.speed * safeDt;
+          if (person.angle > Math.PI * 2) person.angle -= Math.PI * 2;
+        }
 
         const radius = person.orbitRadius || 100;
         const x = Math.cos(person.angle) * radius;
