@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.53';
+const APP_VERSION = 'v0.9.54';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -660,6 +660,22 @@ function getPlanetIndicators(answers) {
   return { plusCount, minusCount };
 }
 
+function getPlanetGlowStyle(person) {
+  const { plusCount, minusCount } = getPlanetIndicators(person.answers);
+  
+  if (plusCount === 1 && minusCount === 0) return { glow: '0 0 8px 2px #86efac', color: '#86efac' };
+  if (plusCount === 2 && minusCount === 0) return { glow: '0 0 12px 4px #86efac', color: '#86efac' };
+  if (plusCount === 3 && minusCount === 0) return { glow: '0 0 12px 4px #16a34a', color: '#16a34a' };
+  if (plusCount === 0 && minusCount === 1) return { glow: '0 0 8px 2px #ef4444', color: '#ef4444' };
+  if (plusCount === 0 && minusCount === 2) return { glow: '0 0 8px 2px #000000', color: '#000000' };
+  if (plusCount === 0 && minusCount === 3) return { glow: '0 0 12px 4px #000000', color: '#000000' };
+  if (plusCount === 1 && minusCount === 1) return { glow: '0 0 8px 2px #f97316', color: '#f97316' };
+  if (plusCount === 2 && minusCount === 1) return { glow: '0 0 8px 2px #166534', color: '#166534' };
+  if (plusCount === 1 && minusCount === 2) return { glow: '0 0 12px 4px #f97316', color: '#f97316' };
+  
+  return { glow: null, color: null };
+}
+
 function getSpeedByScore(score) {
   const clamped = Math.min(Math.max(score, 0), 50);
   const minSpeed = 0.01; // almost stopped for 0 points
@@ -1113,19 +1129,7 @@ function renderPlanets() {
     planetEl.style.setProperty('--planet-glow', `${grad[0]}66`);
 
     // +/- indicators converted to background glow
-    const { plusCount, minusCount } = getPlanetIndicators(person.answers);
-    let customGlow = null;
-    let customGlowColor = null;
-    
-    if (plusCount === 1 && minusCount === 0) { customGlow = '0 0 8px 2px #86efac'; customGlowColor = '#86efac'; }
-    else if (plusCount === 2 && minusCount === 0) { customGlow = '0 0 12px 4px #86efac'; customGlowColor = '#86efac'; }
-    else if (plusCount === 3 && minusCount === 0) { customGlow = '0 0 12px 4px #16a34a'; customGlowColor = '#16a34a'; }
-    else if (plusCount === 0 && minusCount === 1) { customGlow = '0 0 8px 2px #ef4444'; customGlowColor = '#ef4444'; }
-    else if (plusCount === 0 && minusCount === 2) { customGlow = '0 0 8px 2px #000000'; customGlowColor = '#000000'; }
-    else if (plusCount === 0 && minusCount === 3) { customGlow = '0 0 12px 4px #000000'; customGlowColor = '#000000'; }
-    else if (plusCount === 1 && minusCount === 1) { customGlow = '0 0 8px 2px #f97316'; customGlowColor = '#f97316'; }
-    else if (plusCount === 2 && minusCount === 1) { customGlow = '0 0 8px 2px #166534'; customGlowColor = '#166534'; }
-    else if (plusCount === 1 && minusCount === 2) { customGlow = '0 0 12px 4px #f97316'; customGlowColor = '#f97316'; }
+    const { glow: customGlow, color: customGlowColor } = getPlanetGlowStyle(person);
     
     person.orbitLineColor = customGlowColor;
 
@@ -1421,6 +1425,14 @@ function renderRanking() {
     if (person.level === 3) { levelName = 'Poziom 3'; levelColor = 'var(--level-3-color)'; }
     else if (person.level === 2) { levelName = 'Poziom 2'; levelColor = 'var(--level-2-color)'; }
     else if (person.level === 1) { levelName = 'Poziom 1'; levelColor = 'var(--level-1-color)'; }
+    
+    // Apply glow if any
+    const { glow: customGlow } = getPlanetGlowStyle(person);
+    if (customGlow) {
+      item.style.boxShadow = customGlow;
+      // Optional: slight border to match the glow aesthetic
+      // item.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+    }
     
     item.innerHTML = `
       <div class="ranking-avatar" style="background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
