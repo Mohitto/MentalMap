@@ -386,8 +386,6 @@ html, body {
   cursor: pointer;
   transition: filter 0.2s ease;
   padding: 20px;
-  margin-top: -20px;
-  margin-left: -20px;
   border-radius: 50%;
 }
 

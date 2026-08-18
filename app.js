@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.42';
+const APP_VERSION = 'v0.9.43';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -256,6 +256,7 @@ const appVersion = $('#app-version');
 let people = [];
 let editingId = null;
 let selectedPlanetId = null; // Currently selected planet (menu open)
+let preSelectMapState = null; // Store map state before zooming to planet
 let selectedGradientIndex = 0;
 
 function updateColorPickerSelection(index) {
@@ -1169,7 +1170,12 @@ function togglePlanetMenu(id) {
     return;
   }
   
-  closePlanetMenu();
+  // Save state before centering if not already saved
+  if (!preSelectMapState) {
+    preSelectMapState = { x: mapPanX, y: mapPanY, scale: mapScale };
+  }
+  
+  closePlanetMenu(false); // Pass false so it doesn't restore camera yet
   
   selectedPlanetId = id;
   const group = planetsContainer?.querySelector(`.planet-group[data-id="${id}"]`);
@@ -1180,13 +1186,30 @@ function togglePlanetMenu(id) {
   centerCameraOnPlanet(id);
 }
 
-function closePlanetMenu() {
+function closePlanetMenu(restoreCamera = true) {
   if (selectedPlanetId) {
     const group = planetsContainer?.querySelector(`.planet-group[data-id="${selectedPlanetId}"]`);
     if (group) {
       group.classList.remove('is-active');
     }
     selectedPlanetId = null;
+    
+    // Restore camera
+    if (restoreCamera && preSelectMapState) {
+      mapPanX = preSelectMapState.x;
+      mapPanY = preSelectMapState.y;
+      mapScale = preSelectMapState.scale;
+      preSelectMapState = null;
+      
+      const viewport = document.getElementById('map-viewport');
+      if (viewport) {
+        viewport.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+        applyMapTransform();
+        setTimeout(() => {
+          if (viewport) viewport.style.transition = '';
+        }, 500);
+      }
+    }
   }
 }
 

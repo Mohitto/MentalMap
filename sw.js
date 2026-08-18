@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mentalmap-cache-v0.9.42';
+const CACHE_NAME = 'mentalmap-cache-v0.9.43';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
