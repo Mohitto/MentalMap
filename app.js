@@ -181,16 +181,14 @@ const GATE_QUESTION = {
 const SECRET_QUESTION = {
   text: 'Czy ta osoba dochowuje powierzonych jej sekretów?',
   answers: [
-    { cap: 3, text: 'Zawsze dochowuje sekretów.' },
-    { cap: 2, text: 'Zdarzyło się, że powiedziała coś, czego nie powinna.' },
-    { cap: 1, text: 'Nie potrafi dochować sekretów.' },
-    { cap: 0, text: 'Bez przerwy obgaduje za plecami.' },
-    { cap: 3, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    { cap: 3, text: 'Zawsze dochowuje sekretów lub zdarzyło się, że powiedziała coś, czego nie powinna.' },
+    { cap: 2, text: 'Często zdarza się, że mówi komuś Twoje sekrety.' },
+    { cap: 1, text: 'Nie potrafi dochować sekretów.' }
   ]
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.59';
+const APP_VERSION = 'v0.9.60';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mentalmap-cache-v0.9.59';
+const CACHE_NAME = 'mentalmap-cache-v0.9.60';
 const ASSETS = [
   './',
   './index.html',
