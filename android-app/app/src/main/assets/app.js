@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.48';
+const APP_VERSION = 'v0.9.49';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1124,7 +1124,7 @@ function renderPlanets() {
     else if (plusCount === 2 && minusCount === 1) { customGlow = '0 0 8px 2px #166534'; customGlowColor = '#166534'; }
     else if (plusCount === 1 && minusCount === 2) { customGlow = '0 0 12px 4px #f97316'; customGlowColor = '#f97316'; }
     
-    person.orbitLineColor = customGlowColor || grad[0];
+    person.orbitLineColor = customGlowColor;
 
     if (customGlow) {
       planetEl.style.setProperty('--custom-glow', customGlow);
