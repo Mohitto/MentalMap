@@ -844,6 +844,7 @@ body.incognito-mode .ranking-name {
   flex-direction: column;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+  max-height: 85vh;
 }
 
 #info-modal[aria-hidden="false"] .info-container {
@@ -865,6 +866,7 @@ body.incognito-mode .ranking-name {
   line-height: 1.6;
   color: var(--text-secondary);
   white-space: pre-wrap;
+  overflow-y: auto;
 }
 
 .info-header h2 {

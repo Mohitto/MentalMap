@@ -187,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.64';
+const APP_VERSION = 'v0.9.65';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -746,43 +746,43 @@ const infoContentText = $('#info-content-text');
 const LEVEL_DESCRIPTIONS = {
   1: `To ludzie, którzy powinni znać Cię jedynie powierzchownie — imię, zawód, ogólne fakty, nic ponad to.
 
-Nie mówisz, jakie masz plany, ani co naprawdę myślisz.
+❌ Nie mówisz, jakie masz plany, ani co naprawdę myślisz.
 
-Nie mówisz o tym, co czujesz, a ich słowa nie powinny wpływać na Twój stan emocjonalny.
+❌ Nie mówisz o tym, co czujesz, a ich słowa nie powinny wpływać na Twój stan emocjonalny.
 
-Nie dzielisz się swoimi przemyśleniami ani prywatnymi opiniami.
+❌ Nie dzielisz się swoimi przemyśleniami ani prywatnymi opiniami.
 
-Nie prosisz ich o rady i ignorujesz ich opinie na Twój temat.
+❌ Nie prosisz ich o rady i ignorujesz ich opinie na Twój temat.
 
-Nie bierzesz ich pod uwagę przy podejmowaniu jakichkolwiek decyzji.`,
+❌ Nie bierzesz ich pod uwagę przy podejmowaniu jakichkolwiek decyzji.`,
   2: `To ludzie, którzy mogą wiedzieć, co się teraz u Ciebie dzieje i poznawać Twoją historię; to etap weryfikacji, dokąd zmierza ta znajomość.
 
-Możesz mówić, jakie masz bieżące plany i co myślisz, ale nie odsłaniasz swoich głębokich emocji.
+✅ Możesz mówić, jakie masz bieżące plany i co myślisz, ale nie odsłaniasz swoich głębokich emocji.
 
-Możesz dzielić się opiniami i przemyśleniami, ale ostrożnie i bez podawania wrażliwych szczegółów.
+✅ Możesz dzielić się opiniami i przemyśleniami, ale ostrożnie i bez podawania wrażliwych szczegółów.
 
-Nie zdradzasz swoich sekretów, słabości ani spraw, które mogłyby zostać użyte przeciwko Tobie.
+❌ Nie zdradzasz swoich sekretów, słabości ani spraw, które mogłyby zostać użyte przeciwko Tobie.
 
-Możesz wysłuchać ich rad, ale traktujesz je jedynie jako niezobowiązujące sugestie.
+✅ Możesz wysłuchać ich rad, ale traktujesz je jedynie jako niezobowiązujące sugestie.
 
-Możesz brać ich pod uwagę przy bieżących decyzjach, jeśli bezpośrednio ich dotyczą.
+✅ Możesz brać ich pod uwagę przy bieżących decyzjach, jeśli bezpośrednio ich dotyczą.
 
-Obserwujesz, jak reagują na Twoje granice i czy dochowują dyskrecji, zanim wpuścisz ich głębiej.`,
+✅ Obserwujesz, jak reagują na Twoje granice i czy dochowują dyskrecji, zanim wpuścisz ich głębiej.`,
   3: `To najwyższy poziom relacji — przestrzeń pełnego zaufania, gdzie jesteś całkowicie sobą z ludźmi, którzy dobrze Cię poznali i sprawdzili się w czasie.
 
-Dzielisz się długoterminowymi planami, wizją przyszłości i celami.
+✅ Dzielisz się długoterminowymi planami, wizją przyszłości i celami.
 
-Mówisz otwarcie o swoich prawdziwych przemyśleniach, motywacjach i wątpliwościach.
+✅ Mówisz otwarcie o swoich prawdziwych przemyśleniach, motywacjach i wątpliwościach.
 
-Mówisz wprost o tym, co czujesz — pokazujesz emocje, lęki i słabości.
+✅ Mówisz wprost o tym, co czujesz — pokazujesz emocje, lęki i słabości.
 
-Nie ukrywasz przed nimi sekretów ani trudnych faktów ze swojej historii.
+✅ Nie ukrywasz przed nimi sekretów ani trudnych faktów ze swojej historii.
 
-Zawsze wysłuchujesz ich rad i analizujesz ich perspektywę przed podjęciem kluczowych kroków.
+✅ Zawsze wysłuchujesz ich rad i analizujesz ich perspektywę przed podjęciem kluczowych kroków.
 
-Zawsze bierzesz ich pod uwagę przy podejmowaniu ważnych decyzji życiowych.
+✅ Zawsze bierzesz ich pod uwagę przy podejmowaniu ważnych decyzji życiowych.
 
-Dajesz im prawo do szczerego feedbacku, zachowując jednak ostateczną odpowiedzialność za własne wybory.`
+✅ Dajesz im prawo do szczerego feedbacku, zachowując jednak ostateczną odpowiedzialność za własne wybory.`
 };
 
 const LEVEL_COLORS = {
