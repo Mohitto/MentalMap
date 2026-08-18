@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.46';
+const APP_VERSION = 'v0.9.47';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -696,6 +696,13 @@ function bindEvents() {
     ring.addEventListener('click', (e) => {
       e.stopPropagation(); // prevent outer rings from catching inner ring clicks
       if (e.target.closest('.planet-group')) return;
+      
+      // If a planet is selected, close the menu and zoom out instead of showing info
+      if (selectedPlanetId) {
+        closePlanetMenu();
+        return;
+      }
+
       const level = parseInt(ring.dataset.level, 10);
       if (level >= 1 && level <= 3) openInfoModal(level);
     });
