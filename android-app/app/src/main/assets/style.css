@@ -859,6 +859,14 @@ body.incognito-mode .ranking-name {
   border-bottom: 1px solid var(--modal-border);
 }
 
+.info-content {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
 .info-header h2 {
   font-size: 18px;
   font-weight: 700;
