@@ -187,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.63';
+const APP_VERSION = 'v0.9.64';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1241,6 +1241,9 @@ function renderPlanets() {
         if (planetWithScore && planetWithScore.orbitLineColor) {
           line.style.borderColor = planetWithScore.orbitLineColor;
           line.style.opacity = '0.6';
+        } else {
+          line.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+          line.style.opacity = '1';
         }
 
         orbitLinesContainer.appendChild(line);
