@@ -1189,7 +1189,6 @@ function renderRanking() {
     
     item.innerHTML = `
       <div class="ranking-avatar" style="background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
-        ${initials}
       </div>
       <div class="ranking-info">
         <div class="ranking-name">${person.name}</div>
