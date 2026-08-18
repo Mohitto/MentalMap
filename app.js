@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.50';
+const APP_VERSION = 'v0.9.51';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1198,11 +1198,7 @@ function renderPlanets() {
         // Find planet to get its line color
         const planetWithScore = people.find(p => p.totalScore === orbit.score);
         if (planetWithScore && planetWithScore.orbitLineColor) {
-          // If it's pure black, use a dark red or dark gray so it's not totally invisible? 
-          // Let's just use the exact color but with 50% opacity so it looks like an orbit
-          let hex = planetWithScore.orbitLineColor;
-          if (hex === '#000000') hex = '#444444'; // Slightly visible dark gray
-          line.style.borderColor = hex;
+          line.style.borderColor = planetWithScore.orbitLineColor;
           line.style.opacity = '0.6';
         }
 
