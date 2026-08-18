@@ -187,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.61';
+const APP_VERSION = 'v0.9.62';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -644,8 +644,8 @@ function getPlanetGlowStyle(person) {
   let best = 0, worst = 0, medium = 0;
   const ans = person.answers || [];
   
-  // Rule evaluates exactly questions 2, 3, and 4 (indices 1, 2, 3)
-  [1, 2, 3].forEach(qi => {
+  // Rule evaluates UI questions 2, 3, and 4 (SURVEY_QUESTIONS indices 0, 1, 2)
+  [0, 1, 2].forEach(qi => {
     if (ans[qi] === undefined) return;
     const qAnswers = SURVEY_QUESTIONS[qi].answers;
     const maxPts = Math.max(...qAnswers.map(a => a.points));
