@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.52';
+const APP_VERSION = 'v0.9.53';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1035,7 +1035,7 @@ function handleSubmit(e) {
       const oldLevel = person.level;
       person.level = cappedLevel;
       // Re-randomize speed if level changed
-      if (oldLevel !== cappedLevel) person.speed = getRandomSpeed(cappedLevel);
+      if (oldLevel !== cappedLevel) person.speed = getSpeedByScore(person.totalScore);
     }
   } else {
     // Add new person
@@ -1048,7 +1048,7 @@ function handleSubmit(e) {
       level: cappedLevel,
       secretCap,
       angle: Math.random() * Math.PI * 2,
-      speed: getRandomSpeed(cappedLevel),
+      speed: getSpeedByScore(totalScore),
       gradientIndex: selectedGradientIndex
     });
   }
