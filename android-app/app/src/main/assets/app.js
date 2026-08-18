@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.51';
+const APP_VERSION = 'v0.9.52';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -662,8 +662,10 @@ function getPlanetIndicators(answers) {
 
 function getSpeedByScore(score) {
   const clamped = Math.min(Math.max(score, 0), 50);
-  const minSpeed = 0.04;
-  const maxSpeed = 0.25;
+  const minSpeed = 0.01; // almost stopped for 0 points
+  const maxSpeed = 0.60; // very fast for 50 points
+  
+  // Strict linear mapping so every single point translates directly to speed
   return minSpeed + (clamped / 50) * (maxSpeed - minSpeed);
 }
 
