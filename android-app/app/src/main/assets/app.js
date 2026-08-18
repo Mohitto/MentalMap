@@ -1,7 +1,7 @@
 /**
  * MentalMap — Planetary Relationship Mapper
  * Maps your relationships as planets orbiting you (the Sun).
- * Scoring: 0-11 = Level 0, 12-24 = Level 1, 25-37 = Level 2, 38-50 = Level 3 (closest).
+ * Scoring: 0-17 = Level 1, 18-34 = Level 2, 35-50 = Level 3 (closest).
  */
 
 // ═══════════════════════════════════════════
@@ -187,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.65';
+const APP_VERSION = 'v0.9.66';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -634,10 +634,9 @@ function getInitials(name) {
 }
 
 function getLevel(score) {
-  if (score >= 38) return 3;
-  if (score >= 25) return 2;
-  if (score >= 12) return 1;
-  return 0;
+  if (score >= 35) return 3;
+  if (score >= 18) return 2;
+  return 1;
 }
 
 function getPlanetGlowStyle(person) {
