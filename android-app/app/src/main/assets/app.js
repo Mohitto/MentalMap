@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.43';
+const APP_VERSION = 'v0.9.44';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -246,6 +246,7 @@ const scorePreview = $('.score-preview');
 const emptyState = $('#empty-state');
 const btnToggleView = $('#btn-toggle-view');
 const rankingView = $('#ranking-view');
+const rankingList = $('#ranking-list');
 const summaryContainer = $('#summary-container');
 const appVersion = $('#app-version');
 
