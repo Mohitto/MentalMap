@@ -170,11 +170,10 @@ const SURVEY_QUESTIONS = [
 const GATE_QUESTION = {
   text: 'Jak często spotykasz się z tą osobą w prawdziwym życiu?',
   answers: [
-    { penalty: 0, text: 'Codziennie lub kilka razy w tygodniu.' },
-    { penalty: -4, text: 'Raz lub kilka razy w miesiącu.' },
-    { penalty: -6, text: 'Raz lub kilka razy w roku.' },
-    { penalty: -10, text: 'Brak kontaktu.' },
-    { penalty: 0, text: 'Jeszcze nie było sytuacji, by to ocenić.' }
+    { penalty: 0, text: 'Co najmniej raz w tygodniu.' },
+    { penalty: -4, text: 'Co najmniej raz w miesiącu.' },
+    { penalty: -6, text: 'Co najmniej raz w roku.' },
+    { penalty: -10, text: 'Brak kontaktu.' }
   ]
 };
 
@@ -188,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.60';
+const APP_VERSION = 'v0.9.61';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
