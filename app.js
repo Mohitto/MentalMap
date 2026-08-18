@@ -190,7 +190,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.45';
+const APP_VERSION = 'v0.9.46';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -333,6 +333,8 @@ function buildSurveyForm() {
   const gateCard = document.createElement('div');
   gateCard.className = 'question-card';
 
+  gateCard.id = 'card-gate';
+
   const gateTitle = document.createElement('h3');
   gateTitle.textContent = `1. ${GATE_QUESTION.text}`;
   gateCard.appendChild(gateTitle);
@@ -367,6 +369,7 @@ function buildSurveyForm() {
   SURVEY_QUESTIONS.forEach((q, qIndex) => {
     const card = document.createElement('div');
     card.className = 'question-card';
+    card.id = `card-q${qIndex}`;
 
     const title = document.createElement('h3');
     title.textContent = `${qIndex + 2}. ${q.text}`;
@@ -402,6 +405,7 @@ function buildSurveyForm() {
   // ── Secret/Cap question (rendered after regular questions) ──
   const secretCard = document.createElement('div');
   secretCard.className = 'question-card';
+  secretCard.id = 'card-secret';
 
   const secretTitle = document.createElement('h3');
   secretTitle.textContent = `${SURVEY_QUESTIONS.length + 2}. ${SECRET_QUESTION.text}`;
@@ -818,7 +822,7 @@ function generateSummary(person) {
     const answerObj = GATE_QUESTION.answers.find(a => a.penalty === person.gateAnswer);
     if (answerObj) {
       html += `
-        <div class="summary-item">
+        <div class="summary-item" onclick="switchToSurveyAndScroll('card-gate')" style="cursor: pointer;" title="Kliknij, aby poprawić">
           <div class="summary-item__question">${GATE_QUESTION.text}</div>
           <div class="summary-item__answer">Twoja odpowiedź: ${answerObj.text}</div>
           <div class="summary-item__score">${person.gateAnswer} pkt</div>
@@ -837,7 +841,7 @@ function generateSummary(person) {
     if (pts < maxPts) {
       const answerObj = q.answers.find(a => a.points === pts);
       html += `
-        <div class="summary-item">
+        <div class="summary-item" onclick="switchToSurveyAndScroll('card-q${i}')" style="cursor: pointer;" title="Kliknij, aby poprawić">
           <div class="summary-item__question">${q.text}</div>
           <div class="summary-item__answer">Twoja odpowiedź: ${answerObj ? answerObj.text : '-'}</div>
           <div class="summary-item__score">${pts} / ${maxPts} pkt</div>
@@ -851,7 +855,7 @@ function generateSummary(person) {
     const answerObj = SECRET_QUESTION.answers.find(a => a.cap === person.secretCap);
     if (answerObj) {
       html += `
-        <div class="summary-item">
+        <div class="summary-item" onclick="switchToSurveyAndScroll('card-secret')" style="cursor: pointer;" title="Kliknij, aby poprawić">
           <div class="summary-item__question">${SECRET_QUESTION.text}</div>
           <div class="summary-item__answer">Twoja odpowiedź: ${answerObj.text}</div>
           <div class="summary-item__score">Limit poziomu: max ${person.secretCap}</div>
@@ -865,6 +869,30 @@ function generateSummary(person) {
   }
 
   summaryContainer.innerHTML = html;
+}
+
+window.switchToSurveyAndScroll = function(cardId) {
+  // Switch to survey mode
+  const surveyModal = document.getElementById('survey-modal');
+  if (surveyModal) {
+    surveyModal.setAttribute('data-mode', 'survey');
+  }
+
+  // Find card and scroll
+  const card = document.getElementById(cardId);
+  if (card) {
+    setTimeout(() => {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.outline = '2px solid #ef476f';
+      card.style.outlineOffset = '4px';
+      card.style.borderRadius = '8px';
+      card.style.transition = 'outline 0.2s';
+      setTimeout(() => {
+        card.style.outline = '2px solid transparent';
+        card.style.outlineOffset = '0';
+      }, 2000);
+    }, 100); // small delay to let display:block apply
+  }
 }
 
 function closeModal(fromPopState = false) {
