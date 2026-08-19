@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.66">
+    <link rel="stylesheet" href="style.css?v=0.9.67">
 </head>
 <body>
     <script>
@@ -69,6 +69,12 @@
         <div id="ranking-list"></div>
     </div>
 
+    <!-- Stats View -->
+    <div id="stats-view" class="hidden">
+        <h2 class="stats-title">Statystyki Odpowiedzi</h2>
+        <div id="stats-list"></div>
+    </div>
+
     <!-- Toggle View Button -->
     <button id="btn-toggle-view" class="btn-top" style="right: 24px;" aria-label="Ranking">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -81,8 +87,17 @@
         </svg>
     </button>
 
+    <!-- Stats Button -->
+    <button id="btn-stats" class="btn-top" style="right: 76px;" aria-label="Statystyki">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="20" x2="12" y2="10"></line>
+            <line x1="18" y1="20" x2="18" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="16"></line>
+        </svg>
+    </button>
+
     <!-- Incognito Button -->
-    <button id="btn-incognito" class="btn-top" style="right: 76px;" aria-label="Tryb Incognito">
+    <button id="btn-incognito" class="btn-top" style="right: 128px;" aria-label="Tryb Incognito">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
             <circle cx="12" cy="12" r="3"></circle>
@@ -190,7 +205,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.66</div>
-    <script src="app.js?v=0.9.66"></script>
+    <div id="app-version">v0.9.67</div>
+    <script src="app.js?v=0.9.67"></script>
 </body>
 </html>
