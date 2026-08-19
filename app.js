@@ -187,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.67';
+const APP_VERSION = 'v0.9.68';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1534,14 +1534,14 @@ btnToggleView.addEventListener('click', () => toggleRankingView());
 // STATS VIEW
 // ═══════════════════════════════════════════
 
-function computeQuestionStats(qIndex) {
+function getQuestionAnswerGroups(qIndex) {
   const q = SURVEY_QUESTIONS[qIndex];
-  const counts = new Array(q.answers.length).fill(0);
+  const groups = q.answers.map(() => []);
 
   people.forEach(person => {
     const idx = person.answerIndices ? person.answerIndices[qIndex] : null;
     if (typeof idx === 'number' && q.answers[idx]) {
-      counts[idx]++;
+      groups[idx].push(person);
       return;
     }
     // Legacy entries saved before answer indices existed: best-effort match by points.
@@ -1549,10 +1549,10 @@ function computeQuestionStats(qIndex) {
     const pts = person.answers ? person.answers[qIndex] : undefined;
     if (typeof pts !== 'number') return;
     const matchIdx = q.answers.findIndex(a => a.points === pts);
-    if (matchIdx !== -1) counts[matchIdx]++;
+    if (matchIdx !== -1) groups[matchIdx].push(person);
   });
 
-  return counts;
+  return groups;
 }
 
 function renderStats() {
@@ -1565,8 +1565,8 @@ function renderStats() {
   }
 
   SURVEY_QUESTIONS.forEach((q, qIndex) => {
-    const counts = computeQuestionStats(qIndex);
-    const total = counts.reduce((sum, c) => sum + c, 0);
+    const groups = getQuestionAnswerGroups(qIndex);
+    const total = groups.reduce((sum, g) => sum + g.length, 0);
 
     const card = document.createElement('div');
     card.className = 'stats-question';
@@ -1577,20 +1577,98 @@ function renderStats() {
     card.appendChild(title);
 
     q.answers.forEach((answer, aIndex) => {
-      const count = counts[aIndex];
+      const answerPeople = groups[aIndex];
+      const count = answerPeople.length;
       const pct = total > 0 ? Math.round((count / total) * 100) : 0;
 
       const row = document.createElement('div');
       row.className = 'stats-answer-row';
-      row.innerHTML = `
-        <div class="stats-answer-row__text">${answer.text}</div>
-        <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%"></div></div>
-        <div class="stats-answer-row__count">${count} <span class="stats-answer-row__pct">(${pct}%)</span></div>
-      `;
+
+      const textEl = document.createElement('div');
+      textEl.className = 'stats-answer-row__text';
+      textEl.textContent = answer.text;
+      row.appendChild(textEl);
+
+      const trackEl = document.createElement('div');
+      trackEl.className = 'stats-bar-track';
+      const fillEl = document.createElement('div');
+      fillEl.className = 'stats-bar-fill';
+      fillEl.style.width = `${pct}%`;
+      trackEl.appendChild(fillEl);
+      row.appendChild(trackEl);
+
+      const countEl = document.createElement('div');
+      countEl.className = 'stats-answer-row__count';
+      countEl.textContent = `${count} `;
+      const pctEl = document.createElement('span');
+      pctEl.className = 'stats-answer-row__pct';
+      pctEl.textContent = `(${pct}%)`;
+      countEl.appendChild(pctEl);
+      row.appendChild(countEl);
+
+      if (count > 0) {
+        const peopleEl = document.createElement('div');
+        peopleEl.className = 'stats-people';
+        answerPeople.forEach(person => {
+          const colors = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
+          const chip = document.createElement('div');
+          chip.className = 'stats-person-chip';
+          chip.dataset.personId = person.id;
+          chip.dataset.qIndex = qIndex;
+          chip.setAttribute('role', 'button');
+          chip.tabIndex = 0;
+          chip.title = 'Kliknij, aby poprawić tę odpowiedź';
+
+          const avatar = document.createElement('span');
+          avatar.className = 'stats-person-chip__avatar';
+          avatar.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+          avatar.textContent = person.name.substring(0, 2).toUpperCase();
+          chip.appendChild(avatar);
+
+          const nameEl = document.createElement('span');
+          nameEl.className = 'stats-person-chip__name';
+          nameEl.textContent = person.name;
+          chip.appendChild(nameEl);
+
+          const scoreEl = document.createElement('span');
+          scoreEl.className = 'stats-person-chip__score';
+          scoreEl.textContent = `${person.totalScore} pkt`;
+          chip.appendChild(scoreEl);
+
+          peopleEl.appendChild(chip);
+        });
+        row.appendChild(peopleEl);
+      }
+
       card.appendChild(row);
     });
 
     statsList.appendChild(card);
+  });
+}
+
+window.openPersonFromStats = function(id, qIndex) {
+  toggleStatsView(true);
+  requestAnimationFrame(() => {
+    openEditModal(id);
+    switchToSurveyAndScroll(`card-q${qIndex}`);
+  });
+};
+
+if (statsList) {
+  const handlePersonChipActivate = (e) => {
+    const chip = e.target.closest('.stats-person-chip');
+    if (!chip) return;
+    openPersonFromStats(chip.dataset.personId, parseInt(chip.dataset.qIndex, 10));
+  };
+  statsList.addEventListener('click', handlePersonChipActivate);
+  statsList.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const chip = e.target.closest('.stats-person-chip');
+      if (!chip) return;
+      e.preventDefault();
+      handlePersonChipActivate(e);
+    }
   });
 }
 
