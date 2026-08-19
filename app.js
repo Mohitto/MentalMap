@@ -1626,11 +1626,16 @@ function renderPlanets() {
     // Name label
     const label = document.createElement('div');
     label.className = 'planet-label';
+    // Built as nodes rather than interpolated HTML: the name is user-supplied and,
+    // once names sync through a server, an injected string would become stored XSS
+    // affecting whoever views it.
     const nameParts = person.name.trim().split(' ');
+    const firstName = document.createElement('strong');
+    firstName.textContent = nameParts[0];
+    label.appendChild(firstName);
     if (nameParts.length > 1) {
-      label.innerHTML = `<strong>${nameParts[0]}</strong><br>${nameParts.slice(1).join(' ')}`;
-    } else {
-      label.innerHTML = `<strong>${person.name}</strong>`;
+      label.appendChild(document.createElement('br'));
+      label.appendChild(document.createTextNode(nameParts.slice(1).join(' ')));
     }
 
     // Score indicator
@@ -1892,15 +1897,39 @@ function renderRanking() {
       // item.style.border = '1px solid rgba(255, 255, 255, 0.1)';
     }
     
-    item.innerHTML = `
-      <div class="ranking-avatar" style="background: linear-gradient(135deg, ${colors[0]}, ${colors[1]});">
-      </div>
-      <div class="ranking-info">
-        <div class="ranking-name">${person.name}</div>
-        <div class="ranking-points" style="color: ${levelColor}; font-weight: 600;">${levelName}</div>
-      </div>
-      <div class="ranking-score">${person.totalScore} <span style="font-size:12px; font-weight:400; color:var(--text-muted);">pkt</span></div>
-    `;
+    // Same reasoning as the planet label: person.name is user-supplied, so it is
+    // set as text rather than interpolated into markup.
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'ranking-avatar';
+    avatarEl.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+
+    const infoEl = document.createElement('div');
+    infoEl.className = 'ranking-info';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'ranking-name';
+    nameEl.textContent = person.name;
+
+    const pointsEl = document.createElement('div');
+    pointsEl.className = 'ranking-points';
+    pointsEl.style.color = levelColor;
+    pointsEl.style.fontWeight = '600';
+    pointsEl.textContent = levelName;
+
+    infoEl.appendChild(nameEl);
+    infoEl.appendChild(pointsEl);
+
+    const scoreEl = document.createElement('div');
+    scoreEl.className = 'ranking-score';
+    scoreEl.textContent = `${person.totalScore} `;
+    const unitEl = document.createElement('span');
+    unitEl.style.cssText = 'font-size:12px; font-weight:400; color:var(--text-muted);';
+    unitEl.textContent = 'pkt';
+    scoreEl.appendChild(unitEl);
+
+    item.appendChild(avatarEl);
+    item.appendChild(infoEl);
+    item.appendChild(scoreEl);
 
     item.setAttribute('role', 'button');
     item.tabIndex = 0;
