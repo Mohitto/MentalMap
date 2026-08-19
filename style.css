@@ -797,49 +797,49 @@ body.incognito-mode .stats-person-chip__name {
 
 .stats-person-chip {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--input-border);
-  border-radius: 20px;
-  padding: 4px 10px 4px 4px;
+  width: 64px;
+  padding: 4px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .stats-person-chip:hover,
 .stats-person-chip:focus-visible {
-  border-color: rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .stats-person-chip:active {
-  transform: scale(0.97);
+  transform: scale(0.95);
 }
 
-.stats-person-chip__avatar {
-  width: 22px;
-  height: 22px;
+.stats-person-chip__name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.stats-person-chip__planet {
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
-  font-weight: 700;
-  color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-  flex-shrink: 0;
-}
-
-.stats-person-chip__name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.stats-person-chip__score {
   font-size: 11px;
-  color: var(--text-muted);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  box-shadow:
+    var(--custom-glow, 0 0 10px 2px var(--planet-glow, rgba(100, 100, 255, 0.3))),
+    inset -3px -3px 6px rgba(0,0,0,0.4),
+    inset 3px 3px 6px rgba(255,255,255,0.15);
+  flex-shrink: 0;
 }
 
 #empty-state {

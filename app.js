@@ -187,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.68';
+const APP_VERSION = 'v0.9.69';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -1619,21 +1619,19 @@ function renderStats() {
           chip.tabIndex = 0;
           chip.title = 'Kliknij, aby poprawić tę odpowiedź';
 
-          const avatar = document.createElement('span');
-          avatar.className = 'stats-person-chip__avatar';
-          avatar.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
-          avatar.textContent = person.name.substring(0, 2).toUpperCase();
-          chip.appendChild(avatar);
-
           const nameEl = document.createElement('span');
           nameEl.className = 'stats-person-chip__name';
           nameEl.textContent = person.name;
           chip.appendChild(nameEl);
 
-          const scoreEl = document.createElement('span');
-          scoreEl.className = 'stats-person-chip__score';
-          scoreEl.textContent = `${person.totalScore} pkt`;
-          chip.appendChild(scoreEl);
+          const planetEl = document.createElement('span');
+          planetEl.className = 'stats-person-chip__planet';
+          planetEl.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+          planetEl.style.setProperty('--planet-glow', `${colors[0]}66`);
+          const { glow: customGlow } = getPlanetGlowStyle(person);
+          if (customGlow) planetEl.style.setProperty('--custom-glow', customGlow);
+          planetEl.textContent = `${person.totalScore}`;
+          chip.appendChild(planetEl);
 
           peopleEl.appendChild(chip);
         });
