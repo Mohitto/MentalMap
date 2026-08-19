@@ -592,7 +592,8 @@ html, body {
 
 /* Incognito mode styles (Censored blocks) */
 body.incognito-mode .planet-label,
-body.incognito-mode .ranking-name {
+body.incognito-mode .ranking-name,
+body.incognito-mode .stats-person-chip__name {
   color: transparent !important;
   text-shadow: none !important;
   background-color: #475569 !important;
@@ -784,6 +785,60 @@ body.incognito-mode .ranking-name {
 
 .stats-answer-row__pct {
   font-weight: 400;
+  color: var(--text-muted);
+}
+
+.stats-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stats-person-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--input-border);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.stats-person-chip:hover,
+.stats-person-chip:focus-visible {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.stats-person-chip:active {
+  transform: scale(0.97);
+}
+
+.stats-person-chip__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  flex-shrink: 0;
+}
+
+.stats-person-chip__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stats-person-chip__score {
+  font-size: 11px;
   color: var(--text-muted);
 }
 
