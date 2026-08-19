@@ -187,7 +187,13 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.69';
+const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
+const UNDO_IMPORT_KEY = 'mentalmap_people_pre_import';
+const APP_VERSION = 'v0.9.70';
+
+// Guards for the persistence layer (see loadPeople / savePeople).
+let saveBlocked = false;
+let saveErrorShown = false;
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -296,6 +302,7 @@ function init() {
   buildSurveyForm();
   loadPeople();
   bindEvents();
+  bindBackupEvents();
   setAppVersion();
   startAnimation();
   updateEmptyState();
@@ -507,6 +514,17 @@ function loadPeople() {
     } catch (e) {
       console.error('Failed to load data:', e);
       people = [];
+      // An unreadable payload is not the same as no payload. distributePlanets()
+      // saves on the way out, so without this the next launch would overwrite the
+      // damaged-but-possibly-recoverable data with an empty array and destroy it.
+      // Preserve it verbatim first; only block saving if even that fails.
+      try {
+        if (!localStorage.getItem(CORRUPT_BACKUP_KEY)) {
+          localStorage.setItem(CORRUPT_BACKUP_KEY, saved);
+        }
+      } catch (_) {
+        saveBlocked = true;
+      }
     }
   }
   // ── Migrate old 12-question data to new 11-question order ──
@@ -620,7 +638,379 @@ function distributePlanets() {
 }
 
 function savePeople() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
+  // Set only when unreadable existing data could not be backed up — overwriting
+  // it would be the destructive move, so we keep it and stop writing instead.
+  if (saveBlocked) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
+  } catch (e) {
+    // Quota exceeded or storage disabled. Silently losing edits is worse than
+    // interrupting the user, so surface it once.
+    console.error('Failed to save data:', e);
+    if (!saveErrorShown) {
+      saveErrorShown = true;
+      alert('Nie udało się zapisać danych w tej przeglądarce (brak miejsca lub zapis zablokowany).\n\nZrób kopię zapasową przyciskiem pobierania, zanim zamkniesz aplikację — inaczej ostatnie zmiany przepadną.');
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// BACKUP / RESTORE
+// ═══════════════════════════════════════════
+
+const BACKUP_FORMAT = 'mentalmap-backup';
+const BACKUP_FORMAT_VERSION = 1;
+
+// Which answer slots were padded with zeros by the 11->16 migration rather than
+// actually answered. A padded 0 is indistinguishable from a real 0-point answer,
+// and for some questions the first 0-point option is a harshly negative judgement
+// the user never made — so mark them rather than exporting them as real answers.
+function derivePaddedIndices(person) {
+  if (!person._migrated16) return [];
+  const padded = [];
+  for (let i = 11; i < 16; i++) {
+    if (!person.answerIndices || person.answerIndices[i] === null || person.answerIndices[i] === undefined) {
+      padded.push(i);
+    }
+  }
+  return padded;
+}
+
+function buildBackupPayload() {
+  // Read the raw string, NOT JSON.stringify(people): by the time this runs,
+  // loadPeople() has rewritten answers/totalScore/level and distributePlanets()
+  // has overwritten angle/orbitRadius/speed. The raw string is the only record
+  // of what was actually on disk before this session touched it.
+  let raw = null;
+  let corrupt = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+    corrupt = localStorage.getItem(CORRUPT_BACKUP_KEY);
+  } catch (_) { /* storage unavailable; fall back to the in-memory array below */ }
+
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_FORMAT_VERSION,
+    appVersion: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    peopleCount: people.length,
+    raw,
+    corruptBackup: corrupt,
+    people: people.map(p => ({
+      id: p.id,
+      name: p.name,
+      answers: p.answers,
+      answerIndices: p.answerIndices || null,
+      gateAnswer: p.gateAnswer,
+      gateAnswerPresent: typeof p.gateAnswer === 'number',
+      secretCap: p.secretCap,
+      gradientIndex: p.gradientIndex,
+      paddedIndices: derivePaddedIndices(p),
+      legacyMigrated12: !!p._migrated,
+      legacyMigrated16: !!p._migrated16
+    }))
+  };
+}
+
+function backupFilename() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `mentalmap-kopia-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
+}
+
+function showBackupStatus(message, kind = 'info') {
+  const el = $('#backup-status');
+  if (!el) return;
+  el.textContent = message;
+  el.className = `backup-status backup-status--${kind}`;
+  el.hidden = false;
+}
+
+function exportData() {
+  const json = JSON.stringify(buildBackupPayload(), null, 2);
+
+  // Always populate the textarea. The Android wrapper installs no DownloadListener,
+  // so a Blob download there is a silent no-op — the visible text is the fallback
+  // that keeps the export honest on every platform.
+  const ta = $('#export-output');
+  if (ta) {
+    ta.value = json;
+    const wrap = $('#export-output-wrap');
+    if (wrap) wrap.hidden = false;
+  }
+
+  try {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = backupFilename();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showBackupStatus('Kopia pobrana. Jeśli nie widzisz pliku, skopiuj tekst poniżej i zapisz go samodzielnie.', 'ok');
+  } catch (e) {
+    console.error('Export download failed:', e);
+    showBackupStatus('Nie udało się pobrać pliku. Skopiuj tekst poniżej i zapisz go samodzielnie.', 'warn');
+  }
+}
+
+async function copyExportToClipboard() {
+  const ta = $('#export-output');
+  if (!ta || !ta.value) {
+    showBackupStatus('Najpierw kliknij "Pobierz kopię danych".', 'warn');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(ta.value);
+    showBackupStatus('Skopiowano do schowka. Wklej do notatnika i zapisz.', 'ok');
+  } catch (_) {
+    ta.select();
+    showBackupStatus('Zaznaczono tekst — skopiuj go ręcznie (Ctrl+C / przytrzymaj i wybierz Kopiuj).', 'warn');
+  }
+}
+
+// Accepts our own backup envelope, a bare array, or the raw localStorage string.
+// Be liberal here: a rejected import means a tester is stuck holding a file they
+// cannot restore.
+function parseBackupFile(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error('To nie jest poprawny plik JSON.');
+  }
+
+  let candidates = null;
+  if (Array.isArray(data)) {
+    candidates = data;
+  } else if (data && Array.isArray(data.people)) {
+    candidates = data.people;
+  } else if (data && typeof data.raw === 'string') {
+    try {
+      const parsed = JSON.parse(data.raw);
+      if (Array.isArray(parsed)) candidates = parsed;
+    } catch (_) { /* fall through to the error below */ }
+  }
+
+  if (!candidates) throw new Error('Nie znalazłem listy osób w tym pliku.');
+
+  const valid = candidates.filter(p => p && typeof p === 'object' && typeof p.name === 'string' && Array.isArray(p.answers));
+  if (valid.length === 0) throw new Error('Plik nie zawiera żadnych czytelnych osób.');
+
+  return { entries: valid, skipped: candidates.length - valid.length };
+}
+
+// Rebuild a person into the shape the app expects. Derived fields are omitted on
+// purpose — loadPeople() and distributePlanets() recompute them.
+function normalizeImportedPerson(p) {
+  const answers = Array.isArray(p.answers) ? p.answers.slice(0, 16).map(n => (typeof n === 'number' ? n : 0)) : [];
+  while (answers.length < 16) answers.push(0);
+
+  let answerIndices = Array.isArray(p.answerIndices) ? p.answerIndices.slice(0, 16) : new Array(16).fill(null);
+  while (answerIndices.length < 16) answerIndices.push(null);
+  answerIndices = answerIndices.map(v => (typeof v === 'number' ? v : null));
+
+  // Never resurrect migration padding as a real answer.
+  if (Array.isArray(p.paddedIndices)) {
+    p.paddedIndices.forEach(i => { if (i >= 0 && i < 16) answerIndices[i] = null; });
+  }
+
+  return {
+    id: typeof p.id === 'string' && p.id ? p.id : uuid(),
+    name: String(p.name),
+    answers,
+    answerIndices,
+    gateAnswer: typeof p.gateAnswer === 'number' ? p.gateAnswer : 0,
+    totalScore: 0,
+    level: 1,
+    secretCap: typeof p.secretCap === 'number' ? p.secretCap : 3,
+    angle: Math.random() * Math.PI * 2,
+    speed: 0.1,
+    gradientIndex: typeof p.gradientIndex === 'number' ? p.gradientIndex : Math.floor(Math.random() * PLANET_GRADIENTS.length),
+    _migrated: !!p.legacyMigrated12 || !!p._migrated,
+    _migrated16: !!p.legacyMigrated16 || !!p._migrated16
+  };
+}
+
+let pendingImport = null;
+
+function applyImport(mode) {
+  if (!pendingImport) return;
+
+  // Snapshot before touching anything, so a wrong choice is recoverable.
+  try {
+    localStorage.setItem(UNDO_IMPORT_KEY, JSON.stringify(people));
+  } catch (_) { /* non-fatal: the import itself is still safe to attempt */ }
+
+  const incoming = pendingImport.entries.map(normalizeImportedPerson);
+
+  if (mode === 'replace') {
+    people = incoming;
+  } else {
+    // Upsert by id so re-importing the same file is idempotent rather than
+    // duplicating everyone.
+    const byId = new Map(people.map(p => [p.id, p]));
+    incoming.forEach(p => byId.set(p.id, p));
+    people = Array.from(byId.values());
+  }
+
+  // Recompute everything derived, exactly as a normal load would.
+  people.forEach(p => {
+    const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
+    p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
+    p.level = Math.min(getLevel(p.totalScore), p.secretCap !== undefined ? p.secretCap : 3);
+  });
+
+  distributePlanets();
+  savePeople();
+  renderPlanets();
+  updateEmptyState();
+  refreshBackupModal();
+
+  showBackupStatus(`Wczytano ${incoming.length} os${incoming.length === 1 ? 'obę' : 'ób'}. Łącznie masz teraz ${people.length}.`, 'ok');
+  pendingImport = null;
+  const preview = $('#import-preview');
+  if (preview) preview.hidden = true;
+}
+
+function undoImport() {
+  let snapshot;
+  try {
+    snapshot = localStorage.getItem(UNDO_IMPORT_KEY);
+  } catch (_) { snapshot = null; }
+  if (!snapshot) return;
+
+  try {
+    people = JSON.parse(snapshot);
+  } catch (e) {
+    showBackupStatus('Nie udało się odtworzyć poprzedniego stanu.', 'warn');
+    return;
+  }
+
+  try { localStorage.removeItem(UNDO_IMPORT_KEY); } catch (_) { /* cosmetic only */ }
+
+  distributePlanets();
+  savePeople();
+  renderPlanets();
+  updateEmptyState();
+  refreshBackupModal();
+  showBackupStatus('Cofnięto import — przywrócono poprzedni stan.', 'ok');
+}
+
+function refreshBackupModal() {
+  const countEl = $('#backup-count');
+  if (countEl) countEl.textContent = String(people.length);
+
+  const undoWrap = $('#undo-wrap');
+  if (undoWrap) {
+    let hasSnapshot = false;
+    try { hasSnapshot = !!localStorage.getItem(UNDO_IMPORT_KEY); } catch (_) { /* ignore */ }
+    undoWrap.hidden = !hasSnapshot;
+  }
+
+  const corruptWarn = $('#corrupt-warning');
+  if (corruptWarn) {
+    let hasCorrupt = false;
+    try { hasCorrupt = !!localStorage.getItem(CORRUPT_BACKUP_KEY); } catch (_) { /* ignore */ }
+    corruptWarn.hidden = !hasCorrupt;
+  }
+}
+
+function openBackupModal() {
+  const modal = $('#backup-modal');
+  if (!modal) return;
+  refreshBackupModal();
+  const status = $('#backup-status');
+  if (status) status.hidden = true;
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeBackupModal() {
+  const modal = $('#backup-modal');
+  if (!modal) return;
+  modal.setAttribute('aria-hidden', 'true');
+  pendingImport = null;
+  const preview = $('#import-preview');
+  if (preview) preview.hidden = true;
+}
+
+function bindBackupEvents() {
+  $('#btn-backup')?.addEventListener('click', openBackupModal);
+  $('#btn-close-backup')?.addEventListener('click', closeBackupModal);
+  $('#backup-modal')?.addEventListener('click', (e) => {
+    if (e.target === $('#backup-modal')) closeBackupModal();
+  });
+
+  $('#btn-export')?.addEventListener('click', exportData);
+  $('#btn-copy-export')?.addEventListener('click', copyExportToClipboard);
+
+  $('#btn-import-pick')?.addEventListener('click', () => $('#import-file')?.click());
+
+  $('#import-file')?.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        pendingImport = parseBackupFile(String(reader.result));
+        const summary = $('#import-summary');
+        if (summary) {
+          summary.textContent = `Znaleziono ${pendingImport.entries.length} os${pendingImport.entries.length === 1 ? 'obę' : 'ób'} w pliku`
+            + (pendingImport.skipped ? ` (pominięto ${pendingImport.skipped} nieczytelnych).` : '.');
+        }
+        const preview = $('#import-preview');
+        if (preview) preview.hidden = false;
+        showBackupStatus('Wybierz, czy dołączyć dane, czy zastąpić obecne.', 'info');
+      } catch (err) {
+        pendingImport = null;
+        const preview = $('#import-preview');
+        if (preview) preview.hidden = true;
+        showBackupStatus(err.message || 'Nie udało się odczytać pliku.', 'warn');
+      }
+    };
+    reader.onerror = () => showBackupStatus('Nie udało się odczytać pliku.', 'warn');
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  $('#btn-import-merge')?.addEventListener('click', () => applyImport('merge'));
+  $('#btn-import-replace')?.addEventListener('click', () => {
+    if (confirm('Zastąpić wszystkie obecne dane danymi z pliku?\n\nObecne dane zostaną zachowane do cofnięcia, ale najpierw upewnij się, że masz kopię.')) {
+      applyImport('replace');
+    }
+  });
+
+  $('#btn-undo-import')?.addEventListener('click', undoImport);
+  $('#btn-download-corrupt')?.addEventListener('click', downloadCorruptBackup);
+}
+
+function downloadCorruptBackup() {
+  let corrupt;
+  try { corrupt = localStorage.getItem(CORRUPT_BACKUP_KEY); } catch (_) { corrupt = null; }
+  if (!corrupt) return;
+
+  const ta = $('#export-output');
+  if (ta) {
+    ta.value = corrupt;
+    const wrap = $('#export-output-wrap');
+    if (wrap) wrap.hidden = false;
+  }
+
+  try {
+    const blob = new Blob([corrupt], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mentalmap-uszkodzone-dane.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (_) { /* the textarea above is the fallback */ }
+
+  showBackupStatus('Pobrano uszkodzone dane. Zachowaj ten plik — może dać się z niego odzyskać relacje.', 'ok');
 }
 
 // ═══════════════════════════════════════════
@@ -712,6 +1102,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       if (surveyModal?.getAttribute('aria-hidden') === 'false') closeModal();
       if (infoModal?.getAttribute('aria-hidden') === 'false') closeInfoModal();
+      if ($('#backup-modal')?.getAttribute('aria-hidden') === 'false') closeBackupModal();
     }
   });
 
