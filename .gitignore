@@ -1,0 +1,26 @@
+# ── Android signing material — NEVER commit ──
+# This repository is PUBLIC. PWABuilder ships signing-key-info.txt containing the
+# key password, store password and alias in PLAINTEXT, next to the keystore itself.
+# Committing either would hand anyone the ability to sign builds as this app.
+*.keystore
+*.jks
+signing-key-info.txt
+signing.keystore
+keystore.properties
+
+# ── Firebase service account credentials — NEVER commit ──
+# The Admin SDK service account key bypasses every Firestore security rule and
+# grants full read/write over all user data. It is not the same thing as the
+# public web config (firebaseConfig), which is safe to commit by design.
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+.firebaserc.local
+firebase-debug.log
+
+# ── Local env ──
+.env
+.env.local
+
+# ── OS / editor noise ──
+.DS_Store
+Thumbs.db
