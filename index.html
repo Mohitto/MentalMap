@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.69">
+    <link rel="stylesheet" href="style.css?v=0.9.70">
 </head>
 <body>
     <script>
@@ -93,6 +93,15 @@
             <line x1="12" y1="20" x2="12" y2="10"></line>
             <line x1="18" y1="20" x2="18" y2="4"></line>
             <line x1="6" y1="20" x2="6" y2="16"></line>
+        </svg>
+    </button>
+
+    <!-- Backup Button -->
+    <button id="btn-backup" class="btn-top" style="right: 180px;" aria-label="Kopia zapasowa danych">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
     </button>
 
@@ -199,13 +208,80 @@
         </div>
     </div>
 
+    <!-- Backup / restore modal -->
+    <div id="backup-modal" class="modal-overlay" aria-hidden="true">
+        <div class="info-container">
+            <div class="info-header">
+                <h2>Kopia zapasowa</h2>
+                <button type="button" class="btn-icon" id="btn-close-backup" aria-label="Zamknij">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="info-content">
+                <p class="backup-note">Twoje dane są zapisane wyłącznie w tej przeglądarce. Jeśli wyczyścisz dane przeglądarki, zmienisz urządzenie albo system usunie pamięć aplikacji — przepadną bezpowrotnie.</p>
+                <p class="backup-note backup-note--warn">Zrób kopię już teraz i trzymaj plik w bezpiecznym miejscu. Plik zawiera imiona i nazwiska — traktuj go jak dane wrażliwe.</p>
+
+                <div class="backup-stat">Zapisanych osób: <strong id="backup-count">0</strong></div>
+
+                <div id="corrupt-warning" class="backup-corrupt" hidden>
+                    <p class="backup-note backup-note--warn">Wykryto wcześniej zapisane dane, których nie dało się odczytać. Zostały zachowane w nienaruszonym stanie — pobierz je, zanim cokolwiek zrobisz.</p>
+                    <button type="button" id="btn-download-corrupt" class="btn backup-btn backup-btn--secondary">Pobierz uszkodzone dane</button>
+                </div>
+
+                <button type="button" id="btn-export" class="btn btn--save backup-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Pobierz kopię danych
+                </button>
+
+                <div id="export-output-wrap" hidden>
+                    <p class="backup-note">Jeśli plik się nie pobrał (zdarza się w aplikacji na Androida), skopiuj poniższy tekst i zapisz go w notatniku:</p>
+                    <textarea id="export-output" class="export-output" readonly rows="6" aria-label="Dane kopii zapasowej"></textarea>
+                    <button type="button" id="btn-copy-export" class="btn backup-btn backup-btn--secondary">Kopiuj do schowka</button>
+                </div>
+
+                <hr class="backup-sep">
+
+                <p class="backup-note">Masz plik z kopią? Wczytaj go tutaj.</p>
+                <input type="file" id="import-file" accept="application/json,.json" hidden>
+                <button type="button" id="btn-import-pick" class="btn backup-btn backup-btn--secondary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Wybierz plik kopii
+                </button>
+
+                <div id="import-preview" class="import-preview" hidden>
+                    <div id="import-summary" class="import-summary"></div>
+                    <button type="button" id="btn-import-merge" class="btn backup-btn backup-btn--secondary">Dołącz do obecnych danych</button>
+                    <button type="button" id="btn-import-replace" class="btn backup-btn backup-btn--danger">Zastąp obecne dane</button>
+                </div>
+
+                <div id="backup-status" class="backup-status" hidden></div>
+
+                <div id="undo-wrap" hidden>
+                    <hr class="backup-sep">
+                    <p class="backup-note">Poprzedni stan został zachowany — możesz cofnąć ostatni import.</p>
+                    <button type="button" id="btn-undo-import" class="btn backup-btn backup-btn--secondary">Cofnij ostatni import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Empty state message -->
     <div id="empty-state">
         <p>Dodaj swoją pierwszą relację</p>
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.69</div>
-    <script src="app.js?v=0.9.69"></script>
+    <div id="app-version">v0.9.70</div>
+    <script src="app.js?v=0.9.70"></script>
 </body>
 </html>

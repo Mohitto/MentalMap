@@ -700,6 +700,108 @@ body.incognito-mode .stats-person-chip__name {
    EMPTY STATE
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
+/* ── Backup / restore modal ── */
+
+.backup-note {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.backup-note--warn {
+  color: #fca5a5;
+}
+
+.backup-stat {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.backup-stat strong {
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.backup-btn {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.backup-btn--secondary {
+  background: var(--card-bg);
+  border: 1.5px solid var(--input-border);
+  color: var(--text-primary);
+}
+
+.backup-btn--danger {
+  background: rgba(239, 71, 111, 0.15);
+  border: 1.5px solid rgba(239, 71, 111, 0.5);
+  color: #fca5a5;
+}
+
+.backup-sep {
+  border: none;
+  border-top: 1px solid var(--input-border);
+  margin: 20px 0 16px;
+}
+
+.backup-corrupt {
+  background: rgba(239, 71, 111, 0.08);
+  border: 1px solid rgba(239, 71, 111, 0.35);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.export-output {
+  width: 100%;
+  background: #0d0d1c;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  padding: 8px;
+  margin-bottom: 10px;
+  resize: vertical;
+}
+
+.import-preview {
+  margin-top: 12px;
+}
+
+.import-summary {
+  font-size: 13px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.backup-status {
+  font-size: 13px;
+  line-height: 1.45;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 12px;
+}
+
+.backup-status--info {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.backup-status--ok {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.backup-status--warn {
+  background: rgba(239, 71, 111, 0.12);
+  color: #fca5a5;
+}
+
 #stats-view {
   position: fixed;
   top: 0;

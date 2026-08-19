@@ -1,0 +1,16 @@
+version: 2
+
+# Dependabot is free and built into GitHub. It covers the same ground Snyk would
+# for this repo's only real dependency surface (the Android Gradle build); the web
+# app itself has no package manager at all.
+updates:
+  - package-ecosystem: gradle
+    directory: /android-app
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -1,0 +1,4 @@
+# Dead, stale duplicate of the web app. MainActivity.kt loads the live remote URL
+# (https://mohitto.github.io/MentalMap/), so nothing in here is ever executed.
+# Scanning it only produces duplicate findings against code that cannot run.
+android-app/app/src/main/assets/
