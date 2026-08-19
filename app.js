@@ -187,7 +187,7 @@ const SECRET_QUESTION = {
 };
 
 const STORAGE_KEY = 'mentalmap_people';
-const APP_VERSION = 'v0.9.66';
+const APP_VERSION = 'v0.9.67';
 
 // Dynamic orbit configuration
 const ORBIT_START = 60;      // px from center to first orbit
@@ -243,6 +243,9 @@ const emptyState = $('#empty-state');
 const btnToggleView = $('#btn-toggle-view');
 const rankingView = $('#ranking-view');
 const rankingList = $('#ranking-list');
+const btnStats = $('#btn-stats');
+const statsView = $('#stats-view');
+const statsList = $('#stats-list');
 const summaryContainer = $('#summary-container');
 const appVersion = $('#app-version');
 
@@ -374,7 +377,7 @@ function buildSurveyForm() {
     const optionsWrap = document.createElement('div');
     optionsWrap.className = 'options-container';
 
-    q.answers.forEach((answer) => {
+    q.answers.forEach((answer, aIndex) => {
       const label = document.createElement('label');
       label.className = 'answer-option';
 
@@ -382,8 +385,12 @@ function buildSurveyForm() {
       radio.type = 'radio';
       radio.name = `q${qIndex}`;
       radio.value = answer.points;
+      radio.dataset.optIndex = aIndex;
       radio.required = true;
-      radio.addEventListener('change', updateScorePreview);
+      radio.addEventListener('change', () => {
+        delete radio.dataset.legacyGuess;
+        updateScorePreview();
+      });
 
       const textSpan = document.createElement('span');
       textSpan.className = 'answer-text';
@@ -844,7 +851,19 @@ function openEditModal(id, mode = 'survey') {
 
   // Pre-fill answers
   person.answers.forEach((pts, i) => {
-    const radio = surveyForm.querySelector(`input[name="q${i}"][value="${pts}"]`);
+    const idx = person.answerIndices?.[i];
+    surveyForm.querySelectorAll(`input[name="q${i}"]`).forEach(r => delete r.dataset.legacyGuess);
+    let radio;
+    if (typeof idx === 'number') {
+      radio = surveyForm.querySelector(`input[name="q${i}"][data-opt-index="${idx}"]`);
+    } else {
+      radio = surveyForm.querySelector(`input[name="q${i}"][value="${pts}"]`);
+      // Legacy entry with no stored index: only flag as an unconfirmed guess when this
+      // question actually has multiple tied answers for these points — otherwise the
+      // match is already exact and safe to keep.
+      const tieCount = SURVEY_QUESTIONS[i].answers.filter(a => a.points === pts).length;
+      if (radio && tieCount > 1) radio.dataset.legacyGuess = 'true';
+    }
     if (radio) radio.checked = true;
   });
 
@@ -899,7 +918,8 @@ function generateSummary(person) {
     // Some questions might have 0 as max if they are all negative, but typically index 0 is max
     const maxPts = Math.max(...q.answers.map(a => a.points));
     if (pts < maxPts) {
-      const answerObj = q.answers.find(a => a.points === pts);
+      const idx = person.answerIndices?.[i];
+      const answerObj = (typeof idx === 'number' && q.answers[idx]) ? q.answers[idx] : q.answers.find(a => a.points === pts);
       html += `
         <div class="summary-item" onclick="switchToSurveyAndScroll('card-q${i}')" style="cursor: pointer;" title="Kliknij, aby poprawić">
           <div class="summary-item__question">${q.text}</div>
@@ -971,6 +991,8 @@ window.addEventListener('popstate', (e) => {
     closeInfoModal(true);
   } else if (!rankingView.classList.contains('hidden')) {
     toggleRankingView(true);
+  } else if (statsView && !statsView.classList.contains('hidden')) {
+    toggleStatsView(true);
   }
 });
   const btnIncognito = document.getElementById('btn-incognito');
@@ -1004,6 +1026,7 @@ function handleSubmit(e) {
 
   // Collect all answers
   const answers = [];
+  const answerIndices = [];
   let totalScore = 0;
   let allAnswered = !!gateChecked;
 
@@ -1012,10 +1035,14 @@ function handleSubmit(e) {
     if (checked) {
       const pts = parseInt(checked.value, 10);
       answers.push(pts);
+      // An untouched legacy guess (tied answer, never confirmed by the user) stays
+      // ambiguous rather than being saved as a false-confident index.
+      answerIndices.push(checked.dataset.legacyGuess === 'true' ? null : parseInt(checked.dataset.optIndex, 10));
       totalScore += pts;
     } else {
       allAnswered = false;
       answers.push(0);
+      answerIndices.push(null);
     }
   }
 
@@ -1078,6 +1105,7 @@ function handleSubmit(e) {
     if (person) {
       person.name = name;
       person.answers = answers;
+      person.answerIndices = answerIndices;
       person.gateAnswer = gatePenalty;
       person.totalScore = totalScore;
       person.gradientIndex = selectedGradientIndex;
@@ -1093,6 +1121,7 @@ function handleSubmit(e) {
       id: uuid(),
       name,
       answers,
+      answerIndices,
       gateAnswer: gatePenalty,
       totalScore,
       level: cappedLevel,
@@ -1420,13 +1449,14 @@ function openPersonFromRanking(id) {
 
 function toggleRankingView(forceClose = false) {
   const isHidden = rankingView.classList.contains('hidden');
-  
+
   if (forceClose || !isHidden) {
     rankingView.classList.add('hidden');
     solarSystem.style.display = 'flex';
     labelsContainer.style.display = '';
     emptyState.style.display = people.length === 0 ? 'block' : 'none';
   } else {
+    if (statsView && !statsView.classList.contains('hidden')) toggleStatsView(true);
     rankingView.classList.remove('hidden');
     solarSystem.style.display = 'none';
     labelsContainer.style.display = 'none';
@@ -1501,6 +1531,91 @@ function renderRanking() {
 btnToggleView.addEventListener('click', () => toggleRankingView());
 
 // ═══════════════════════════════════════════
+// STATS VIEW
+// ═══════════════════════════════════════════
+
+function computeQuestionStats(qIndex) {
+  const q = SURVEY_QUESTIONS[qIndex];
+  const counts = new Array(q.answers.length).fill(0);
+
+  people.forEach(person => {
+    const idx = person.answerIndices ? person.answerIndices[qIndex] : null;
+    if (typeof idx === 'number' && q.answers[idx]) {
+      counts[idx]++;
+      return;
+    }
+    // Legacy entries saved before answer indices existed: best-effort match by points.
+    // Ties (two answers sharing the same points) resolve to the first matching option.
+    const pts = person.answers ? person.answers[qIndex] : undefined;
+    if (typeof pts !== 'number') return;
+    const matchIdx = q.answers.findIndex(a => a.points === pts);
+    if (matchIdx !== -1) counts[matchIdx]++;
+  });
+
+  return counts;
+}
+
+function renderStats() {
+  if (!statsList) return;
+  statsList.innerHTML = '';
+
+  if (people.length === 0) {
+    statsList.innerHTML = '<div style="text-align: center; color: var(--text-muted); margin-top: 40px;">Dodaj przynajmniej jedną osobę, aby zobaczyć statystyki.</div>';
+    return;
+  }
+
+  SURVEY_QUESTIONS.forEach((q, qIndex) => {
+    const counts = computeQuestionStats(qIndex);
+    const total = counts.reduce((sum, c) => sum + c, 0);
+
+    const card = document.createElement('div');
+    card.className = 'stats-question';
+
+    const title = document.createElement('h3');
+    title.className = 'stats-question__title';
+    title.textContent = `${qIndex + 2}. ${q.text}`;
+    card.appendChild(title);
+
+    q.answers.forEach((answer, aIndex) => {
+      const count = counts[aIndex];
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+
+      const row = document.createElement('div');
+      row.className = 'stats-answer-row';
+      row.innerHTML = `
+        <div class="stats-answer-row__text">${answer.text}</div>
+        <div class="stats-bar-track"><div class="stats-bar-fill" style="width:${pct}%"></div></div>
+        <div class="stats-answer-row__count">${count} <span class="stats-answer-row__pct">(${pct}%)</span></div>
+      `;
+      card.appendChild(row);
+    });
+
+    statsList.appendChild(card);
+  });
+}
+
+function toggleStatsView(forceClose = false) {
+  if (!statsView) return;
+  const isHidden = statsView.classList.contains('hidden');
+
+  if (forceClose || !isHidden) {
+    statsView.classList.add('hidden');
+    solarSystem.style.display = 'flex';
+    labelsContainer.style.display = '';
+    emptyState.style.display = people.length === 0 ? 'block' : 'none';
+  } else {
+    if (!rankingView.classList.contains('hidden')) toggleRankingView(true);
+    statsView.classList.remove('hidden');
+    solarSystem.style.display = 'none';
+    labelsContainer.style.display = 'none';
+    emptyState.style.display = 'none';
+    renderStats();
+  }
+}
+
+if (btnStats) btnStats.addEventListener('click', () => toggleStatsView());
+
+// ═══════════════════════════════════════════
 // MAP NAVIGATION (Pan / Zoom / Tilt)
 // ═══════════════════════════════════════════
 
@@ -1520,9 +1635,11 @@ function setupMapNavigation() {
 
   const isInteractiveBlocked = () => {
     const ranking = document.getElementById('ranking-view');
+    const stats = document.getElementById('stats-view');
     const survey = document.getElementById('survey-modal');
     const info = document.getElementById('info-modal');
     if (ranking && !ranking.classList.contains('hidden')) return true;
+    if (stats && !stats.classList.contains('hidden')) return true;
     if (survey && survey.getAttribute('aria-hidden') === 'false') return true;
     if (info && info.getAttribute('aria-hidden') === 'false') return true;
     return false;
