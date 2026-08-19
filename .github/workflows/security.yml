@@ -20,7 +20,7 @@ jobs:
     container:
       image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Public rulesets — no Semgrep account or SEMGREP_APP_TOKEN required.
       # p/xss is the one that earns its keep here: person names are user-typed
