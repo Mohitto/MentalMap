@@ -1,0 +1,37 @@
+// MentalMap — Firestore security rules.
+//
+// Not wired to any CLI/deploy tooling (this repo has no build system and no
+// firebase.json) — paste this into Firebase Console → Firestore Database →
+// Rules → publish, whenever it changes.
+//
+// The server only ever stores ciphertext (see crypto.js). These rules are
+// the second, independent layer: even a compromised or buggy client can
+// never read or write another user's subtree, and a keyring wrapping — once
+// written — can never be edited or deleted (matches crypto.js's own
+// "wrappings accumulate, never edited" invariant).
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /keyring/{wrappingId} {
+        allow read, create: if request.auth != null && request.auth.uid == uid;
+        allow update, delete: if false;
+      }
+
+      match /people/{personId} {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['iv', 'ct', 'alg', 'updatedAt', 'updatedAtClient']);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

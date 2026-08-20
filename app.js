@@ -189,7 +189,8 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const UNDO_IMPORT_KEY = 'mentalmap_people_pre_import';
-const APP_VERSION = 'v0.9.70';
+const APP_VERSION = 'v0.9.71';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.71' -> '0.9.71', matches the ?v= convention used elsewhere
 
 // Guards for the persistence layer (see loadPeople / savePeople).
 let saveBlocked = false;
@@ -303,9 +304,11 @@ function init() {
   loadPeople();
   bindEvents();
   bindBackupEvents();
+  bindAccountEvents();
   setAppVersion();
   startAnimation();
   updateEmptyState();
+  attemptSilentReconnect();
 }
 
 function setAppVersion() {
@@ -506,6 +509,15 @@ function updateScorePreview() {
 // DATA PERSISTENCE
 // ═══════════════════════════════════════════
 
+// Recompute totalScore/level from raw answers, exactly as a fresh load would.
+// Shared by loadPeople(), applyImport(), and cloud-decrypt (ACCOUNT / CLOUD SYNC).
+function recomputeDerived(p) {
+  if (!p.answers) return;
+  const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
+  p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
+  p.level = Math.min(getLevel(p.totalScore), p.secretCap !== undefined ? p.secretCap : 3);
+}
+
 function loadPeople() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
@@ -556,13 +568,7 @@ function loadPeople() {
     if (p.secretCap === undefined) p.secretCap = 3;
   });
   // ── Recalculate scores with current thresholds ──
-  people.forEach(p => {
-    if (p.answers) {
-      const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
-      p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
-      p.level = Math.min(getLevel(p.totalScore), p.secretCap !== undefined ? p.secretCap : 3);
-    }
-  });
+  people.forEach(recomputeDerived);
   distributePlanets();
   renderPlanets();
 }
@@ -857,17 +863,14 @@ function applyImport(mode) {
   }
 
   // Recompute everything derived, exactly as a normal load would.
-  people.forEach(p => {
-    const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
-    p.totalScore = Math.max(0, rawScore + (p.gateAnswer || 0));
-    p.level = Math.min(getLevel(p.totalScore), p.secretCap !== undefined ? p.secretCap : 3);
-  });
+  people.forEach(recomputeDerived);
 
   distributePlanets();
   savePeople();
   renderPlanets();
   updateEmptyState();
   refreshBackupModal();
+  queueSyncUpsertAll(incoming);
 
   showBackupStatus(`Wczytano ${incoming.length} os${incoming.length === 1 ? 'obę' : 'ób'}. Łącznie masz teraz ${people.length}.`, 'ok');
   pendingImport = null;
@@ -896,6 +899,7 @@ function undoImport() {
   renderPlanets();
   updateEmptyState();
   refreshBackupModal();
+  queueSyncUpsertAll(people);
   showBackupStatus('Cofnięto import — przywrócono poprzedni stan.', 'ok');
 }
 
@@ -1014,6 +1018,519 @@ function downloadCorruptBackup() {
 }
 
 // ═══════════════════════════════════════════
+// ACCOUNT / CLOUD SYNC
+// ═══════════════════════════════════════════
+//
+// Opt-in only: nothing below ever runs unless the user opens the Account
+// button, or attemptSilentReconnect() finds evidence this device was already
+// connected. Local storage stays the source of truth either way — cloud sync
+// only ever mirrors it, never gates reading/writing it.
+
+const PENDING_SIGNIN_KEY = 'mentalmap_pending_redirect_signin';
+
+let syncApi = null; // cached module namespace from the lazily-imported firebase-sync.js
+let syncState = { uid: null, email: null, dek: null, dekId: null, keyringDocs: [], unsubscribePeople: null };
+let pendingCloudPeople = null; // set only while #account-screen-merge is showing
+
+function isSyncActive() {
+  return !!(syncState.uid && syncState.dek);
+}
+
+async function loadSyncModule() {
+  if (syncApi) return syncApi;
+  const mod = await import(`./firebase-sync.js?v=${ASSET_VERSION}`);
+  syncApi = mod;
+  window.MentalMapSync = mod; // debugging aid only, nothing reads this back
+  return mod;
+}
+
+// Fire-and-forget: called once from init(), after the normal synchronous local
+// load has already rendered. Costs nothing (no network, no import) for the
+// large majority of users who have never touched sync.
+async function attemptSilentReconnect() {
+  let pendingRedirect = false;
+  try { pendingRedirect = !!localStorage.getItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
+
+  let cached = null;
+  try { cached = await MentalMapCrypto.loadCachedDEK(); } catch (_) { /* ignore */ }
+
+  if (!pendingRedirect && !cached) return; // never connected on this device — stay fully local
+
+  try {
+    const api = await loadSyncModule();
+    let user = null;
+
+    if (pendingRedirect) {
+      try { localStorage.removeItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
+      user = await api.checkRedirectResult();
+    }
+    if (!user) user = await api.getCurrentUser();
+    if (!user) return; // no live Firebase session; Account modal will ask to sign in again
+
+    if (cached && cached.uid === user.uid) {
+      syncState.uid = user.uid;
+      syncState.email = user.email || '';
+      syncState.dek = cached.dek;
+      syncState.dekId = cached.dekId;
+      await pullAndReconcile();
+    } else {
+      // A redirect just completed for an account with no cached key on this
+      // device yet (or a different account than the one cached) — run the
+      // normal post-auth flow instead of assuming anything.
+      await completeSignIn(user);
+    }
+  } catch (e) {
+    console.error('Silent reconnect failed:', e);
+  }
+}
+
+function showAccountScreen(id) {
+  ['entry', 'recovery', 'unlock', 'merge', 'signed-in'].forEach(name => {
+    const el = $(`#account-screen-${name}`);
+    if (el) el.hidden = name !== id;
+  });
+}
+
+function showAccountStatus(message, kind = 'info') {
+  const el = $('#account-status');
+  if (!el) return;
+  if (!message) { el.hidden = true; return; }
+  el.textContent = message;
+  el.className = `backup-status backup-status--${kind}`;
+  el.hidden = false;
+}
+
+function refreshAccountSignedInScreen() {
+  const emailEl = $('#account-signed-in-email');
+  if (emailEl) emailEl.textContent = syncState.email || '';
+}
+
+function openAccountModal() {
+  const modal = $('#account-modal');
+  if (!modal) return;
+  showAccountStatus('');
+  if (isSyncActive()) {
+    showAccountScreen('signed-in');
+    refreshAccountSignedInScreen();
+  } else {
+    showAccountScreen('entry');
+  }
+  modal.setAttribute('aria-hidden', 'false');
+  history.pushState({ accountModalOpen: true }, '');
+}
+
+function closeAccountModal(fromPopState = false) {
+  const modal = $('#account-modal');
+  if (!modal) return;
+  modal.setAttribute('aria-hidden', 'true');
+  if (!fromPopState && history.state && history.state.accountModalOpen) {
+    history.back();
+  }
+}
+
+async function handleGoogleSignIn() {
+  showAccountStatus('Łączenie z Google…', 'info');
+  try {
+    const api = await loadSyncModule();
+    try { localStorage.setItem(PENDING_SIGNIN_KEY, '1'); } catch (_) { /* ignore */ }
+    await api.signInWithGoogle(); // navigates away; execution resumes on redirect-back via attemptSilentReconnect()
+  } catch (e) {
+    try { localStorage.removeItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
+    console.error('Google sign-in failed:', e);
+    showAccountStatus('Nie udało się rozpocząć logowania przez Google.', 'warn');
+  }
+}
+
+async function handleEmailSignIn(e) {
+  e?.preventDefault();
+  const email = $('#account-email')?.value.trim();
+  const password = $('#account-password')?.value;
+  if (!email || !password) return;
+  showAccountStatus('Logowanie…', 'info');
+  try {
+    const api = await loadSyncModule();
+    const user = await api.signInWithEmail(email, password);
+    await completeSignIn(user);
+  } catch (e2) {
+    console.error('Email sign-in failed:', e2);
+    showAccountStatus('Nie udało się zalogować. Sprawdź adres e-mail i hasło.', 'warn');
+  }
+}
+
+async function handleEmailSignUp() {
+  const email = $('#account-email')?.value.trim();
+  const password = $('#account-password')?.value;
+  if (!email || !password) {
+    showAccountStatus('Podaj e-mail i hasło (min. 8 znaków).', 'warn');
+    return;
+  }
+  showAccountStatus('Zakładanie konta…', 'info');
+  try {
+    const api = await loadSyncModule();
+    const user = await api.signUpWithEmail(email, password);
+    await completeSignIn(user);
+  } catch (e) {
+    console.error('Email sign-up failed:', e);
+    showAccountStatus('Nie udało się założyć konta. Może ten adres jest już zajęty?', 'warn');
+  }
+}
+
+// Shared continuation after ANY successful Firebase auth (Google or email),
+// whether just completed or resumed on relaunch. Looks at whether this
+// account already has an encryption keyring to decide first-time-setup vs.
+// unlock.
+async function completeSignIn(user) {
+  syncState.uid = user.uid;
+  syncState.email = user.email || '';
+  try {
+    const api = syncApi || await loadSyncModule();
+    const keyringDocs = await api.fetchKeyringDocs(user.uid);
+
+    if (keyringDocs.length === 0) {
+      await runFirstTimeSetup(user.uid);
+    } else {
+      syncState.keyringDocs = keyringDocs;
+      const hasPassphrase = keyringDocs.some(d => d.kind === 'passphrase');
+      const wrap = $('#account-unlock-passphrase-wrap');
+      if (wrap) wrap.hidden = !hasPassphrase;
+      const hint = $('#account-unlock-passphrase-hint');
+      if (hint) hint.hidden = !hasPassphrase;
+      showAccountScreen('unlock');
+      showAccountStatus('');
+    }
+  } catch (e) {
+    console.error('Failed to complete sign-in:', e);
+    showAccountStatus('Nie udało się połączyć z kontem. Spróbuj ponownie.', 'warn');
+  }
+}
+
+async function runFirstTimeSetup(uid) {
+  showAccountStatus('Przygotowywanie szyfrowania…', 'info');
+  const { dek, dekId, recoveryCode, docs } = await MentalMapCrypto.setupKeyring({});
+
+  try {
+    await syncApi.ensureUserDoc(uid, dekId);
+    for (const doc of docs) await syncApi.pushKeyringDoc(uid, doc);
+  } catch (e) {
+    console.error('Failed to persist keyring:', e);
+    showAccountStatus('Nie udało się zapisać klucza w chmurze. Spróbuj ponownie.', 'warn');
+    return;
+  }
+
+  await MentalMapCrypto.cacheDEK(dek, dekId, uid);
+  syncState.dek = dek;
+  syncState.dekId = dekId;
+
+  const codeEl = $('#account-recovery-code');
+  if (codeEl) codeEl.textContent = recoveryCode;
+  const ack = $('#account-recovery-ack');
+  if (ack) ack.checked = false;
+  const cont = $('#btn-recovery-continue');
+  if (cont) cont.disabled = true;
+  showAccountScreen('recovery');
+  showAccountStatus('');
+
+  // Opt-in migration: any pre-existing local people go up now. Cloud is
+  // necessarily empty for a brand-new keyring, so there's nothing to reconcile.
+  if (people.length > 0) queueSyncUpsertAll(people);
+}
+
+function finishRecoveryReveal() {
+  showAccountScreen('signed-in');
+  refreshAccountSignedInScreen();
+  startPeopleListener();
+}
+
+async function handleUnlockSubmit() {
+  const recoveryInput = $('#account-unlock-recovery')?.value.trim();
+  const passInput = $('#account-unlock-passphrase')?.value;
+  const docs = syncState.keyringDocs || [];
+
+  let targetDoc = null;
+  let secret = null;
+  if (passInput) {
+    targetDoc = docs.find(d => d.kind === 'passphrase');
+    secret = passInput;
+  }
+  if (!targetDoc && recoveryInput) {
+    targetDoc = docs.find(d => d.kind === 'recovery');
+    secret = recoveryInput;
+  }
+  if (!targetDoc || !secret) {
+    showAccountStatus('Podaj kod odzyskiwania lub hasło.', 'warn');
+    return;
+  }
+
+  showAccountStatus('Odblokowywanie…', 'info');
+  try {
+    const dek = await MentalMapCrypto.unlock(targetDoc, secret, { extractable: true });
+    await MentalMapCrypto.cacheDEK(dek, targetDoc.dekId, syncState.uid);
+    syncState.dek = dek;
+    syncState.dekId = targetDoc.dekId;
+    showAccountStatus('');
+    await pullAndReconcile();
+  } catch (e) {
+    if (e && e.code === 'BAD_SECRET') {
+      showAccountStatus('Nieprawidłowy kod lub hasło.', 'warn');
+    } else {
+      console.error('Unlock failed:', e);
+      showAccountStatus('Nie udało się odblokować. Spróbuj ponownie.', 'warn');
+    }
+  }
+}
+
+// One-time reconciliation after a device first unlocks its DEK (either right
+// after unlock, or during a silent reconnect that found a matching cached
+// key). Not used for ongoing sync — that's startPeopleListener() below.
+async function pullAndReconcile() {
+  showAccountStatus('Pobieranie danych…', 'info');
+  let records;
+  try {
+    records = await syncApi.fetchAllPeopleOnce(syncState.uid);
+  } catch (e) {
+    console.error('Failed to fetch cloud people:', e);
+    showAccountStatus('Nie udało się pobrać danych z chmury.', 'warn');
+    return;
+  }
+
+  const decrypted = [];
+  for (const rec of records) {
+    try {
+      const payload = await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, rec.id);
+      decrypted.push(Object.assign({
+        id: rec.id,
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.1,
+        syncUpdatedAt: rec.updatedAtMs || Date.now()
+      }, payload));
+    } catch (e) {
+      console.error('Failed to decrypt a cloud record, skipping:', rec.id, e);
+    }
+  }
+  decrypted.forEach(recomputeDerived);
+
+  const localHasData = people.length > 0;
+  const cloudHasData = decrypted.length > 0;
+
+  if (localHasData && cloudHasData) {
+    pendingCloudPeople = decrypted;
+    showAccountScreen('merge');
+    showAccountStatus('');
+    return;
+  }
+
+  if (cloudHasData) {
+    people = decrypted;
+    distributePlanets();
+    savePeople();
+    renderPlanets();
+    updateEmptyState();
+  } else if (localHasData) {
+    queueSyncUpsertAll(people);
+  }
+
+  showAccountScreen('signed-in');
+  refreshAccountSignedInScreen();
+  showAccountStatus('');
+  startPeopleListener();
+}
+
+function applyMergeCombine() {
+  if (!pendingCloudPeople) return;
+  const byId = new Map(people.map(p => [p.id, p]));
+  pendingCloudPeople.forEach(p => { if (!byId.has(p.id)) byId.set(p.id, p); });
+  people = Array.from(byId.values());
+  people.forEach(recomputeDerived);
+  distributePlanets();
+  savePeople();
+  renderPlanets();
+  updateEmptyState();
+  queueSyncUpsertAll(people);
+  finishMerge();
+}
+
+function applyMergeUseCloud() {
+  if (!pendingCloudPeople) return;
+  people = pendingCloudPeople;
+  distributePlanets();
+  savePeople();
+  renderPlanets();
+  updateEmptyState();
+  finishMerge();
+}
+
+function applyMergeUseLocal() {
+  const localIds = new Set(people.map(p => p.id));
+  const cloudOnlyIds = (pendingCloudPeople || []).filter(p => !localIds.has(p.id)).map(p => p.id);
+  distributePlanets();
+  savePeople();
+  renderPlanets();
+  updateEmptyState();
+  queueSyncUpsertAll(people);
+  cloudOnlyIds.forEach(queueSyncDelete);
+  finishMerge();
+}
+
+function finishMerge() {
+  pendingCloudPeople = null;
+  showAccountScreen('signed-in');
+  refreshAccountSignedInScreen();
+  startPeopleListener();
+}
+
+function startPeopleListener() {
+  if (syncState.unsubscribePeople) {
+    syncState.unsubscribePeople();
+    syncState.unsubscribePeople = null;
+  }
+  if (!isSyncActive()) return;
+  syncState.unsubscribePeople = syncApi.subscribePeople(syncState.uid, handleRemoteChanges);
+}
+
+// Ongoing realtime sync. Equal-or-older incoming timestamps are dropped
+// silently — that's expected on every change this same device just pushed
+// itself (an echo of our own write), not a bug.
+async function handleRemoteChanges(changes) {
+  if (!isSyncActive()) return;
+  let touched = false;
+
+  for (const change of changes) {
+    const personId = change.id;
+
+    if (change.type === 'removed') {
+      const idx = people.findIndex(p => p.id === personId);
+      if (idx !== -1) { people.splice(idx, 1); touched = true; }
+      continue;
+    }
+
+    const rec = change.data;
+    const incomingMs = rec.updatedAtMs || 0;
+    const existing = people.find(p => p.id === personId);
+    if (existing && (existing.syncUpdatedAt || 0) >= incomingMs) continue;
+
+    try {
+      const payload = await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, personId);
+      const merged = Object.assign(existing || {
+        id: personId,
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.1
+      }, payload, { syncUpdatedAt: incomingMs });
+      recomputeDerived(merged);
+      if (!existing) people.push(merged);
+      touched = true;
+    } catch (e) {
+      console.error('Failed to decrypt remote change, skipping:', personId, e);
+    }
+  }
+
+  if (touched) {
+    distributePlanets();
+    savePeople();
+    renderPlanets();
+    updateEmptyState();
+  }
+}
+
+// No-ops whenever sync isn't active, so every existing local-mutation call
+// site can call these unconditionally without an isSyncActive() check of
+// its own.
+function queueSyncUpsert(person) {
+  if (!isSyncActive() || !person) return;
+  person.syncUpdatedAt = Date.now();
+  (async () => {
+    try {
+      const rec = await MentalMapCrypto.encryptRecord(person, syncState.dek, syncState.uid, person.id);
+      await syncApi.pushPerson(syncState.uid, person.id, rec, person.syncUpdatedAt);
+    } catch (e) {
+      console.error('Cloud sync push failed for', person.id, e);
+    }
+  })();
+}
+
+function queueSyncDelete(personId) {
+  if (!isSyncActive() || !personId) return;
+  syncApi.deletePerson(syncState.uid, personId).catch(e => console.error('Cloud sync delete failed for', personId, e));
+}
+
+function queueSyncUpsertAll(list) {
+  if (!isSyncActive()) return;
+  list.forEach(queueSyncUpsert);
+}
+
+function handleSignOut() {
+  if (syncState.unsubscribePeople) {
+    syncState.unsubscribePeople();
+  }
+  syncApi?.signOutUser().catch(e => console.error('Sign out failed:', e));
+  syncState = { uid: null, email: null, dek: null, dekId: null, keyringDocs: [], unsubscribePeople: null };
+  showAccountScreen('entry');
+  showAccountStatus('Wylogowano. Dane na tym urządzeniu zostają bez zmian.', 'ok');
+}
+
+function handleForgetDevice() {
+  if (!confirm('Zapomnieć to urządzenie?\n\nPrzy następnym logowaniu trzeba będzie podać kod odzyskiwania lub hasło. Dane na tym urządzeniu zostaną bez zmian.')) return;
+  MentalMapCrypto.forgetDevice().catch(() => { /* best effort */ });
+  handleSignOut();
+}
+
+function bindAccountEvents() {
+  $('#btn-account')?.addEventListener('click', openAccountModal);
+  $('#btn-close-account')?.addEventListener('click', () => closeAccountModal());
+  $('#account-modal')?.addEventListener('click', (e) => {
+    if (e.target === $('#account-modal')) closeAccountModal();
+  });
+
+  $('#btn-google-signin')?.addEventListener('click', handleGoogleSignIn);
+  $('#account-email-form')?.addEventListener('submit', handleEmailSignIn);
+  $('#btn-email-signup')?.addEventListener('click', handleEmailSignUp);
+
+  $('#account-recovery-ack')?.addEventListener('change', (e) => {
+    const cont = $('#btn-recovery-continue');
+    if (cont) cont.disabled = !e.target.checked;
+  });
+  $('#btn-copy-recovery')?.addEventListener('click', async () => {
+    const code = $('#account-recovery-code')?.textContent || '';
+    try {
+      await navigator.clipboard.writeText(code);
+      showAccountStatus('Skopiowano do schowka.', 'ok');
+    } catch (_) {
+      showAccountStatus('Nie udało się skopiować — zapisz kod ręcznie.', 'warn');
+    }
+  });
+  $('#btn-recovery-continue')?.addEventListener('click', finishRecoveryReveal);
+
+  $('#btn-unlock-submit')?.addEventListener('click', handleUnlockSubmit);
+
+  $('#btn-merge-combine')?.addEventListener('click', applyMergeCombine);
+  $('#btn-merge-use-cloud')?.addEventListener('click', () => {
+    if (confirm('Dane, które są tylko na tym urządzeniu, zostaną odrzucone na rzecz danych z chmury. Kontynuować?')) {
+      applyMergeUseCloud();
+    }
+  });
+  $('#btn-merge-use-local')?.addEventListener('click', () => {
+    if (confirm('Dane w chmurze, których nie ma na tym urządzeniu, zostaną nadpisane danymi lokalnymi. Kontynuować?')) {
+      applyMergeUseLocal();
+    }
+  });
+
+  $('#btn-add-passphrase')?.addEventListener('click', async () => {
+    const passphrase = prompt('Ustaw hasło odzyskiwania (będziesz mieć wtedy dwa sposoby na odblokowanie danych):');
+    if (!passphrase) return;
+    try {
+      const doc = await MentalMapCrypto.addPassphraseWrapping(syncState.dek, syncState.dekId, passphrase);
+      await syncApi.pushKeyringDoc(syncState.uid, doc);
+      showAccountStatus('Dodano hasło odzyskiwania.', 'ok');
+    } catch (e) {
+      console.error('Failed to add passphrase wrapping:', e);
+      showAccountStatus('Nie udało się zapisać hasła.', 'warn');
+    }
+  });
+
+  $('#btn-sign-out')?.addEventListener('click', handleSignOut);
+  $('#btn-forget-device')?.addEventListener('click', handleForgetDevice);
+}
+
+// ═══════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════
 
@@ -1103,6 +1620,7 @@ function bindEvents() {
       if (surveyModal?.getAttribute('aria-hidden') === 'false') closeModal();
       if (infoModal?.getAttribute('aria-hidden') === 'false') closeInfoModal();
       if ($('#backup-modal')?.getAttribute('aria-hidden') === 'false') closeBackupModal();
+      if ($('#account-modal')?.getAttribute('aria-hidden') === 'false') closeAccountModal();
     }
   });
 
@@ -1384,6 +1902,8 @@ window.addEventListener('popstate', (e) => {
     toggleRankingView(true);
   } else if (statsView && !statsView.classList.contains('hidden')) {
     toggleStatsView(true);
+  } else if ($('#account-modal')?.getAttribute('aria-hidden') === 'false') {
+    closeAccountModal(true);
   }
 });
   const btnIncognito = document.getElementById('btn-incognito');
@@ -1490,6 +2010,7 @@ function handleSubmit(e) {
   const level = getLevel(totalScore);
   const cappedLevel = Math.min(level, secretCap);
 
+  let savedPerson;
   if (editingId) {
     // Update existing
     const person = people.find(p => p.id === editingId);
@@ -1505,10 +2026,11 @@ function handleSubmit(e) {
       person.level = cappedLevel;
       // Re-randomize speed if level changed
       if (oldLevel !== cappedLevel) person.speed = getSpeedByScore(person.totalScore);
+      savedPerson = person;
     }
   } else {
     // Add new person
-    people.push({
+    savedPerson = {
       id: uuid(),
       name,
       answers,
@@ -1520,13 +2042,15 @@ function handleSubmit(e) {
       angle: Math.random() * Math.PI * 2,
       speed: getSpeedByScore(totalScore),
       gradientIndex: selectedGradientIndex
-    });
+    };
+    people.push(savedPerson);
   }
 
   distributePlanets();
   savePeople();
   renderPlanets();
   updateEmptyState();
+  if (savedPerson) queueSyncUpsert(savedPerson);
   closeModal();
 }
 
@@ -1543,6 +2067,7 @@ function handleDelete(e) {
     savePeople();
     renderPlanets();
     updateEmptyState();
+    queueSyncDelete(person.id);
     closeModal();
   }
 }
@@ -2134,10 +2659,12 @@ function setupMapNavigation() {
     const stats = document.getElementById('stats-view');
     const survey = document.getElementById('survey-modal');
     const info = document.getElementById('info-modal');
+    const account = document.getElementById('account-modal');
     if (ranking && !ranking.classList.contains('hidden')) return true;
     if (stats && !stats.classList.contains('hidden')) return true;
     if (survey && survey.getAttribute('aria-hidden') === 'false') return true;
     if (info && info.getAttribute('aria-hidden') === 'false') return true;
+    if (account && account.getAttribute('aria-hidden') === 'false') return true;
     return false;
   };
 

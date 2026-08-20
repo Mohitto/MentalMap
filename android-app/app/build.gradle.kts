@@ -3,10 +3,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mentalmap"
+    namespace = "com.mentalmap.app"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.mentalmap"
+        applicationId = "com.mentalmap.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -38,5 +38,9 @@ kotlin {
 dependencies {
   implementation(libs.androidx.core.ktx)
   implementation("androidx.appcompat:appcompat:1.6.1")
-  implementation("androidx.webkit:webkit:1.13.0")
+  // Trusted Web Activity: renders the real Chrome origin (not an embedded
+  // WebView), which is required for Google Sign-In to work at all — Google
+  // blocks its OAuth flow inside plain WebViews.
+  implementation("androidx.browser:browser:1.8.0")
+  implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
 }
