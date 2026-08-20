@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polityka prywatności — MentalMap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0a1a;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.75);
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.08);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.7;
+        }
+        main {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 48px 24px 96px;
+        }
+        h1 {
+            color: var(--text-primary);
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .updated {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-bottom: 40px;
+        }
+        h2 {
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 12px;
+        }
+        p, li { font-size: 15px; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 20px;
+            margin: 16px 0;
+        }
+        a { color: #74b9ff; }
+        strong { color: var(--text-primary); }
+        .back {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back:hover { color: var(--text-primary); }
+    </style>
+</head>
+<body>
+    <main>
+        <a class="back" href="./">← Wróć do aplikacji</a>
+        <h1>Polityka prywatności MentalMap</h1>
+        <p class="updated">Ostatnia aktualizacja: 20 sierpnia 2026</p>
+
+        <div class="card">
+            <p><strong>W skrócie:</strong> jeśli nie włączysz synchronizacji w chmurze, wszystkie Twoje dane zostają wyłącznie na Twoim urządzeniu — nie mamy do nich dostępu i niczego nie zbieramy. Jeśli włączysz synchronizację, treść Twoich wpisów (imiona, odpowiedzi w ankiecie) jest szyfrowana na Twoim urządzeniu, zanim trafi do naszej bazy danych — kluczem, którego my nie posiadamy.</p>
+        </div>
+
+        <h2>1. Kto jest administratorem danych</h2>
+        <p>Aplikację MentalMap prowadzi Kuba Mosjo. W sprawach dotyczących ochrony danych możesz kontaktować się pod adresem podanym na dole tej strony.</p>
+
+        <h2>2. Tryb lokalny (bez konta)</h2>
+        <p>Domyślnie MentalMap działa w całości lokalnie na Twoim urządzeniu. Wszystkie wprowadzone dane (imiona osób, odpowiedzi w ankiecie, wyniki) zapisywane są wyłącznie w pamięci przeglądarki (localStorage) na Twoim telefonie lub komputerze. Nie są wysyłane do żadnego serwera. Nie zbieramy w tym trybie żadnych danych osobowych.</p>
+
+        <h2>3. Tryb z kontem (synchronizacja w chmurze)</h2>
+        <p>Jeśli zdecydujesz się założyć konto (przycisk "Konto" w aplikacji), aby synchronizować dane między urządzeniami, zbieramy i przetwarzamy:</p>
+        <ul>
+            <li><strong>Adres e-mail</strong> — do identyfikacji Twojego konta (przy logowaniu e-mail/hasło) lub adres powiązany z Twoim kontem Google (przy logowaniu przez Google). Używamy go wyłącznie do obsługi logowania.</li>
+            <li><strong>Zaszyfrowaną treść Twoich wpisów</strong> — imiona osób, udzielone odpowiedzi i wyniki ankiety. Szyfrowanie odbywa się <strong>na Twoim urządzeniu</strong>, zanim jakiekolwiek dane opuszczą przeglądarkę, przy użyciu klucza wygenerowanego lokalnie (AES-256). My — ani nikt inny z dostępem do naszej bazy danych — nie jesteśmy w stanie odczytać treści tych wpisów. Klucz odblokowujący dane istnieje wyłącznie w postaci kodu odzyskiwania i/lub hasła, które znasz tylko Ty.</li>
+        </ul>
+        <p>Jeśli zapomnisz kodu odzyskiwania i hasła, dane zaszyfrowane w chmurze stają się trwale nieodczytywalne — również dla nas. Nie mamy technicznej możliwości ich odzyskania.</p>
+
+        <h2>4. Podmioty przetwarzające dane w naszym imieniu</h2>
+        <p>Do obsługi konta i przechowywania zaszyfrowanych danych korzystamy z usług <strong>Google Firebase</strong> (Firebase Authentication oraz Cloud Firestore), dostarczanych przez Google LLC. Firebase pełni rolę podmiotu przetwarzającego dane w naszym imieniu, zgodnie z warunkami Google. Więcej informacji: <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">polityka prywatności Firebase</a>.</p>
+        <p>Jeśli logujesz się przez Google, proces logowania obsługuje bezpośrednio Google zgodnie z <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">polityką prywatności Google</a>.</p>
+        <p>Nie sprzedajemy, nie wynajmujemy i nie udostępniamy Twoich danych żadnym innym podmiotom trzecim w celach marketingowych.</p>
+
+        <h2>5. Twoje prawa</h2>
+        <ul>
+            <li><strong>Dostęp i eksport</strong> — funkcja "Kopia zapasowa" w aplikacji pozwala w każdej chwili pobrać wszystkie Twoje dane w formacie JSON.</li>
+            <li><strong>Usunięcie</strong> — możesz usunąć poszczególne wpisy bezpośrednio w aplikacji. Aby usunąć całe konto wraz z danymi w chmurze, napisz na adres kontaktowy poniżej.</li>
+            <li><strong>Wylogowanie / zapomnienie urządzenia</strong> — opcje dostępne w modalu "Konto", nie wpływają na dane zapisane lokalnie na urządzeniu.</li>
+        </ul>
+
+        <h2>6. Dzieci</h2>
+        <p>MentalMap nie jest skierowany do dzieci poniżej 16 roku życia i świadomie nie zbieramy danych od osób w tym wieku.</p>
+
+        <h2>7. Bezpieczeństwo</h2>
+        <p>Treść wpisów jest szyfrowana end-to-end (AES-256-GCM) przed opuszczeniem urządzenia. Reguły bezpieczeństwa bazy danych ograniczają dostęp do danych wyłącznie do właściciela konta.</p>
+
+        <h2>8. Zmiany w polityce</h2>
+        <p>W razie zmian w tej polityce zaktualizujemy datę na górze tej strony. Istotne zmiany będą sygnalizowane w aplikacji.</p>
+
+        <h2>9. Kontakt</h2>
+        <p>Pytania dotyczące prywatności: <a href="mailto:kubamosjo@gmail.com">kubamosjo@gmail.com</a></p>
+    </main>
+</body>
+</html>
