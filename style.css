@@ -802,6 +802,85 @@ body.incognito-mode .stats-person-chip__name {
   color: #fca5a5;
 }
 
+/* ── Account / cloud sync modal ── */
+
+#account-modal {
+  align-items: center;
+  justify-content: center;
+}
+
+.account-input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+.account-input:focus {
+  border-color: #6c5ce7;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.15);
+}
+
+.account-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Compound selector, not just .account-btn-google: .btn (defined later in
+   this file) also sets background/color, and equal specificity would let
+   source order pick the winner. */
+.btn.account-btn-google {
+  width: 100%;
+  justify-content: center;
+  margin-bottom: 10px;
+  background: #ffffff;
+  color: #1f1f1f;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.account-recovery-code {
+  width: 100%;
+  background: #0d0d1c;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px;
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 16px 8px;
+  margin-bottom: 14px;
+  word-break: break-all;
+}
+
+.account-ack {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  cursor: pointer;
+}
+
+.account-ack input {
+  width: 16px;
+  height: 16px;
+  accent-color: #6c5ce7;
+}
+
+.account-merge-choices {
+  display: flex;
+  flex-direction: column;
+}
+
 #stats-view {
   position: fixed;
   top: 0;
@@ -1110,8 +1189,16 @@ body.incognito-mode .stats-person-chip__name {
   font-size: 14px;
   line-height: 1.6;
   color: var(--text-secondary);
-  white-space: pre-wrap;
   overflow-y: auto;
+}
+
+/* Only the plain-text level description needs literal newlines preserved.
+   .info-content itself is shared by the backup and account modals too, whose
+   markup has ordinary HTML whitespace between tags — pre-wrap on the shared
+   class was rendering that formatting whitespace as visible gaps and
+   inflating every icon+text button inside them. */
+#info-content-text {
+  white-space: pre-wrap;
 }
 
 .info-header h2 {
@@ -1391,6 +1478,11 @@ body.incognito-mode .stats-person-chip__name {
 
 .btn:active {
   transform: scale(0.96);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .btn--save {

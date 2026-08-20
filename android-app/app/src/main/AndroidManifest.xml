@@ -11,12 +11,44 @@
         android:supportsRtl="true"
         android:windowSoftInputMode="adjustResize"
         android:theme="@style/Theme.MentalMap">
+
+        <!-- Trusted Web Activity: this renders the real Chrome origin (not an
+             embedded WebView), which Google Sign-In requires — Google blocks
+             its OAuth flow inside plain WebViews. Everything the old
+             hand-written MainActivity did manually (dark status/nav bars,
+             edge-to-edge, back-button delegation) is handled by this
+             manifest-driven LauncherActivity instead. -->
         <activity
-            android:name=".MainActivity"
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
             android:exported="true">
+
+            <meta-data
+                android:name="android.support.customtabs.trusted.DEFAULT_URL"
+                android:value="https://mohitto.github.io/MentalMap/" />
+            <meta-data
+                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
+                android:resource="@color/colorPrimary" />
+            <meta-data
+                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
+                android:resource="@color/colorPrimary" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Digital Asset Links verification: this is what lets Chrome
+                 trust the app and hide the URL bar. Requires
+                 /.well-known/assetlinks.json to be hosted at the URL below
+                 with this app's signing certificate fingerprint. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="mohitto.github.io"
+                    android:pathPrefix="/MentalMap/" />
             </intent-filter>
         </activity>
     </application>

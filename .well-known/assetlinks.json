@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mentalmap.app",
+      "sha256_cert_fingerprints": [
+        "48:35:47:6F:7C:32:22:C8:FE:7D:EA:F6:5C:3A:B0:FD:B7:AF:67:74:85:43:38:E2:9F:8E:7B:AF:58:30:78:DD"
+      ]
+    }
+  }
+]

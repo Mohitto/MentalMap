@@ -14,6 +14,19 @@ permissions:
   security-events: write
 
 jobs:
+  crypto-tests:
+    name: Crypto tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      # Node's WebCrypto is the same SubtleCrypto implementation the browser
+      # exposes, so these exercise the real primitives rather than a stand-in.
+      # A silent break here would mean unreadable user data, so it must fail loud.
+      - run: node tests/crypto.test.mjs
+
   semgrep:
     name: Semgrep (SAST)
     runs-on: ubuntu-latest
