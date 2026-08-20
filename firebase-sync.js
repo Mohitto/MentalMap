@@ -23,17 +23,16 @@ import {
   deleteDoc, onSnapshot, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 
-// TODO: replace with the real config from Firebase Console → Project settings
-// → General → Your apps → Web app. This is the public web config (apiKey,
-// authDomain, etc.), not a secret — safe to commit, same as the repo's own
-// .gitignore comment already notes for this exact distinction.
+// Public web config (apiKey, authDomain, etc.) — not a secret, safe to
+// commit. See the repo's own .gitignore comment for this exact distinction
+// (it's the Admin SDK service-account key that must never be committed).
 const FIREBASE_CONFIG = {
-  apiKey: 'REPLACE_WITH_YOUR_FIREBASE_API_KEY',
-  authDomain: 'REPLACE_WITH_YOUR_PROJECT.firebaseapp.com',
-  projectId: 'REPLACE_WITH_YOUR_PROJECT_ID',
-  storageBucket: 'REPLACE_WITH_YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'REPLACE_WITH_YOUR_SENDER_ID',
-  appId: 'REPLACE_WITH_YOUR_APP_ID'
+  apiKey: 'AIzaSyD1uSi4biuA7YPoykZ_63Ve5MjCzoJxrlM',
+  authDomain: 'mentalmap-17db4.firebaseapp.com',
+  projectId: 'mentalmap-17db4',
+  storageBucket: 'mentalmap-17db4.firebasestorage.app',
+  messagingSenderId: '731701637961',
+  appId: '1:731701637961:web:5e04bb36616875b71da098'
 };
 
 const app = initializeApp(FIREBASE_CONFIG);
