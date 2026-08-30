@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.71">
+    <link rel="stylesheet" href="style.css?v=0.9.72">
 </head>
 <body>
     <script>
@@ -310,6 +310,16 @@
                         Kontynuuj z Google
                     </button>
 
+                    <!-- Samsung Internet blocks Google's OAuth screen inside a
+                         home-screen-installed (standalone) window; shown instead
+                         of the button above when that combination is detected. -->
+                    <p id="account-google-blocked-notice" class="backup-note backup-note--warn" hidden>
+                        Samsung Internet blokuje logowanie przez Google w zainstalowanej aplikacji.
+                        Otwórz ten adres w zwykłej karcie przeglądarki, zaloguj się tam przez Google,
+                        a po powrocie tutaj konto połączy się automatycznie.
+                        <br><a id="account-open-in-browser" class="btn backup-btn backup-btn--secondary" target="_blank" rel="noopener">Otwórz w przeglądarce</a>
+                    </p>
+
                     <hr class="backup-sep">
 
                     <form id="account-email-form" autocomplete="on">
@@ -381,8 +391,8 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.71</div>
-    <script src="crypto.js?v=0.9.71"></script>
-    <script src="app.js?v=0.9.71"></script>
+    <div id="app-version">v0.9.72</div>
+    <script src="crypto.js?v=0.9.72"></script>
+    <script src="app.js?v=0.9.72"></script>
 </body>
 </html>

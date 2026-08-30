@@ -189,8 +189,8 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const UNDO_IMPORT_KEY = 'mentalmap_people_pre_import';
-const APP_VERSION = 'v0.9.71';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.71' -> '0.9.71', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.72';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.72' -> '0.9.72', matches the ?v= convention used elsewhere
 
 // Guards for the persistence layer (see loadPeople / savePeople).
 let saveBlocked = false;
@@ -1036,6 +1036,29 @@ function isSyncActive() {
   return !!(syncState.uid && syncState.dek);
 }
 
+// Samsung Internet's "Add page to" home-screen shortcut renders the app in a
+// stripped-down standalone window that Google's OAuth endpoint flags as an
+// insecure embedded browser (the same "disallowed_useragent" block it applies
+// to plain WebViews) and refuses to complete sign-in in — with no way back to
+// the app once that error page shows. Chrome's own installed-PWA/TWA path
+// uses real Custom Tabs and isn't affected, so this only guards Samsung's.
+function isBlockedStandaloneGoogleSignIn() {
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  return standalone && /SamsungBrowser/i.test(navigator.userAgent);
+}
+
+function updateGoogleSigninAvailability() {
+  const blocked = isBlockedStandaloneGoogleSignIn();
+  const btn = $('#btn-google-signin');
+  const notice = $('#account-google-blocked-notice');
+  if (btn) btn.hidden = blocked;
+  if (notice) notice.hidden = !blocked;
+  if (blocked) {
+    const link = $('#account-open-in-browser');
+    if (link) link.href = location.origin + location.pathname;
+  }
+}
+
 async function loadSyncModule() {
   if (syncApi) return syncApi;
   const mod = await import(`./firebase-sync.js?v=${ASSET_VERSION}`);
@@ -1091,6 +1114,11 @@ function showAccountScreen(id) {
   });
 }
 
+function currentAccountScreen() {
+  return ['entry', 'recovery', 'unlock', 'merge', 'signed-in']
+    .find(name => $(`#account-screen-${name}`)?.hidden === false) || null;
+}
+
 function showAccountStatus(message, kind = 'info') {
   const el = $('#account-status');
   if (!el) return;
@@ -1105,15 +1133,20 @@ function refreshAccountSignedInScreen() {
   if (emailEl) emailEl.textContent = syncState.email || '';
 }
 
-function openAccountModal() {
+async function openAccountModal() {
   const modal = $('#account-modal');
   if (!modal) return;
   showAccountStatus('');
+  // Catches a sign-in completed a moment ago in a separate browser tab (the
+  // Samsung Internet workaround below) — same origin, so the session and
+  // cached key are already there in IndexedDB by the time the user returns.
+  if (!isSyncActive()) await attemptSilentReconnect();
   if (isSyncActive()) {
     showAccountScreen('signed-in');
     refreshAccountSignedInScreen();
-  } else {
+  } else if (currentAccountScreen() !== 'unlock' && currentAccountScreen() !== 'recovery' && currentAccountScreen() !== 'merge') {
     showAccountScreen('entry');
+    updateGoogleSigninAvailability();
   }
   modal.setAttribute('aria-hidden', 'false');
   history.pushState({ accountModalOpen: true }, '');
@@ -1129,6 +1162,10 @@ function closeAccountModal(fromPopState = false) {
 }
 
 async function handleGoogleSignIn() {
+  if (isBlockedStandaloneGoogleSignIn()) {
+    updateGoogleSigninAvailability();
+    return;
+  }
   showAccountStatus('Łączenie z Google…', 'info');
   try {
     const api = await loadSyncModule();
