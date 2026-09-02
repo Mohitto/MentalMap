@@ -845,37 +845,6 @@ body.incognito-mode .stats-person-chip__name {
   font-weight: 600;
 }
 
-.account-recovery-code {
-  width: 100%;
-  background: #0d0d1c;
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 18px;
-  letter-spacing: 2px;
-  text-align: center;
-  padding: 16px 8px;
-  margin-bottom: 14px;
-  word-break: break-all;
-}
-
-.account-ack {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-  cursor: pointer;
-}
-
-.account-ack input {
-  width: 16px;
-  height: 16px;
-  accent-color: #6c5ce7;
-}
-
 .account-merge-choices {
   display: flex;
   flex-direction: column;

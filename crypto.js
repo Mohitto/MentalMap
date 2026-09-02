@@ -1,14 +1,21 @@
 /**
- * MentalMap — client-side encryption.
+ * MentalMap — client-side encryption for email/password accounts.
  *
- * The server stores ciphertext only. The key never reaches it, which means no
- * amount of database access — including ours — reveals what anyone wrote about
- * the people in their life.
+ * The server stores ciphertext only, wrapped by a key derived from the
+ * account password itself — never sent anywhere, never stored anywhere. No
+ * amount of database access — including ours — reveals what anyone wrote
+ * about the people in their life, and no separate code or recovery phrase is
+ * needed: the password the user already typed in to sign in is the secret.
  *
- * Envelope design: one random 256-bit DEK per user encrypts every record. The
- * DEK itself is wrapped separately by each unlock method (recovery code,
- * passphrase, biometrics). Wrappings accumulate and are never edited, so adding
- * or losing one can never orphan the data.
+ * Google-signed-in accounts skip this file entirely (see the ACCOUNT / CLOUD
+ * SYNC section of app.js) — Google never hands the app a stable secret it
+ * doesn't also see, so there is nothing to derive a zero-knowledge key from.
+ * Their data syncs in the clear, gated only by Firestore's per-account rules.
+ *
+ * Envelope design: one random 256-bit DEK per user encrypts every record, and
+ * is itself wrapped by a key derived from the account password (PBKDF2). If
+ * the password ever changes outside the app (e.g. a Firebase password reset),
+ * the old wrapping stops working — there is no separate recovery path.
  *
  * Deliberately a classic script exposing one global rather than an ES module:
  * app.js is a classic script relying on global function declarations, and
@@ -110,13 +117,22 @@
     return te.encode(`mentalmap|v1|${uid}|${personId}`);
   }
 
-  /** Fields that never leave the device in the clear. */
+  /**
+   * The fields that make up a person record for sync purposes. For
+   * email/password accounts these never leave the device except inside
+   * encryptRecord's ciphertext; app.js also uses this directly, unencrypted,
+   * for Google accounts, which have no password to derive a key from.
+   */
   function sensitivePayload(person) {
     return {
       name: person.name,
       answers: person.answers,
       answerIndices: person.answerIndices || null,
-      gateAnswer: person.gateAnswer,
+      // Legacy records from before the gate question existed have no
+      // gateAnswer at all. JSON.stringify (the encrypted path) silently drops
+      // an undefined property, but a plain Firestore write (the Google/no-DEK
+      // path) rejects undefined outright — so normalize it here, for both.
+      gateAnswer: typeof person.gateAnswer === 'number' ? person.gateAnswer : null,
       secretCap: person.secretCap,
       gradientIndex: person.gradientIndex
     };
@@ -144,33 +160,6 @@
     return JSON.parse(td.decode(pt));
   }
 
-  // ── recovery code ──────────────────────────────────────────────────────────
-  // Crockford Base32 omits I, L, O and U so a handwritten code cannot be
-  // misread. 128 bits of entropy means the iteration count is irrelevant to its
-  // strength, while staying short enough to actually transcribe.
-
-  const C32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-
-  function generateRecoveryCode() {
-    const bytes = randomBytes(16);
-    let bits = 0, acc = 0, out = '';
-    for (const b of bytes) {
-      acc = (acc << 8) | b;
-      bits += 8;
-      while (bits >= 5) {
-        out += C32[(acc >>> (bits - 5)) & 31];
-        bits -= 5;
-      }
-    }
-    if (bits > 0) out += C32[(acc << (5 - bits)) & 31];
-    return out.match(/.{1,5}/g).join('-');
-  }
-
-  function normalizeRecoveryCode(input) {
-    return String(input).toUpperCase().replace(/[^0-9A-Z]/g, '')
-      .replace(/O/g, '0').replace(/[IL]/g, '1').replace(/U/g, 'V');
-  }
-
   // ── keyring flows ──────────────────────────────────────────────────────────
 
   function buildWrappingDoc(kind, dekId, salt, wrapped) {
@@ -187,45 +176,24 @@
   }
 
   /**
-   * First run. Returns the DEK plus the wrapping documents to store, and the
-   * recovery code to show exactly once.
-   *
-   * The recovery code is generated whether or not a passphrase is set, because
-   * with the deferred-passphrase flow it is the user's ONLY way back in after a
-   * lost device. It must never be written to the database or logged.
+   * First run for an email/password account. Returns the DEK plus the single
+   * wrapping document to store, wrapped by a key derived from the account
+   * password — the same secret Firebase Auth just verified, so no separate
+   * code or passphrase is ever shown to the user.
    */
   async function setupKeyring(options) {
     const opts = options || {};
+    if (!opts.password) throw new Error('setupKeyring requires a password');
     const dek = await generateDEK();
     const dekId = (crypto.randomUUID ? crypto.randomUUID() : b64uEncode(randomBytes(16)));
-    const recoveryCode = generateRecoveryCode();
-    const docs = [];
-
-    const rSalt = randomBytes(KDF.saltBytes);
-    docs.push(buildWrappingDoc('recovery', dekId, rSalt,
-      await wrapDEK(dek, await deriveKEK(normalizeRecoveryCode(recoveryCode), rSalt))));
-
-    if (opts.passphrase) {
-      // An independent salt. Reusing the recovery salt would let one cracked
-      // wrapping shortcut the other.
-      const pSalt = randomBytes(KDF.saltBytes);
-      docs.push(buildWrappingDoc('passphrase', dekId, pSalt,
-        await wrapDEK(dek, await deriveKEK(opts.passphrase, pSalt))));
-    }
-
-    return { dek, dekId, recoveryCode, docs };
-  }
-
-  /** Add a passphrase wrapping later, without re-encrypting anything. */
-  async function addPassphraseWrapping(dekExtractable, dekId, passphrase) {
     const salt = randomBytes(KDF.saltBytes);
-    return buildWrappingDoc('passphrase', dekId, salt,
-      await wrapDEK(dekExtractable, await deriveKEK(passphrase, salt)));
+    const doc = buildWrappingDoc('password', dekId, salt,
+      await wrapDEK(dek, await deriveKEK(opts.password, salt)));
+    return { dek, dekId, docs: [doc] };
   }
 
   async function unlock(doc, secret, opts) {
-    const secretToUse = doc.kind === 'recovery' ? normalizeRecoveryCode(secret) : secret;
-    const kek = await deriveKEK(secretToUse, b64uDecode(doc.salt), doc.iterations);
+    const kek = await deriveKEK(secret, b64uDecode(doc.salt), doc.iterations);
     try {
       return await unwrapDEK(doc.wrappedDek, doc.wrapIv, kek, opts);
     } catch (e) {
@@ -278,7 +246,8 @@
     const dek = await toNonExtractable(dekMaybeExtractable);
     if (navigator.storage && navigator.storage.persist) {
       // Ask the browser not to evict this under storage pressure. Losing the
-      // cached key is not fatal, but it forces a recovery-code prompt.
+      // cached key is not fatal, but it forces the user to type their
+      // password again on this device.
       try { await navigator.storage.persist(); } catch (_) { /* best effort */ }
     }
     const db = await openIdb();
@@ -318,9 +287,8 @@
   global.MentalMapCrypto = {
     b64uEncode, b64uDecode, randomBytes,
     deriveKEK, generateDEK, wrapDEK, unwrapDEK,
-    encryptRecord, decryptRecord,
-    generateRecoveryCode, normalizeRecoveryCode,
-    setupKeyring, addPassphraseWrapping, unlock,
+    encryptRecord, decryptRecord, sensitivePayload,
+    setupKeyring, unlock,
     cacheDEK, loadCachedDEK, forgetDevice, toNonExtractable,
     _params: { KDF, AES, RECORD_ALG }
   };
