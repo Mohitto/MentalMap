@@ -1266,6 +1266,11 @@ body.incognito-mode .stats-person-chip__name {
   color: var(--text-muted);
 }
 
+#questions-container {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Question cards */
 .question-card {
   margin-bottom: 24px;
