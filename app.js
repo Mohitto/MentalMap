@@ -189,8 +189,8 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const UNDO_IMPORT_KEY = 'mentalmap_people_pre_import';
-const APP_VERSION = 'v0.9.72';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.71' -> '0.9.71', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.73';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.73' -> '0.9.73', matches the ?v= convention used elsewhere
 
 // Guards for the persistence layer (see loadPeople / savePeople).
 let saveBlocked = false;
@@ -1143,6 +1143,12 @@ function openAccountModal() {
     refreshAccountSignedInScreen();
   } else {
     showAccountScreen('entry');
+    // Warm the SDK now rather than inside the sign-in click: the first import
+    // fetches Firebase from gstatic, and awaiting that in the click handler
+    // outlives the transient user activation, so the browser would block the
+    // popup signInWithGoogle() opens. Still opt-in — this only runs once the
+    // user has actually opened the Account modal.
+    loadSyncModule().catch(() => { /* surfaced when a sign-in is actually attempted */ });
   }
   modal.setAttribute('aria-hidden', 'false');
   history.pushState({ accountModalOpen: true }, '');
@@ -1161,12 +1167,24 @@ async function handleGoogleSignIn() {
   showAccountStatus('Łączenie z Google…', 'info');
   try {
     const api = await loadSyncModule();
-    try { localStorage.setItem(PENDING_SIGNIN_KEY, '1'); } catch (_) { /* ignore */ }
-    await api.signInWithGoogle(); // navigates away; execution resumes on redirect-back via attemptSilentReconnect()
+    // The flag is only for the redirect fallback's return leg, so it is set at
+    // the moment we know we are actually navigating away — not before, or a
+    // popup sign-in would leave it behind for the next page load to trip over.
+    const user = await api.signInWithGoogle({
+      onBeforeRedirect: () => {
+        try { localStorage.setItem(PENDING_SIGNIN_KEY, '1'); } catch (_) { /* ignore */ }
+      }
+    });
+    if (!user) return; // redirect fallback took over; resumes via attemptSilentReconnect()
+    await completeSignIn(user);
   } catch (e) {
     try { localStorage.removeItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
+    if (typeof syncApi?.isUserCancelledSignIn === 'function' && syncApi.isUserCancelledSignIn(e)) {
+      showAccountStatus('');
+      return;
+    }
     console.error('Google sign-in failed:', e);
-    showAccountStatus('Nie udało się rozpocząć logowania przez Google.', 'warn');
+    showAccountStatus('Nie udało się zalogować przez Google.', 'warn');
   }
 }
 
