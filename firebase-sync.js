@@ -15,7 +15,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
 import {
-  getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult,
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
   onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
 } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import {
@@ -67,8 +67,47 @@ export async function checkRedirectResult() {
   return result ? result.user : null;
 }
 
-export function signInWithGoogle() {
-  return signInWithRedirect(auth, new GoogleAuthProvider());
+// Only these mean "this browser won't give us a popup" — everything else
+// (including the user simply closing the window) is a real outcome and must
+// not silently turn into a second, full-page sign-in attempt.
+const POPUP_UNAVAILABLE = new Set([
+  'auth/popup-blocked',
+  'auth/operation-not-supported-in-this-environment',
+  'auth/web-storage-unsupported'
+]);
+
+/**
+ * Popup first, redirect only as a fallback.
+ *
+ * signInWithRedirect carries the result home through a cross-origin iframe on
+ * authDomain (mentalmap-17db4.firebaseapp.com), which every browser that blocks
+ * third-party storage now severs — Samsung Internet does this by default via
+ * Smart Anti-Tracking. The Google screen still appears and the user still
+ * approves, but getRedirectResult() then resolves to null and the app drops
+ * them straight back on the sign-in screen. Firebase's documented fixes are to
+ * serve /__/auth/ from our own origin (impossible on GitHub Pages) or to use
+ * signInWithPopup, which hands the credential back over postMessage and never
+ * reads third-party storage.
+ *
+ * Resolves to the signed-in user, or to null when the redirect fallback has
+ * taken over and the page is already navigating away.
+ */
+export async function signInWithGoogle({ onBeforeRedirect } = {}) {
+  const provider = new GoogleAuthProvider();
+  try {
+    const cred = await signInWithPopup(auth, provider);
+    return cred.user;
+  } catch (e) {
+    if (!POPUP_UNAVAILABLE.has(e && e.code)) throw e;
+    if (onBeforeRedirect) onBeforeRedirect();
+    await signInWithRedirect(auth, provider);
+    return null;
+  }
+}
+
+/** True for the two codes that just mean "the user backed out of the popup". */
+export function isUserCancelledSignIn(e) {
+  return !!e && (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request');
 }
 
 export async function signUpWithEmail(email, password) {

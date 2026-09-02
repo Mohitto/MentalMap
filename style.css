@@ -845,13 +845,6 @@ body.incognito-mode .stats-person-chip__name {
   font-weight: 600;
 }
 
-/* .btn's own display:flex (below) has equal specificity to the UA [hidden]
-   rule and wins on source order, so the hidden attribute alone wouldn't hide
-   this button — needed when Google sign-in is unavailable (see app.js). */
-#btn-google-signin[hidden] {
-  display: none;
-}
-
 .account-recovery-code {
   width: 100%;
   background: #0d0d1c;
