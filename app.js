@@ -189,7 +189,7 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const UNDO_IMPORT_KEY = 'mentalmap_people_pre_import';
-const APP_VERSION = 'v0.9.71';
+const APP_VERSION = 'v0.9.72';
 const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.71' -> '0.9.71', matches the ?v= convention used elsewhere
 
 // Guards for the persistence layer (see loadPeople / savePeople).
