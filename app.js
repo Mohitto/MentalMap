@@ -451,6 +451,35 @@ function buildSurveyForm() {
   questionsContainer.appendChild(secretCard);
 }
 
+// Visually reorders the regular question cards (via CSS `order`, not DOM position)
+// so questions where the person hasn't picked the max-point answer show up first.
+// Gate/secret cards keep their fixed spot at the very start/end. DOM order stays
+// untouched on purpose — handleSubmit() and updateScorePreview() rely on
+// SURVEY_QUESTIONS index order when walking `.question-card` elements.
+function reorderQuestionsByCompletion(person) {
+  if (!questionsContainer) return;
+  const gateCard = document.getElementById('card-gate');
+  const secretCard = document.getElementById('card-secret');
+  if (gateCard) gateCard.style.order = '-1';
+  if (secretCard) secretCard.style.order = String(SURVEY_QUESTIONS.length * 2);
+
+  SURVEY_QUESTIONS.forEach((q, i) => {
+    const card = document.getElementById(`card-q${i}`);
+    if (!card) return;
+    const maxPoints = Math.max(...q.answers.map(a => a.points));
+    const isMaxed = person.answers?.[i] === maxPoints;
+    card.style.order = String(isMaxed ? SURVEY_QUESTIONS.length + i : i);
+  });
+}
+
+// Restores the natural question order (used when starting a fresh survey).
+function resetQuestionOrder() {
+  if (!questionsContainer) return;
+  questionsContainer.querySelectorAll('.question-card').forEach(card => {
+    card.style.order = '';
+  });
+}
+
 // ═══════════════════════════════════════════
 // SCORE PREVIEW
 // ═══════════════════════════════════════════
@@ -1730,6 +1759,7 @@ function closeInfoModal(fromPopState = false) {
 function openAddModal() {
   editingId = null;
   surveyForm.reset();
+  resetQuestionOrder();
   updateColorPickerSelection(Math.floor(Math.random() * PLANET_GRADIENTS.length));
   modalTitle.textContent = 'Nowa relacja';
   btnDelete.style.display = 'none';
@@ -1781,6 +1811,8 @@ function openEditModal(id, mode = 'survey') {
     const secretRadio = surveyForm.querySelector(`input[name="secret"][value="${person.secretCap}"]`);
     if (secretRadio) secretRadio.checked = true;
   }
+
+  reorderQuestionsByCompletion(person);
 
   modalTitle.textContent = `Edytuj: ${person.name}`;
   btnDelete.style.display = 'flex';
