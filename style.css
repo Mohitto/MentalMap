@@ -564,7 +564,7 @@ html, body {
 
 .btn-top {
   position: fixed;
-  top: 24px;
+  right: 24px;
   width: 44px;
   height: 44px;
   border-radius: 12px;
@@ -584,10 +584,6 @@ html, body {
 .btn-top:active {
   transform: scale(0.9);
   background: rgba(255, 255, 255, 0.2);
-}
-
-.btn-top.active-mode {
-  background: rgba(255, 255, 255, 0.3);
 }
 
 /* Incognito mode styles (Censored blocks) */
@@ -659,7 +655,10 @@ body.incognito-mode .stats-person-chip__name {
   color: rgba(255, 255, 255, 0.42);
   letter-spacing: 0.4px;
   user-select: none;
-  pointer-events: none;
+  /* Doubles as a hidden long-press target that toggles incognito mode. */
+  padding: 12px 16px 12px 0;
+  margin: -12px -16px -12px 0;
+  touch-action: none;
 }
 
 .ranking-avatar {

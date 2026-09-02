@@ -452,23 +452,22 @@ function buildSurveyForm() {
 }
 
 // Visually reorders the regular question cards (via CSS `order`, not DOM position)
-// so questions where the person hasn't picked the max-point answer show up first.
-// Gate/secret cards keep their fixed spot at the very start/end. DOM order stays
-// untouched on purpose — handleSubmit() and updateScorePreview() rely on
-// SURVEY_QUESTIONS index order when walking `.question-card` elements.
+// so the weakest answers (lowest points) show up first — the lower the answer,
+// the higher its priority to appear at the top. Gate/secret cards keep their
+// fixed spot at the very start/end. DOM order stays untouched on purpose —
+// handleSubmit() and updateScorePreview() rely on SURVEY_QUESTIONS index order
+// when walking `.question-card` elements.
 function reorderQuestionsByCompletion(person) {
   if (!questionsContainer) return;
   const gateCard = document.getElementById('card-gate');
   const secretCard = document.getElementById('card-secret');
-  if (gateCard) gateCard.style.order = '-1';
-  if (secretCard) secretCard.style.order = String(SURVEY_QUESTIONS.length * 2);
+  if (gateCard) gateCard.style.order = '-1000';
+  if (secretCard) secretCard.style.order = '1000';
 
   SURVEY_QUESTIONS.forEach((q, i) => {
     const card = document.getElementById(`card-q${i}`);
     if (!card) return;
-    const maxPoints = Math.max(...q.answers.map(a => a.points));
-    const isMaxed = person.answers?.[i] === maxPoints;
-    card.style.order = String(isMaxed ? SURVEY_QUESTIONS.length + i : i);
+    card.style.order = String(person.answers?.[i] ?? 0);
   });
 }
 
@@ -954,6 +953,11 @@ function refreshBackupModal() {
 function openBackupModal() {
   const modal = $('#backup-modal');
   if (!modal) return;
+  if (!isSyncActive()) {
+    // Backup is only available to signed-in users now — send them to sign in instead.
+    openAccountModal();
+    return;
+  }
   refreshBackupModal();
   const status = $('#backup-status');
   if (status) status.hidden = true;
@@ -970,7 +974,10 @@ function closeBackupModal() {
 }
 
 function bindBackupEvents() {
-  $('#btn-backup')?.addEventListener('click', openBackupModal);
+  $('#btn-open-backup')?.addEventListener('click', () => {
+    closeAccountModal();
+    openBackupModal();
+  });
   $('#btn-close-backup')?.addEventListener('click', closeBackupModal);
   $('#backup-modal')?.addEventListener('click', (e) => {
     if (e.target === $('#backup-modal')) closeBackupModal();
@@ -1904,13 +1911,25 @@ window.addEventListener('popstate', (e) => {
     closeAccountModal(true);
   }
 });
-  const btnIncognito = document.getElementById('btn-incognito');
-  if (btnIncognito) {
-    btnIncognito.addEventListener('click', () => {
+// Incognito toggle: hidden behind a long-press on the version label, no visible button.
+if (appVersion) {
+  const INCOGNITO_HOLD_MS = 650;
+  let incognitoPressTimer = null;
+
+  const startIncognitoHold = () => {
+    clearTimeout(incognitoPressTimer);
+    incognitoPressTimer = setTimeout(() => {
       document.body.classList.toggle('incognito-mode');
-      btnIncognito.classList.toggle('active-mode');
-    });
-  }
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, INCOGNITO_HOLD_MS);
+  };
+  const cancelIncognitoHold = () => clearTimeout(incognitoPressTimer);
+
+  appVersion.addEventListener('pointerdown', startIncognitoHold);
+  appVersion.addEventListener('pointerup', cancelIncognitoHold);
+  appVersion.addEventListener('pointerleave', cancelIncognitoHold);
+  appVersion.addEventListener('pointercancel', cancelIncognitoHold);
+}
 function resetScorePreview() {
   if (scoreValue) scoreValue.textContent = '--';
   if (scoreLevel) {
@@ -2680,7 +2699,7 @@ function setupMapNavigation() {
     if (isInteractiveBlocked()) return;
     if (e.button !== 0) return;
     // Don't pan if clicking on interactive elements
-    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-top')) return;
+    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-top') || e.target.closest('#app-version')) return;
     isPanning = true;
     panStartX = e.clientX;
     panStartY = e.clientY;
@@ -2711,7 +2730,7 @@ function setupMapNavigation() {
 
   document.addEventListener('touchstart', (e) => {
     if (isInteractiveBlocked()) return;
-    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-toggle-view') || e.target.closest('.btn-top')) return;
+    if (e.target.closest('.planet-group') || e.target.closest('#fab-add') || e.target.closest('.btn-toggle-view') || e.target.closest('.btn-top') || e.target.closest('#app-version')) return;
 
     if (e.touches.length === 1) {
       isPanning = true;
