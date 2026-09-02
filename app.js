@@ -452,23 +452,22 @@ function buildSurveyForm() {
 }
 
 // Visually reorders the regular question cards (via CSS `order`, not DOM position)
-// so questions where the person hasn't picked the max-point answer show up first.
-// Gate/secret cards keep their fixed spot at the very start/end. DOM order stays
-// untouched on purpose — handleSubmit() and updateScorePreview() rely on
-// SURVEY_QUESTIONS index order when walking `.question-card` elements.
+// so the weakest answers (lowest points) show up first — the lower the answer,
+// the higher its priority to appear at the top. Gate/secret cards keep their
+// fixed spot at the very start/end. DOM order stays untouched on purpose —
+// handleSubmit() and updateScorePreview() rely on SURVEY_QUESTIONS index order
+// when walking `.question-card` elements.
 function reorderQuestionsByCompletion(person) {
   if (!questionsContainer) return;
   const gateCard = document.getElementById('card-gate');
   const secretCard = document.getElementById('card-secret');
-  if (gateCard) gateCard.style.order = '-1';
-  if (secretCard) secretCard.style.order = String(SURVEY_QUESTIONS.length * 2);
+  if (gateCard) gateCard.style.order = '-1000';
+  if (secretCard) secretCard.style.order = '1000';
 
   SURVEY_QUESTIONS.forEach((q, i) => {
     const card = document.getElementById(`card-q${i}`);
     if (!card) return;
-    const maxPoints = Math.max(...q.answers.map(a => a.points));
-    const isMaxed = person.answers?.[i] === maxPoints;
-    card.style.order = String(isMaxed ? SURVEY_QUESTIONS.length + i : i);
+    card.style.order = String(person.answers?.[i] ?? 0);
   });
 }
 
