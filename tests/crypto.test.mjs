@@ -15,13 +15,12 @@ let pass = 0, fail = 0;
 const ok = (c, m) => { if (c) { pass++; console.log('  PASS', m); } else { fail++; console.log('  FAIL', m); } };
 
 const t0 = Date.now();
-const { dek, dekId, recoveryCode, docs } = await C.setupKeyring({ passphrase: 'Zażółć gęślą jaźń 42' });
-console.log(`setupKeyring (2x PBKDF2 @600k): ${Date.now() - t0}ms`);
-ok(docs.length === 2, 'recovery + passphrase wrappings created');
-ok(docs[0].kind === 'recovery' && docs[1].kind === 'passphrase', 'wrapping kinds correct');
-ok(docs[0].salt !== docs[1].salt, 'independent salts per wrapping');
+const { dek, dekId, docs } = await C.setupKeyring({ password: 'Zażółć gęślą jaźń 42' });
+console.log(`setupKeyring (1x PBKDF2 @600k): ${Date.now() - t0}ms`);
+ok(docs.length === 1, 'a single password wrapping is created');
+ok(docs[0].kind === 'password', 'wrapping kind correct');
+ok(docs[0].dekId === dekId, 'wrapping references the keyring dekId');
 ok(C.b64uDecode(docs[0].wrappedDek).length === 48, 'wrapped DEK is 48 bytes (32 key + 16 tag)');
-ok(/^[0-9A-HJKMNP-TV-Z]{5}(-[0-9A-HJKMNP-TV-Z]{1,5}){5}$/.test(recoveryCode), 'recovery code format: ' + recoveryCode);
 
 const enc = await C.encryptRecord(person, dek, uid, pid);
 ok(!JSON.stringify(enc).includes('Anna'), 'name absent from ciphertext');
@@ -41,23 +40,27 @@ let crossUser = false;
 try { await C.decryptRecord(enc, dek, 'other-uid', pid); crossUser = true; } catch (_) {}
 ok(!crossUser, 'AAD blocks decrypting under another uid');
 
-const dekFromPass = await C.unlock(docs[1], 'Zażółć gęślą jaźń 42');
-ok((await C.decryptRecord(enc, dekFromPass, uid, pid)).name === 'Anna Kowalska', 'unlock via passphrase');
-const dekFromCode = await C.unlock(docs[0], recoveryCode.toLowerCase().replace(/-/g, ' '));
-ok((await C.decryptRecord(enc, dekFromCode, uid, pid)).name === 'Anna Kowalska', 'unlock via recovery code typed lowercase with spaces');
-ok(dekFromPass.extractable === false, 'unlocked DEK is non-extractable by default');
+const dekFromPassword = await C.unlock(docs[0], 'Zażółć gęślą jaźń 42');
+ok((await C.decryptRecord(enc, dekFromPassword, uid, pid)).name === 'Anna Kowalska', 'unlock via account password');
+ok(dekFromPassword.extractable === false, 'unlocked DEK is non-extractable by default');
 
 let badRejected = false;
-try { await C.unlock(docs[1], 'zle haslo'); } catch (e) { badRejected = e.code === 'BAD_SECRET'; }
-ok(badRejected, 'wrong passphrase rejected with BAD_SECRET');
+try { await C.unlock(docs[0], 'zle haslo'); } catch (e) { badRejected = e.code === 'BAD_SECRET'; }
+ok(badRejected, 'wrong password rejected with BAD_SECRET');
 
-// NFC vs NFD: the same Polish passphrase from two different keyboards.
+// NFC vs NFD: the same Polish password from two different keyboards.
 const nfd = 'Zażółć gęślą jaźń 42'.normalize('NFD');
 ok(nfd !== 'Zażółć gęślą jaźń 42', 'test really is using a different byte sequence');
 let nfdWorks = false;
-try { await C.unlock(docs[1], nfd); nfdWorks = true; } catch (_) {}
-ok(nfdWorks, 'NFKC normalisation makes NFD-encoded Polish passphrase unlock');
+try { await C.unlock(docs[0], nfd); nfdWorks = true; } catch (_) {}
+ok(nfdWorks, 'NFKC normalisation makes NFD-encoded Polish password unlock');
 
+// Google accounts have no password to derive a key from, so their records
+// sync as plain fields instead — exercised via the same sensitivePayload()
+// helper app.js uses for that path.
+const plain = C.sensitivePayload(person);
+ok(plain.name === 'Anna Kowalska', 'sensitivePayload extracts the same fields used for encryption');
+ok(!('extraJunk' in C.sensitivePayload(Object.assign({}, person, { extraJunk: 1 }))), 'sensitivePayload ignores unrelated fields');
 
 // A generated DEK must be extractable so it can be wrapped; caching it in that
 // state would persist readable key bytes and defeat the device cache entirely.
@@ -68,10 +71,6 @@ let wrapRefused = false;
 try { await C.wrapDEK(nonExt, await C.deriveKEK('x', C.randomBytes(16), 1000)); }
 catch (_) { wrapRefused = true; }
 ok(wrapRefused, 'non-extractable DEK cannot be re-wrapped (so a borrowed unlocked phone cannot re-key the account)');
-
-const codes = new Set();
-for (let i = 0; i < 3000; i++) codes.add(C.generateRecoveryCode());
-ok(codes.size === 3000, '3000 recovery codes, no collisions');
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

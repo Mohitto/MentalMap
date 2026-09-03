@@ -1073,13 +1073,16 @@ function downloadCorruptBackup() {
 // only ever mirrors it, never gates reading/writing it.
 
 const PENDING_SIGNIN_KEY = 'mentalmap_pending_redirect_signin';
+const SYNC_MODE_KEY = 'mentalmap_sync_mode'; // 'e2e' (email/password) or 'plain' (Google) — set once sign-in succeeds, so a relaunch knows whether to even check Firebase's auth state
 
 let syncApi = null; // cached module namespace from the lazily-imported firebase-sync.js
-let syncState = { uid: null, email: null, dek: null, dekId: null, keyringDocs: [], unsubscribePeople: null };
+// mode: 'e2e' = email/password account, DEK derived from the password, dek is required for isSyncActive.
+//       'plain' = Google account, no password to derive a key from, so records sync unencrypted (Firestore rules only).
+let syncState = { uid: null, email: null, mode: null, dek: null, dekId: null, unsubscribePeople: null };
 let pendingCloudPeople = null; // set only while #account-screen-merge is showing
 
 function isSyncActive() {
-  return !!(syncState.uid && syncState.dek);
+  return !!(syncState.uid && (syncState.mode === 'plain' || syncState.dek));
 }
 
 async function loadSyncModule() {
@@ -1097,10 +1100,13 @@ async function attemptSilentReconnect() {
   let pendingRedirect = false;
   try { pendingRedirect = !!localStorage.getItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
 
+  let storedMode = null;
+  try { storedMode = localStorage.getItem(SYNC_MODE_KEY); } catch (_) { /* ignore */ }
+
   let cached = null;
   try { cached = await MentalMapCrypto.loadCachedDEK(); } catch (_) { /* ignore */ }
 
-  if (!pendingRedirect && !cached) return; // never connected on this device — stay fully local
+  if (!pendingRedirect && !cached && !storedMode) return; // never connected on this device — stay fully local
 
   try {
     const api = await loadSyncModule();
@@ -1116,22 +1122,27 @@ async function attemptSilentReconnect() {
     if (cached && cached.uid === user.uid) {
       syncState.uid = user.uid;
       syncState.email = user.email || '';
+      syncState.mode = 'e2e';
       syncState.dek = cached.dek;
       syncState.dekId = cached.dekId;
       await pullAndReconcile();
-    } else {
-      // A redirect just completed for an account with no cached key on this
-      // device yet (or a different account than the one cached) — run the
-      // normal post-auth flow instead of assuming anything.
-      await completeSignIn(user);
+    } else if (pendingRedirect || storedMode === 'plain') {
+      // The redirect fallback is only ever taken for Google sign-in, so a
+      // completed redirect is always a plain-mode account. No password to
+      // ask for — Google's own session is the only credential needed.
+      await completeSignIn(user, { mode: 'plain' });
     }
+    // Otherwise: an e2e account whose DEK isn't cached on this device (e.g.
+    // storage was cleared). There's no remembered password to re-derive it
+    // from, so leave the app disconnected — opening the Account modal and
+    // signing in again with the password picks it back up.
   } catch (e) {
     console.error('Silent reconnect failed:', e);
   }
 }
 
 function showAccountScreen(id) {
-  ['entry', 'recovery', 'unlock', 'merge', 'signed-in'].forEach(name => {
+  ['entry', 'merge', 'signed-in'].forEach(name => {
     const el = $(`#account-screen-${name}`);
     if (el) el.hidden = name !== id;
   });
@@ -1193,7 +1204,7 @@ async function handleGoogleSignIn() {
       }
     });
     if (!user) return; // redirect fallback took over; resumes via attemptSilentReconnect()
-    await completeSignIn(user);
+    await completeSignIn(user, { mode: 'plain' });
   } catch (e) {
     try { localStorage.removeItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
     if (typeof syncApi?.isUserCancelledSignIn === 'function' && syncApi.isUserCancelledSignIn(e)) {
@@ -1214,7 +1225,7 @@ async function handleEmailSignIn(e) {
   try {
     const api = await loadSyncModule();
     const user = await api.signInWithEmail(email, password);
-    await completeSignIn(user);
+    await completeSignIn(user, { mode: 'e2e', password });
   } catch (e2) {
     console.error('Email sign-in failed:', e2);
     showAccountStatus('Nie udało się zalogować. Sprawdź adres e-mail i hasło.', 'warn');
@@ -1232,7 +1243,7 @@ async function handleEmailSignUp() {
   try {
     const api = await loadSyncModule();
     const user = await api.signUpWithEmail(email, password);
-    await completeSignIn(user);
+    await completeSignIn(user, { mode: 'e2e', password });
   } catch (e) {
     console.error('Email sign-up failed:', e);
     showAccountStatus('Nie udało się założyć konta. Może ten adres jest już zajęty?', 'warn');
@@ -1240,107 +1251,67 @@ async function handleEmailSignUp() {
 }
 
 // Shared continuation after ANY successful Firebase auth (Google or email),
-// whether just completed or resumed on relaunch. Looks at whether this
-// account already has an encryption keyring to decide first-time-setup vs.
-// unlock.
-async function completeSignIn(user) {
+// whether just completed or resumed on relaunch.
+//
+// Google accounts (mode 'plain') have no password to derive a key from, so
+// they skip crypto.js entirely and sync in the clear. Email/password accounts
+// (mode 'e2e') derive the DEK-wrapping key from the password right here —
+// either unwrapping an existing keyring, or creating one on first sign-in —
+// so unlocking never needs a separate code or screen.
+async function completeSignIn(user, { mode, password } = {}) {
   syncState.uid = user.uid;
   syncState.email = user.email || '';
+  syncState.mode = mode;
+
+  if (mode === 'plain') {
+    try { localStorage.setItem(SYNC_MODE_KEY, 'plain'); } catch (_) { /* ignore */ }
+    showAccountScreen('signed-in');
+    refreshAccountSignedInScreen();
+    showAccountStatus('');
+    await pullAndReconcile();
+    return;
+  }
+
   try {
     const api = syncApi || await loadSyncModule();
     const keyringDocs = await api.fetchKeyringDocs(user.uid);
+    const passwordDoc = keyringDocs.find(d => d.kind === 'password');
 
-    if (keyringDocs.length === 0) {
-      await runFirstTimeSetup(user.uid);
+    if (passwordDoc) {
+      syncState.dek = await MentalMapCrypto.unlock(passwordDoc, password, { extractable: true });
+      syncState.dekId = passwordDoc.dekId;
+      await MentalMapCrypto.cacheDEK(syncState.dek, syncState.dekId, user.uid);
     } else {
-      syncState.keyringDocs = keyringDocs;
-      const hasPassphrase = keyringDocs.some(d => d.kind === 'passphrase');
-      const wrap = $('#account-unlock-passphrase-wrap');
-      if (wrap) wrap.hidden = !hasPassphrase;
-      const hint = $('#account-unlock-passphrase-hint');
-      if (hint) hint.hidden = !hasPassphrase;
-      showAccountScreen('unlock');
-      showAccountStatus('');
+      // First time this account has ever synced (or an account from before
+      // this scheme, whose old wrappings we can no longer unlock): start a
+      // fresh password-wrapped keyring. Local storage is always the source
+      // of truth, so nothing on this device is lost either way.
+      const setup = await runFirstTimeSetup(user.uid, password);
+      syncState.dek = setup.dek;
+      syncState.dekId = setup.dekId;
     }
-  } catch (e) {
-    console.error('Failed to complete sign-in:', e);
-    showAccountStatus('Nie udało się połączyć z kontem. Spróbuj ponownie.', 'warn');
-  }
-}
 
-async function runFirstTimeSetup(uid) {
-  showAccountStatus('Przygotowywanie szyfrowania…', 'info');
-  const { dek, dekId, recoveryCode, docs } = await MentalMapCrypto.setupKeyring({});
-
-  try {
-    await syncApi.ensureUserDoc(uid, dekId);
-    for (const doc of docs) await syncApi.pushKeyringDoc(uid, doc);
-  } catch (e) {
-    console.error('Failed to persist keyring:', e);
-    showAccountStatus('Nie udało się zapisać klucza w chmurze. Spróbuj ponownie.', 'warn');
-    return;
-  }
-
-  await MentalMapCrypto.cacheDEK(dek, dekId, uid);
-  syncState.dek = dek;
-  syncState.dekId = dekId;
-
-  const codeEl = $('#account-recovery-code');
-  if (codeEl) codeEl.textContent = recoveryCode;
-  const ack = $('#account-recovery-ack');
-  if (ack) ack.checked = false;
-  const cont = $('#btn-recovery-continue');
-  if (cont) cont.disabled = true;
-  showAccountScreen('recovery');
-  showAccountStatus('');
-
-  // Opt-in migration: any pre-existing local people go up now. Cloud is
-  // necessarily empty for a brand-new keyring, so there's nothing to reconcile.
-  if (people.length > 0) queueSyncUpsertAll(people);
-}
-
-function finishRecoveryReveal() {
-  showAccountScreen('signed-in');
-  refreshAccountSignedInScreen();
-  startPeopleListener();
-}
-
-async function handleUnlockSubmit() {
-  const recoveryInput = $('#account-unlock-recovery')?.value.trim();
-  const passInput = $('#account-unlock-passphrase')?.value;
-  const docs = syncState.keyringDocs || [];
-
-  let targetDoc = null;
-  let secret = null;
-  if (passInput) {
-    targetDoc = docs.find(d => d.kind === 'passphrase');
-    secret = passInput;
-  }
-  if (!targetDoc && recoveryInput) {
-    targetDoc = docs.find(d => d.kind === 'recovery');
-    secret = recoveryInput;
-  }
-  if (!targetDoc || !secret) {
-    showAccountStatus('Podaj kod odzyskiwania lub hasło.', 'warn');
-    return;
-  }
-
-  showAccountStatus('Odblokowywanie…', 'info');
-  try {
-    const dek = await MentalMapCrypto.unlock(targetDoc, secret, { extractable: true });
-    await MentalMapCrypto.cacheDEK(dek, targetDoc.dekId, syncState.uid);
-    syncState.dek = dek;
-    syncState.dekId = targetDoc.dekId;
+    try { localStorage.setItem(SYNC_MODE_KEY, 'e2e'); } catch (_) { /* ignore */ }
+    showAccountScreen('signed-in');
+    refreshAccountSignedInScreen();
     showAccountStatus('');
     await pullAndReconcile();
   } catch (e) {
-    if (e && e.code === 'BAD_SECRET') {
-      showAccountStatus('Nieprawidłowy kod lub hasło.', 'warn');
-    } else {
-      console.error('Unlock failed:', e);
-      showAccountStatus('Nie udało się odblokować. Spróbuj ponownie.', 'warn');
-    }
+    console.error('Failed to complete sign-in:', e);
+    const msg = e && e.code === 'BAD_SECRET'
+      ? 'Nie udało się odblokować danych w chmurze tym hasłem.'
+      : 'Nie udało się połączyć z kontem. Spróbuj ponownie.';
+    showAccountStatus(msg, 'warn');
   }
+}
+
+async function runFirstTimeSetup(uid, password) {
+  showAccountStatus('Przygotowywanie szyfrowania…', 'info');
+  const { dek, dekId, docs } = await MentalMapCrypto.setupKeyring({ password });
+  await syncApi.ensureUserDoc(uid, dekId);
+  for (const doc of docs) await syncApi.pushKeyringDoc(uid, doc);
+  await MentalMapCrypto.cacheDEK(dek, dekId, uid);
+  return { dek, dekId };
 }
 
 // One-time reconciliation after a device first unlocks its DEK (either right
@@ -1360,7 +1331,9 @@ async function pullAndReconcile() {
   const decrypted = [];
   for (const rec of records) {
     try {
-      const payload = await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, rec.id);
+      const payload = syncState.mode === 'e2e'
+        ? await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, rec.id)
+        : MentalMapCrypto.sensitivePayload(rec);
       decrypted.push(Object.assign({
         id: rec.id,
         angle: Math.random() * Math.PI * 2,
@@ -1473,7 +1446,9 @@ async function handleRemoteChanges(changes) {
     if (existing && (existing.syncUpdatedAt || 0) >= incomingMs) continue;
 
     try {
-      const payload = await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, personId);
+      const payload = syncState.mode === 'e2e'
+        ? await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, personId)
+        : MentalMapCrypto.sensitivePayload(rec);
       const merged = Object.assign(existing || {
         id: personId,
         angle: Math.random() * Math.PI * 2,
@@ -1503,7 +1478,9 @@ function queueSyncUpsert(person) {
   person.syncUpdatedAt = Date.now();
   (async () => {
     try {
-      const rec = await MentalMapCrypto.encryptRecord(person, syncState.dek, syncState.uid, person.id);
+      const rec = syncState.mode === 'e2e'
+        ? await MentalMapCrypto.encryptRecord(person, syncState.dek, syncState.uid, person.id)
+        : MentalMapCrypto.sensitivePayload(person);
       await syncApi.pushPerson(syncState.uid, person.id, rec, person.syncUpdatedAt);
     } catch (e) {
       console.error('Cloud sync push failed for', person.id, e);
@@ -1526,13 +1503,14 @@ function handleSignOut() {
     syncState.unsubscribePeople();
   }
   syncApi?.signOutUser().catch(e => console.error('Sign out failed:', e));
-  syncState = { uid: null, email: null, dek: null, dekId: null, keyringDocs: [], unsubscribePeople: null };
+  syncState = { uid: null, email: null, mode: null, dek: null, dekId: null, unsubscribePeople: null };
+  try { localStorage.removeItem(SYNC_MODE_KEY); } catch (_) { /* ignore */ }
   showAccountScreen('entry');
   showAccountStatus('Wylogowano. Dane na tym urządzeniu zostają bez zmian.', 'ok');
 }
 
 function handleForgetDevice() {
-  if (!confirm('Zapomnieć to urządzenie?\n\nPrzy następnym logowaniu trzeba będzie podać kod odzyskiwania lub hasło. Dane na tym urządzeniu zostaną bez zmian.')) return;
+  if (!confirm('Zapomnieć to urządzenie?\n\nPrzy następnym logowaniu trzeba będzie zalogować się ponownie (e-mail i hasło albo Google). Dane na tym urządzeniu zostaną bez zmian.')) return;
   MentalMapCrypto.forgetDevice().catch(() => { /* best effort */ });
   handleSignOut();
 }
@@ -1548,23 +1526,6 @@ function bindAccountEvents() {
   $('#account-email-form')?.addEventListener('submit', handleEmailSignIn);
   $('#btn-email-signup')?.addEventListener('click', handleEmailSignUp);
 
-  $('#account-recovery-ack')?.addEventListener('change', (e) => {
-    const cont = $('#btn-recovery-continue');
-    if (cont) cont.disabled = !e.target.checked;
-  });
-  $('#btn-copy-recovery')?.addEventListener('click', async () => {
-    const code = $('#account-recovery-code')?.textContent || '';
-    try {
-      await navigator.clipboard.writeText(code);
-      showAccountStatus('Skopiowano do schowka.', 'ok');
-    } catch (_) {
-      showAccountStatus('Nie udało się skopiować — zapisz kod ręcznie.', 'warn');
-    }
-  });
-  $('#btn-recovery-continue')?.addEventListener('click', finishRecoveryReveal);
-
-  $('#btn-unlock-submit')?.addEventListener('click', handleUnlockSubmit);
-
   $('#btn-merge-combine')?.addEventListener('click', applyMergeCombine);
   $('#btn-merge-use-cloud')?.addEventListener('click', () => {
     if (confirm('Dane, które są tylko na tym urządzeniu, zostaną odrzucone na rzecz danych z chmury. Kontynuować?')) {
@@ -1574,19 +1535,6 @@ function bindAccountEvents() {
   $('#btn-merge-use-local')?.addEventListener('click', () => {
     if (confirm('Dane w chmurze, których nie ma na tym urządzeniu, zostaną nadpisane danymi lokalnymi. Kontynuować?')) {
       applyMergeUseLocal();
-    }
-  });
-
-  $('#btn-add-passphrase')?.addEventListener('click', async () => {
-    const passphrase = prompt('Ustaw hasło odzyskiwania (będziesz mieć wtedy dwa sposoby na odblokowanie danych):');
-    if (!passphrase) return;
-    try {
-      const doc = await MentalMapCrypto.addPassphraseWrapping(syncState.dek, syncState.dekId, passphrase);
-      await syncApi.pushKeyringDoc(syncState.uid, doc);
-      showAccountStatus('Dodano hasło odzyskiwania.', 'ok');
-    } catch (e) {
-      console.error('Failed to add passphrase wrapping:', e);
-      showAccountStatus('Nie udało się zapisać hasła.', 'warn');
     }
   });
 
