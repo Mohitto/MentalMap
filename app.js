@@ -265,6 +265,10 @@ let editingId = null;
 let selectedPlanetId = null; // Currently selected planet (menu open)
 let preSelectMapState = null; // Store map state before zooming to planet
 let selectedGradientIndex = 0;
+// Remembers each person's scroll position in the survey form (id -> scrollTop) so
+// reopening the same person resumes where you left off, without leaking that
+// position onto a different (or brand new) person.
+let surveyScrollPositions = {};
 
 function updateColorPickerSelection(index) {
   selectedGradientIndex = index;
@@ -452,11 +456,15 @@ function buildSurveyForm() {
 }
 
 // Visually reorders the regular question cards (via CSS `order`, not DOM position)
-// so the weakest answers (lowest points) show up first — the lower the answer,
-// the higher its priority to appear at the top. Gate/secret cards keep their
-// fixed spot at the very start/end. DOM order stays untouched on purpose —
-// handleSubmit() and updateScorePreview() rely on SURVEY_QUESTIONS index order
-// when walking `.question-card` elements.
+// so the weakest answers show up first — the lower the answer, the higher its
+// priority to appear at the top. "Weak" is measured against that *question's own*
+// max, not the raw points value: questions use different point scales (some top
+// out at 2, others at 6), so comparing raw points across questions would let a
+// mediocre answer on a wide-range question outrank a genuinely maxed answer on a
+// narrow-range one. Gate/secret cards keep their fixed spot at the very
+// start/end. DOM order stays untouched on purpose — handleSubmit() and
+// updateScorePreview() rely on SURVEY_QUESTIONS index order when walking
+// `.question-card` elements.
 function reorderQuestionsByCompletion(person) {
   if (!questionsContainer) return;
   const gateCard = document.getElementById('card-gate');
@@ -467,7 +475,9 @@ function reorderQuestionsByCompletion(person) {
   SURVEY_QUESTIONS.forEach((q, i) => {
     const card = document.getElementById(`card-q${i}`);
     if (!card) return;
-    card.style.order = String(person.answers?.[i] ?? 0);
+    const maxPoints = Math.max(...q.answers.map(a => a.points));
+    const deficit = (person.answers?.[i] ?? 0) - maxPoints; // <= 0; more negative = weaker
+    card.style.order = String(deficit);
   });
 }
 
@@ -1733,6 +1743,7 @@ function openAddModal() {
   editingId = null;
   surveyForm.reset();
   resetQuestionOrder();
+  surveyForm.scrollTop = 0;
   updateColorPickerSelection(Math.floor(Math.random() * PLANET_GRADIENTS.length));
   modalTitle.textContent = 'Nowa relacja';
   btnDelete.style.display = 'none';
@@ -1786,6 +1797,7 @@ function openEditModal(id, mode = 'survey') {
   }
 
   reorderQuestionsByCompletion(person);
+  surveyForm.scrollTop = surveyScrollPositions[id] || 0;
 
   modalTitle.textContent = `Edytuj: ${person.name}`;
   btnDelete.style.display = 'flex';
@@ -1890,6 +1902,9 @@ window.switchToSurveyAndScroll = function(cardId) {
 }
 
 function closeModal(fromPopState = false) {
+  if (editingId) {
+    surveyScrollPositions[editingId] = surveyForm.scrollTop;
+  }
   surveyModal.setAttribute('aria-hidden', 'true');
   editingId = null;
   if (!fromPopState && history.state && history.state.modalOpen) {
