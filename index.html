@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.74">
+    <link rel="stylesheet" href="style.css?v=0.9.75">
 </head>
 <body>
     <script>
@@ -302,7 +302,7 @@
 
                 <!-- Entry: signed out -->
                 <div id="account-screen-entry">
-                    <p class="backup-note">Twoje dane zostają wyłącznie na tym urządzeniu, chyba że włączysz synchronizację. Dane w chmurze są szyfrowane w tej przeglądarce — my nigdy nie widzimy ich treści.</p>
+                    <p class="backup-note">Twoje dane zostają wyłącznie na tym urządzeniu, chyba że się zalogujesz. Logując się e-mailem i hasłem, dane w chmurze są szyfrowane w tej przeglądarce tym hasłem — nikt poza Tobą, łącznie z nami, nie może ich odczytać. Logując się przez Google, dane trafiają do bazy dostępnej tylko z Twojego konta. W obu wypadkach zalogowanie się na innym urządzeniu tym samym kontem od razu daje dostęp do Twoich danych — bez dodatkowych kodów.</p>
 
                     <button type="button" id="btn-google-signin" class="btn account-btn-google">
                         <svg width="18" height="18" viewBox="0 0 18 18" style="vertical-align: middle; margin-right: 8px;">
@@ -323,35 +323,12 @@
                         <div class="form-group">
                             <input type="password" id="account-password" class="account-input" placeholder="Hasło (min. 8 znaków)" required minlength="8" autocomplete="current-password">
                         </div>
+                        <p class="backup-note backup-note--warn">Zapamiętaj to hasło. To ono odblokowuje dane w chmurze na każdym urządzeniu — jeśli je zapomnisz, nie da się ich odzyskać (dane na tym urządzeniu zostaną bez zmian).</p>
                         <div class="account-merge-choices">
                             <button type="submit" id="btn-email-signin" class="btn btn--save backup-btn">Zaloguj</button>
                             <button type="button" id="btn-email-signup" class="btn backup-btn backup-btn--secondary">Załóż konto</button>
                         </div>
                     </form>
-                </div>
-
-                <!-- One-time recovery code reveal -->
-                <div id="account-screen-recovery" hidden>
-                    <p class="backup-note backup-note--warn">Zapisz ten kod odzyskiwania. To jedyny sposób, żeby odszyfrować dane na nowym urządzeniu, jeśli zapomnisz hasła. Nikt inny — łącznie z nami — nie może go odzyskać.</p>
-                    <div id="account-recovery-code" class="account-recovery-code"></div>
-                    <button type="button" id="btn-copy-recovery" class="btn backup-btn backup-btn--secondary">Kopiuj do schowka</button>
-                    <label class="account-ack">
-                        <input type="checkbox" id="account-recovery-ack">
-                        Zapisałem/-am ten kod w bezpiecznym miejscu
-                    </label>
-                    <button type="button" id="btn-recovery-continue" class="btn btn--save backup-btn" disabled>Dalej</button>
-                </div>
-
-                <!-- Unlock on a device that doesn't have the DEK cached -->
-                <div id="account-screen-unlock" hidden>
-                    <p class="backup-note">To urządzenie nie ma jeszcze klucza do Twoich danych. Podaj kod odzyskiwania<span id="account-unlock-passphrase-hint">lub hasło</span>, aby je odblokować.</p>
-                    <div class="form-group">
-                        <input type="text" id="account-unlock-recovery" class="account-input" placeholder="Kod odzyskiwania" autocomplete="off">
-                    </div>
-                    <div class="form-group" id="account-unlock-passphrase-wrap" hidden>
-                        <input type="password" id="account-unlock-passphrase" class="account-input" placeholder="Hasło" autocomplete="off">
-                    </div>
-                    <button type="button" id="btn-unlock-submit" class="btn btn--save backup-btn">Odblokuj</button>
                 </div>
 
                 <!-- Merge choice when both local and cloud data exist -->
@@ -369,7 +346,6 @@
                     <p class="backup-note">Zalogowano jako <strong id="account-signed-in-email"></strong>.</p>
                     <div class="backup-stat"><span id="account-sync-status">Synchronizacja aktywna</span></div>
                     <button type="button" id="btn-open-backup" class="btn backup-btn backup-btn--secondary">Kopia zapasowa danych</button>
-                    <button type="button" id="btn-add-passphrase" class="btn backup-btn backup-btn--secondary">Dodaj hasło odzyskiwania</button>
                     <hr class="backup-sep">
                     <button type="button" id="btn-sign-out" class="btn backup-btn backup-btn--secondary">Wyloguj</button>
                     <button type="button" id="btn-forget-device" class="btn backup-btn backup-btn--danger">Zapomnij to urządzenie</button>
@@ -437,8 +413,8 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.74</div>
-    <script src="crypto.js?v=0.9.74"></script>
-    <script src="app.js?v=0.9.74"></script>
+    <div id="app-version">v0.9.75</div>
+    <script src="crypto.js?v=0.9.75"></script>
+    <script src="app.js?v=0.9.75"></script>
 </body>
 </html>

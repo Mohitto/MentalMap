@@ -7,10 +7,13 @@
  * or a previous connection is detected on this device. Nothing here runs for
  * a user who never touches sync.
  *
- * This module only ever handles ciphertext for person records — see
- * crypto.js for the encryption itself. Firestore security rules
- * (firestore.rules) are the second, server-side layer: they restrict every
- * document under users/{uid} to that uid's own requests.
+ * For email/password accounts this module only ever handles ciphertext for
+ * person records — see crypto.js for the encryption itself. Google accounts
+ * have no password to derive an encryption key from, so their records pass
+ * through this module as plain fields instead (see isSyncActive/queueSyncUpsert
+ * in app.js). Firestore security rules (firestore.rules) are the second,
+ * server-side layer either way: they restrict every document under
+ * users/{uid} to that uid's own requests.
  */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
@@ -133,7 +136,7 @@ export async function ensureUserDoc(uid, dekId) {
 /**
  * Always a fresh auto-ID document — wrappings accumulate and are never
  * edited or replaced, mirroring crypto.js's own envelope design (see
- * setupKeyring/addPassphraseWrapping there).
+ * setupKeyring there).
  */
 export async function pushKeyringDoc(uid, wrappingDoc) {
   const ref = doc(collection(db, 'users', uid, 'keyring'));
