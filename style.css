@@ -1510,6 +1510,78 @@ body.incognito-mode .stats-person-chip__name {
   color: var(--card-selected-border);
 }
 
+/* Collapsed answer summary: question + current answer + "Zmień" to expand.
+   Hidden by default (a fresh, unanswered survey shows the full option list);
+   openEditModal() adds .is-collapsed per card to switch to this compact view. */
+.answer-summary {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--input-border);
+  border-left: 4px solid var(--text-muted);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.question-card.is-collapsed .answer-summary {
+  display: flex;
+}
+
+.question-card.is-collapsed .options-container {
+  display: none;
+}
+
+.answer-summary__text {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.answer-summary__toggle {
+  flex-shrink: 0;
+  background: rgba(67, 97, 238, 0.14);
+  color: var(--card-selected-border);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.answer-summary__toggle:active {
+  transform: scale(0.94);
+}
+
+/* Tier colors, from most to least worth revisiting */
+.question-card[data-tier="none"] .answer-summary {
+  border-left-color: var(--text-muted);
+  background: rgba(90, 95, 101, 0.1);
+}
+
+.question-card[data-tier="worst"] .answer-summary {
+  border-left-color: var(--level-1-color);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.question-card[data-tier="almostWorst"] .answer-summary {
+  border-left-color: var(--level-2-color);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.question-card[data-tier="mid"] .answer-summary {
+  border-left-color: #eab308;
+  background: rgba(234, 179, 8, 0.1);
+}
+
+.question-card[data-tier="best"] .answer-summary {
+  border-left-color: var(--level-3-color);
+  background: rgba(34, 197, 94, 0.1);
+}
+
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    SCORE PREVIEW
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
