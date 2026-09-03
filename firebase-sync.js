@@ -7,19 +7,21 @@
  * or a previous connection is detected on this device. Nothing here runs for
  * a user who never touches sync.
  *
- * For email/password accounts this module only ever handles ciphertext for
- * person records — see crypto.js for the encryption itself. Google accounts
- * have no password to derive an encryption key from, so their records pass
- * through this module as plain fields instead (see isSyncActive/queueSyncUpsert
- * in app.js). Firestore security rules (firestore.rules) are the second,
- * server-side layer either way: they restrict every document under
- * users/{uid} to that uid's own requests.
+ * Person records sync as plain fields — there is no client-side encryption.
+ * Firestore security rules (firestore.rules) are the only protection: they
+ * restrict every document under users/{uid} to that uid's own requests.
+ * (An earlier version derived a per-account encryption key from the
+ * account's password, but that made a Firebase password reset permanently
+ * destroy access to the encrypted data — the opposite of what a password
+ * reset is for. Plain sync trades that guarantee for a reset that actually
+ * works, same as almost every other app.)
  */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
-  onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
+  onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
+  sendPasswordResetEmail, sendEmailVerification, reload
 } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import {
   initializeFirestore, persistentLocalCache, doc, setDoc, getDocs, collection,
@@ -127,30 +129,29 @@ export function signOutUser() {
   return signOut(auth);
 }
 
-// ── firestore ────────────────────────────────────────────────────────────
+export function sendPasswordReset(email) {
+  return sendPasswordResetEmail(auth, email);
+}
 
-export async function ensureUserDoc(uid, dekId) {
-  await setDoc(doc(db, 'users', uid), { dekId, createdAt: serverTimestamp() }, { merge: true });
+export function sendVerificationEmail(user) {
+  return sendEmailVerification(user);
 }
 
 /**
- * Always a fresh auto-ID document — wrappings accumulate and are never
- * edited or replaced, mirroring crypto.js's own envelope design (see
- * setupKeyring there).
+ * Refreshes a cached user object in place (Firebase mutates it, no return
+ * value) — needed so emailVerified reflects a link the user clicked in
+ * another tab or device rather than the stale value from this browser's
+ * last sign-in.
  */
-export async function pushKeyringDoc(uid, wrappingDoc) {
-  const ref = doc(collection(db, 'users', uid, 'keyring'));
-  await setDoc(ref, Object.assign({}, wrappingDoc, { createdAt: serverTimestamp() }));
+export function refreshUser(user) {
+  return reload(user);
 }
 
-export async function fetchKeyringDocs(uid) {
-  const snap = await getDocs(collection(db, 'users', uid, 'keyring'));
-  return snap.docs.map(d => d.data());
-}
+// ── firestore ────────────────────────────────────────────────────────────
 
-export async function pushPerson(uid, personId, encryptedRecord, updatedAtClientMs) {
+export async function pushPerson(uid, personId, record, updatedAtClientMs) {
   const ref = doc(db, 'users', uid, 'people', personId);
-  await setDoc(ref, Object.assign({}, encryptedRecord, {
+  await setDoc(ref, Object.assign({}, record, {
     updatedAt: serverTimestamp(),
     updatedAtClient: updatedAtClientMs
   }));

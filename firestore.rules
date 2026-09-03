@@ -4,14 +4,11 @@
 // firebase.json) — paste this into Firebase Console → Firestore Database →
 // Rules → publish, whenever it changes.
 //
-// Email/password accounts store ciphertext only (see crypto.js). Google
-// accounts have no password to derive an encryption key from, so their
-// person records are stored as plain fields instead — for those, this
-// per-uid restriction is the only protection, not a second layer on top of
-// client-side encryption. Either way: even a compromised or buggy client can
-// never read or write another user's subtree, and a keyring wrapping — once
-// written — can never be edited or deleted (matches crypto.js's own
-// "wrappings accumulate, never edited" invariant).
+// Person records are stored as plain fields — there is no client-side
+// encryption (see firebase-sync.js for why). This per-uid restriction is
+// therefore the only protection: even a compromised or buggy client can
+// never read or write another user's subtree, but the data itself is only
+// as private as this rule and the Firebase project's own access controls.
 
 rules_version = '2';
 
@@ -21,20 +18,10 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
 
-      match /keyring/{wrappingId} {
-        allow read, create: if request.auth != null && request.auth.uid == uid;
-        allow update, delete: if false;
-      }
-
       match /people/{personId} {
         allow read, delete: if request.auth != null && request.auth.uid == uid;
-        // Two accepted shapes: encrypted (email/password accounts) or plain
-        // fields (Google accounts, which have no password-derived key).
         allow create, update: if request.auth != null && request.auth.uid == uid
-          && (
-            request.resource.data.keys().hasOnly(['iv', 'ct', 'alg', 'updatedAt', 'updatedAtClient']) ||
-            request.resource.data.keys().hasOnly(['name', 'answers', 'answerIndices', 'gateAnswer', 'secretCap', 'gradientIndex', 'updatedAt', 'updatedAtClient'])
-          );
+          && request.resource.data.keys().hasOnly(['name', 'answers', 'answerIndices', 'gateAnswer', 'secretCap', 'gradientIndex', 'updatedAt', 'updatedAtClient']);
       }
     }
 
