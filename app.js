@@ -189,8 +189,20 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const UNDO_IMPORT_KEY = 'mentalmap_people_pre_import';
-const APP_VERSION = 'v0.9.73';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.73' -> '0.9.73', matches the ?v= convention used elsewhere
+const LEVEL_VIEW_KEY = 'mentalmap_level_view';
+const APP_VERSION = 'v0.9.74';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.74' -> '0.9.74', matches the ?v= convention used elsewhere
+
+// How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
+// default), 'off' (neutral/colorless), or 'blurred' (bands blend into each
+// other instead of cutting off sharply). Persisted so the choice sticks.
+let levelViewMode = 'on';
+try {
+  const savedLevelView = localStorage.getItem(LEVEL_VIEW_KEY);
+  if (savedLevelView === 'on' || savedLevelView === 'off' || savedLevelView === 'blurred') {
+    levelViewMode = savedLevelView;
+  }
+} catch (_) { /* ignore — default 'on' */ }
 
 // Guards for the persistence layer (see loadPeople / savePeople).
 let saveBlocked = false;
@@ -255,6 +267,8 @@ const statsView = $('#stats-view');
 const statsList = $('#stats-list');
 const summaryContainer = $('#summary-container');
 const appVersion = $('#app-version');
+const iconMenu = $('#icon-menu');
+const btnMenuToggle = $('#btn-menu-toggle');
 
 // ═══════════════════════════════════════════
 // STATE
@@ -305,6 +319,7 @@ function init() {
   bindEvents();
   bindBackupEvents();
   bindAccountEvents();
+  bindSettingsEvents();
   setAppVersion();
   startAnimation();
   updateEmptyState();
@@ -975,7 +990,9 @@ function closeBackupModal() {
 
 function bindBackupEvents() {
   $('#btn-open-backup')?.addEventListener('click', () => {
-    closeAccountModal();
+    // Plain close (skip the history.back() branch) so it can't race a later
+    // history push — see the identical note on #btn-open-account.
+    closeAccountModal(true);
     openBackupModal();
   });
   $('#btn-close-backup')?.addEventListener('click', closeBackupModal);
@@ -1168,6 +1185,74 @@ function closeAccountModal(fromPopState = false) {
   if (!fromPopState && history.state && history.state.accountModalOpen) {
     history.back();
   }
+}
+
+// ═══════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════
+
+function refreshSettingsModal() {
+  const titleEl = $('#settings-account-title');
+  const hintEl = $('#settings-account-hint');
+  if (titleEl && hintEl) {
+    if (isSyncActive()) {
+      titleEl.textContent = syncState.email || 'Konto';
+      hintEl.textContent = 'Synchronizacja aktywna — zarządzaj kontem';
+    } else {
+      titleEl.textContent = 'Zaloguj się';
+      hintEl.textContent = 'Zapewni Ci to kopię zapasową na innych urządzeniach';
+    }
+  }
+
+  $$('.level-tile').forEach(tile => {
+    tile.classList.toggle('is-selected', tile.dataset.levelView === levelViewMode);
+  });
+}
+
+function openSettingsModal() {
+  const modal = $('#settings-modal');
+  if (!modal) return;
+  refreshSettingsModal();
+  modal.setAttribute('aria-hidden', 'false');
+  history.pushState({ settingsModalOpen: true }, '');
+}
+
+function closeSettingsModal(fromPopState = false) {
+  const modal = $('#settings-modal');
+  if (!modal) return;
+  modal.setAttribute('aria-hidden', 'true');
+  if (!fromPopState && history.state && history.state.settingsModalOpen) {
+    history.back();
+  }
+}
+
+function setLevelViewMode(mode) {
+  if (mode !== 'on' && mode !== 'off' && mode !== 'blurred') return;
+  levelViewMode = mode;
+  try { localStorage.setItem(LEVEL_VIEW_KEY, mode); } catch (_) { /* ignore */ }
+  $$('.level-tile').forEach(tile => {
+    tile.classList.toggle('is-selected', tile.dataset.levelView === mode);
+  });
+}
+
+function bindSettingsEvents() {
+  $('#btn-settings')?.addEventListener('click', openSettingsModal);
+  $('#btn-close-settings')?.addEventListener('click', () => closeSettingsModal());
+  $('#settings-modal')?.addEventListener('click', (e) => {
+    if (e.target === $('#settings-modal')) closeSettingsModal();
+  });
+
+  $('#btn-open-account')?.addEventListener('click', () => {
+    // Plain close (skip the history.back() branch) — openAccountModal() pushes
+    // its own history entry right after, and racing a pushState against an
+    // in-flight history.back() would corrupt the navigation stack.
+    closeSettingsModal(true);
+    openAccountModal();
+  });
+
+  $$('.level-tile').forEach(tile => {
+    tile.addEventListener('click', () => setLevelViewMode(tile.dataset.levelView));
+  });
 }
 
 async function handleGoogleSignIn() {
@@ -1528,7 +1613,6 @@ function handleForgetDevice() {
 }
 
 function bindAccountEvents() {
-  $('#btn-account')?.addEventListener('click', openAccountModal);
   $('#btn-close-account')?.addEventListener('click', () => closeAccountModal());
   $('#account-modal')?.addEventListener('click', (e) => {
     if (e.target === $('#account-modal')) closeAccountModal();
@@ -1675,6 +1759,7 @@ function bindEvents() {
       if (infoModal?.getAttribute('aria-hidden') === 'false') closeInfoModal();
       if ($('#backup-modal')?.getAttribute('aria-hidden') === 'false') closeBackupModal();
       if ($('#account-modal')?.getAttribute('aria-hidden') === 'false') closeAccountModal();
+      if ($('#settings-modal')?.getAttribute('aria-hidden') === 'false') closeSettingsModal();
     }
   });
 
@@ -1702,6 +1787,27 @@ function bindEvents() {
   $('#info-modal')?.addEventListener('click', e => {
     if (e.target === $('#info-modal')) closeInfoModal();
   });
+
+  // Icon menu: hamburger reveals ranking/stats/settings, collapses once one is picked.
+  if (btnMenuToggle && iconMenu) {
+    const collapseIconMenu = () => {
+      iconMenu.classList.remove('expanded');
+      btnMenuToggle.setAttribute('aria-expanded', 'false');
+    };
+
+    btnMenuToggle.addEventListener('click', () => {
+      const expanded = iconMenu.classList.toggle('expanded');
+      btnMenuToggle.setAttribute('aria-expanded', String(expanded));
+    });
+
+    iconMenu.querySelectorAll('.icon-menu-item').forEach(item => {
+      item.addEventListener('click', collapseIconMenu);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (iconMenu.classList.contains('expanded') && !iconMenu.contains(e.target)) collapseIconMenu();
+    });
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -1961,6 +2067,8 @@ window.addEventListener('popstate', (e) => {
     toggleStatsView(true);
   } else if ($('#account-modal')?.getAttribute('aria-hidden') === 'false') {
     closeAccountModal(true);
+  } else if ($('#settings-modal')?.getAttribute('aria-hidden') === 'false') {
+    closeSettingsModal(true);
   }
 });
 // Incognito toggle: hidden behind a long-press on the version label, no visible button.
@@ -2354,6 +2462,42 @@ function handlePlanetAction(id, action) {
 }
 
 // ═══════════════════════════════════════════
+// LEVEL ZONE RENDERING (orbit rings: off / on / blurred)
+// ═══════════════════════════════════════════
+
+const LEVEL_COLOR_VARS = { 1: 'var(--level-1-color)', 2: 'var(--level-2-color)', 3: 'var(--level-3-color)' };
+const LEVEL_OFF_OPACITY = { 3: 0.09, 2: 0.06, 1: 0.04 };
+
+// Blurred mode: each ring keeps its own color through most of its radius,
+// then blends into the color of the next band down (skipping past any empty
+// levels), so boundaries fade into each other instead of cutting sharply.
+// Level 0 has no fill of its own (it's the open void beyond the outermost
+// band), so the outermost colored ring fades to transparent rather than
+// blending into an invented color.
+function nextActiveLevelColorVar(level, layout) {
+  for (let l = level - 1; l >= 1; l--) {
+    if (layout[l]) return LEVEL_COLOR_VARS[l];
+  }
+  return 'transparent';
+}
+
+function applyLevelRingStyle(ring, level, layout) {
+  if (!ring || level === 0) {
+    if (ring) ring.style.background = '';
+    return;
+  }
+  if (levelViewMode === 'off') {
+    ring.style.background = `rgba(255, 255, 255, ${LEVEL_OFF_OPACITY[level]})`;
+  } else if (levelViewMode === 'blurred') {
+    const ownColor = LEVEL_COLOR_VARS[level];
+    const nextColor = nextActiveLevelColorVar(level, layout);
+    ring.style.background = `radial-gradient(circle, ${ownColor} 0%, ${ownColor} 62%, ${nextColor} 100%)`;
+  } else {
+    ring.style.background = '';
+  }
+}
+
+// ═══════════════════════════════════════════
 // ORBITAL ANIMATION
 // ═══════════════════════════════════════════
 
@@ -2409,6 +2553,7 @@ function startAnimation() {
           ring.style.display = '';
           ring.style.width = `${r * 2}px`;
           ring.style.height = `${r * 2}px`;
+          applyLevelRingStyle(ring, level, dynamicLayout);
         }
 
         if (label) {
@@ -2417,6 +2562,7 @@ function startAnimation() {
           label.style.left = '50%';
           label.style.right = 'auto';
           label.style.transform = 'translate(-50%, -100%)';
+          label.style.color = levelViewMode === 'off' ? 'var(--text-secondary)' : '';
         }
       });
     }
@@ -2453,6 +2599,14 @@ function toggleRankingView(forceClose = false) {
     emptyState.style.display = 'none';
     renderRanking();
   }
+  updateFullscreenViewBodyClass();
+}
+
+// A fullscreen view (ranking/stats) hides the icon menu in its favor — see
+// #icon-menu's body.fullscreen-view-open rule.
+function updateFullscreenViewBodyClass() {
+  const anyOpen = !rankingView.classList.contains('hidden') || !(statsView?.classList.contains('hidden') ?? true);
+  document.body.classList.toggle('fullscreen-view-open', anyOpen);
 }
 
 function renderRanking() {
@@ -2701,9 +2855,12 @@ function toggleStatsView(forceClose = false) {
     emptyState.style.display = 'none';
     renderStats();
   }
+  updateFullscreenViewBodyClass();
 }
 
 if (btnStats) btnStats.addEventListener('click', () => toggleStatsView());
+$('#btn-close-ranking')?.addEventListener('click', () => toggleRankingView(true));
+$('#btn-close-stats')?.addEventListener('click', () => toggleStatsView(true));
 
 // ═══════════════════════════════════════════
 // MAP NAVIGATION (Pan / Zoom / Tilt)
@@ -2729,11 +2886,13 @@ function setupMapNavigation() {
     const survey = document.getElementById('survey-modal');
     const info = document.getElementById('info-modal');
     const account = document.getElementById('account-modal');
+    const settings = document.getElementById('settings-modal');
     if (ranking && !ranking.classList.contains('hidden')) return true;
     if (stats && !stats.classList.contains('hidden')) return true;
     if (survey && survey.getAttribute('aria-hidden') === 'false') return true;
     if (info && info.getAttribute('aria-hidden') === 'false') return true;
     if (account && account.getAttribute('aria-hidden') === 'false') return true;
+    if (settings && settings.getAttribute('aria-hidden') === 'false') return true;
     return false;
   };
 
