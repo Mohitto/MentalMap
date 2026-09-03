@@ -2222,7 +2222,10 @@ function handlePlanetAction(id, action) {
 // LEVEL ZONE RENDERING (orbit rings: off / on / blurred)
 // ═══════════════════════════════════════════
 
-const LEVEL_COLOR_VARS = { 1: 'var(--level-1-color)', 2: 'var(--level-2-color)', 3: 'var(--level-3-color)' };
+// Same translucent fills the "on" mode's plain CSS uses (.orbit-ring[data-level]),
+// duplicated here so blurred mode can build a gradient from them — it must match
+// "on" mode's opacity exactly, not just its hue.
+const LEVEL_RGBA = { 1: 'rgba(239, 68, 68, 0.06)', 2: 'rgba(245, 158, 11, 0.07)', 3: 'rgba(34, 197, 94, 0.08)' };
 const LEVEL_OFF_OPACITY = { 3: 0.09, 2: 0.06, 1: 0.04 };
 
 // Blurred mode: each ring keeps its own color through most of its radius,
@@ -2231,9 +2234,9 @@ const LEVEL_OFF_OPACITY = { 3: 0.09, 2: 0.06, 1: 0.04 };
 // Level 0 has no fill of its own (it's the open void beyond the outermost
 // band), so the outermost colored ring fades to transparent rather than
 // blending into an invented color.
-function nextActiveLevelColorVar(level, layout) {
+function nextActiveLevelRgba(level, layout) {
   for (let l = level - 1; l >= 1; l--) {
-    if (layout[l]) return LEVEL_COLOR_VARS[l];
+    if (layout[l]) return LEVEL_RGBA[l];
   }
   return 'transparent';
 }
@@ -2246,9 +2249,9 @@ function applyLevelRingStyle(ring, level, layout) {
   if (levelViewMode === 'off') {
     ring.style.background = `rgba(255, 255, 255, ${LEVEL_OFF_OPACITY[level]})`;
   } else if (levelViewMode === 'blurred') {
-    const ownColor = LEVEL_COLOR_VARS[level];
-    const nextColor = nextActiveLevelColorVar(level, layout);
-    ring.style.background = `radial-gradient(circle, ${ownColor} 0%, ${ownColor} 62%, ${nextColor} 100%)`;
+    const ownColor = LEVEL_RGBA[level];
+    const nextColor = nextActiveLevelRgba(level, layout);
+    ring.style.background = `radial-gradient(circle, ${ownColor} 0%, ${ownColor} 45%, ${nextColor} 100%)`;
   } else {
     ring.style.background = '';
   }
