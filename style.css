@@ -878,6 +878,11 @@ body.incognito-mode .stats-person-chip__name {
 
 /* ── Settings modal ── */
 
+#settings-modal {
+  align-items: center;
+  justify-content: center;
+}
+
 .settings-account-row {
   width: 100%;
   display: flex;
