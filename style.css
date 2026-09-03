@@ -586,6 +586,33 @@ html, body {
   background: rgba(255, 255, 255, 0.2);
 }
 
+#btn-menu-toggle[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.icon-menu-item {
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+#icon-menu:not(.expanded) .icon-menu-item {
+  opacity: 0;
+  transform: translateY(-8px);
+  pointer-events: none;
+}
+
+/* A fullscreen view (ranking/stats) is open — the whole icon menu would just
+   float uselessly on top of it, so hide it in favor of the view's own close button. */
+body.fullscreen-view-open #icon-menu {
+  display: none;
+}
+
+.view-close-btn {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 51;
+}
+
 /* Incognito mode styles (Censored blocks) */
 body.incognito-mode .planet-label,
 body.incognito-mode .ranking-name,
@@ -847,6 +874,131 @@ body.incognito-mode .stats-person-chip__name {
 .account-merge-choices {
   display: flex;
   flex-direction: column;
+}
+
+/* ── Settings modal ── */
+
+.settings-account-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-account-row:active {
+  background: var(--card-bg-hover);
+}
+
+.settings-account-row__icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.settings-account-row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-account-row__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.settings-account-row__hint {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.settings-account-row__chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.settings-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.level-view-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.level-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--input-border);
+  border-radius: 14px;
+  padding: 14px 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.level-tile:active {
+  background: var(--card-bg-hover);
+}
+
+.level-tile.is-selected {
+  border-color: var(--card-selected-border);
+  background: var(--card-selected);
+}
+
+.level-tile__preview {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.level-tile__preview--off {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.16) 62%, rgba(255, 255, 255, 0.06) 100%);
+}
+
+.level-tile__preview--on {
+  background: radial-gradient(circle, var(--level-3-color) 0%, var(--level-3-color) 33%, var(--level-2-color) 33%, var(--level-2-color) 66%, var(--level-1-color) 66%, var(--level-1-color) 100%);
+}
+
+.level-tile__preview--blurred {
+  background: radial-gradient(circle, var(--level-3-color) 0%, var(--level-3-color) 22%, var(--level-2-color) 45%, var(--level-2-color) 55%, var(--level-1-color) 78%, var(--level-1-color) 100%);
+}
+
+.level-tile__label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.level-tile.is-selected .level-tile__label {
+  color: var(--text-primary);
 }
 
 #stats-view {
