@@ -188,10 +188,9 @@ const SECRET_QUESTION = {
 
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
-const UNDO_IMPORT_KEY = 'mentalmap_people_pre_import';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
-const APP_VERSION = 'v0.9.76';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.76' -> '0.9.76', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.77';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.77' -> '0.9.77', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
 // default), 'off' (neutral/colorless), or 'blurred' (bands blend into each
@@ -321,7 +320,6 @@ function init() {
   buildSurveyForm();
   loadPeople();
   bindEvents();
-  bindBackupEvents();
   bindAccountEvents();
   bindSettingsEvents();
   setAppVersion();
@@ -668,7 +666,7 @@ function updateScorePreview() {
 // ═══════════════════════════════════════════
 
 // Recompute totalScore/level from raw answers, exactly as a fresh load would.
-// Shared by loadPeople(), applyImport(), and cloud-decrypt (ACCOUNT / CLOUD SYNC).
+// Shared by loadPeople() and cloud sync (ACCOUNT / CLOUD SYNC).
 function recomputeDerived(p) {
   if (!p.answers) return;
   const rawScore = p.answers.reduce((sum, pts) => sum + pts, 0);
@@ -813,376 +811,9 @@ function savePeople() {
     console.error('Failed to save data:', e);
     if (!saveErrorShown) {
       saveErrorShown = true;
-      alert('Nie udało się zapisać danych w tej przeglądarce (brak miejsca lub zapis zablokowany).\n\nZrób kopię zapasową przyciskiem pobierania, zanim zamkniesz aplikację — inaczej ostatnie zmiany przepadną.');
+      alert('Nie udało się zapisać danych w tej przeglądarce (brak miejsca lub zapis zablokowany).\n\nZaloguj się, aby zabezpieczyć dane w chmurze, zanim zamkniesz aplikację — inaczej ostatnie zmiany mogą przepaść.');
     }
   }
-}
-
-// ═══════════════════════════════════════════
-// BACKUP / RESTORE
-// ═══════════════════════════════════════════
-
-const BACKUP_FORMAT = 'mentalmap-backup';
-const BACKUP_FORMAT_VERSION = 1;
-
-// Which answer slots were padded with zeros by the 11->16 migration rather than
-// actually answered. A padded 0 is indistinguishable from a real 0-point answer,
-// and for some questions the first 0-point option is a harshly negative judgement
-// the user never made — so mark them rather than exporting them as real answers.
-function derivePaddedIndices(person) {
-  if (!person._migrated16) return [];
-  const padded = [];
-  for (let i = 11; i < 16; i++) {
-    if (!person.answerIndices || person.answerIndices[i] === null || person.answerIndices[i] === undefined) {
-      padded.push(i);
-    }
-  }
-  return padded;
-}
-
-function buildBackupPayload() {
-  // Read the raw string, NOT JSON.stringify(people): by the time this runs,
-  // loadPeople() has rewritten answers/totalScore/level and distributePlanets()
-  // has overwritten angle/orbitRadius/speed. The raw string is the only record
-  // of what was actually on disk before this session touched it.
-  let raw = null;
-  let corrupt = null;
-  try {
-    raw = localStorage.getItem(STORAGE_KEY);
-    corrupt = localStorage.getItem(CORRUPT_BACKUP_KEY);
-  } catch (_) { /* storage unavailable; fall back to the in-memory array below */ }
-
-  return {
-    format: BACKUP_FORMAT,
-    version: BACKUP_FORMAT_VERSION,
-    appVersion: APP_VERSION,
-    exportedAt: new Date().toISOString(),
-    peopleCount: people.length,
-    raw,
-    corruptBackup: corrupt,
-    people: people.map(p => ({
-      id: p.id,
-      name: p.name,
-      answers: p.answers,
-      answerIndices: p.answerIndices || null,
-      gateAnswer: p.gateAnswer,
-      gateAnswerPresent: typeof p.gateAnswer === 'number',
-      secretCap: p.secretCap,
-      gradientIndex: p.gradientIndex,
-      paddedIndices: derivePaddedIndices(p),
-      legacyMigrated12: !!p._migrated,
-      legacyMigrated16: !!p._migrated16
-    }))
-  };
-}
-
-function backupFilename() {
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  return `mentalmap-kopia-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.json`;
-}
-
-function showBackupStatus(message, kind = 'info') {
-  const el = $('#backup-status');
-  if (!el) return;
-  el.textContent = message;
-  el.className = `backup-status backup-status--${kind}`;
-  el.hidden = false;
-}
-
-function exportData() {
-  const json = JSON.stringify(buildBackupPayload(), null, 2);
-
-  // Always populate the textarea. The Android wrapper installs no DownloadListener,
-  // so a Blob download there is a silent no-op — the visible text is the fallback
-  // that keeps the export honest on every platform.
-  const ta = $('#export-output');
-  if (ta) {
-    ta.value = json;
-    const wrap = $('#export-output-wrap');
-    if (wrap) wrap.hidden = false;
-  }
-
-  try {
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = backupFilename();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showBackupStatus('Kopia pobrana. Jeśli nie widzisz pliku, skopiuj tekst poniżej i zapisz go samodzielnie.', 'ok');
-  } catch (e) {
-    console.error('Export download failed:', e);
-    showBackupStatus('Nie udało się pobrać pliku. Skopiuj tekst poniżej i zapisz go samodzielnie.', 'warn');
-  }
-}
-
-async function copyExportToClipboard() {
-  const ta = $('#export-output');
-  if (!ta || !ta.value) {
-    showBackupStatus('Najpierw kliknij "Pobierz kopię danych".', 'warn');
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(ta.value);
-    showBackupStatus('Skopiowano do schowka. Wklej do notatnika i zapisz.', 'ok');
-  } catch (_) {
-    ta.select();
-    showBackupStatus('Zaznaczono tekst — skopiuj go ręcznie (Ctrl+C / przytrzymaj i wybierz Kopiuj).', 'warn');
-  }
-}
-
-// Accepts our own backup envelope, a bare array, or the raw localStorage string.
-// Be liberal here: a rejected import means a tester is stuck holding a file they
-// cannot restore.
-function parseBackupFile(text) {
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    throw new Error('To nie jest poprawny plik JSON.');
-  }
-
-  let candidates = null;
-  if (Array.isArray(data)) {
-    candidates = data;
-  } else if (data && Array.isArray(data.people)) {
-    candidates = data.people;
-  } else if (data && typeof data.raw === 'string') {
-    try {
-      const parsed = JSON.parse(data.raw);
-      if (Array.isArray(parsed)) candidates = parsed;
-    } catch (_) { /* fall through to the error below */ }
-  }
-
-  if (!candidates) throw new Error('Nie znalazłem listy osób w tym pliku.');
-
-  const valid = candidates.filter(p => p && typeof p === 'object' && typeof p.name === 'string' && Array.isArray(p.answers));
-  if (valid.length === 0) throw new Error('Plik nie zawiera żadnych czytelnych osób.');
-
-  return { entries: valid, skipped: candidates.length - valid.length };
-}
-
-// Rebuild a person into the shape the app expects. Derived fields are omitted on
-// purpose — loadPeople() and distributePlanets() recompute them.
-function normalizeImportedPerson(p) {
-  const answers = Array.isArray(p.answers) ? p.answers.slice(0, 16).map(n => (typeof n === 'number' ? n : 0)) : [];
-  while (answers.length < 16) answers.push(0);
-
-  let answerIndices = Array.isArray(p.answerIndices) ? p.answerIndices.slice(0, 16) : new Array(16).fill(null);
-  while (answerIndices.length < 16) answerIndices.push(null);
-  answerIndices = answerIndices.map(v => (typeof v === 'number' ? v : null));
-
-  // Never resurrect migration padding as a real answer.
-  if (Array.isArray(p.paddedIndices)) {
-    p.paddedIndices.forEach(i => { if (i >= 0 && i < 16) answerIndices[i] = null; });
-  }
-
-  return {
-    id: typeof p.id === 'string' && p.id ? p.id : uuid(),
-    name: String(p.name),
-    answers,
-    answerIndices,
-    gateAnswer: typeof p.gateAnswer === 'number' ? p.gateAnswer : 0,
-    totalScore: 0,
-    level: 1,
-    secretCap: typeof p.secretCap === 'number' ? p.secretCap : 3,
-    angle: Math.random() * Math.PI * 2,
-    speed: 0.1,
-    gradientIndex: typeof p.gradientIndex === 'number' ? p.gradientIndex : Math.floor(Math.random() * PLANET_GRADIENTS.length),
-    _migrated: !!p.legacyMigrated12 || !!p._migrated,
-    _migrated16: !!p.legacyMigrated16 || !!p._migrated16
-  };
-}
-
-let pendingImport = null;
-
-function applyImport(mode) {
-  if (!pendingImport) return;
-
-  // Snapshot before touching anything, so a wrong choice is recoverable.
-  try {
-    localStorage.setItem(UNDO_IMPORT_KEY, JSON.stringify(people));
-  } catch (_) { /* non-fatal: the import itself is still safe to attempt */ }
-
-  const incoming = pendingImport.entries.map(normalizeImportedPerson);
-
-  if (mode === 'replace') {
-    people = incoming;
-  } else {
-    // Upsert by id so re-importing the same file is idempotent rather than
-    // duplicating everyone.
-    const byId = new Map(people.map(p => [p.id, p]));
-    incoming.forEach(p => byId.set(p.id, p));
-    people = Array.from(byId.values());
-  }
-
-  // Recompute everything derived, exactly as a normal load would.
-  people.forEach(recomputeDerived);
-
-  distributePlanets();
-  savePeople();
-  renderPlanets();
-  updateEmptyState();
-  refreshBackupModal();
-  queueSyncUpsertAll(incoming);
-
-  showBackupStatus(`Wczytano ${incoming.length} os${incoming.length === 1 ? 'obę' : 'ób'}. Łącznie masz teraz ${people.length}.`, 'ok');
-  pendingImport = null;
-  const preview = $('#import-preview');
-  if (preview) preview.hidden = true;
-}
-
-function undoImport() {
-  let snapshot;
-  try {
-    snapshot = localStorage.getItem(UNDO_IMPORT_KEY);
-  } catch (_) { snapshot = null; }
-  if (!snapshot) return;
-
-  try {
-    people = JSON.parse(snapshot);
-  } catch (e) {
-    showBackupStatus('Nie udało się odtworzyć poprzedniego stanu.', 'warn');
-    return;
-  }
-
-  try { localStorage.removeItem(UNDO_IMPORT_KEY); } catch (_) { /* cosmetic only */ }
-
-  distributePlanets();
-  savePeople();
-  renderPlanets();
-  updateEmptyState();
-  refreshBackupModal();
-  queueSyncUpsertAll(people);
-  showBackupStatus('Cofnięto import — przywrócono poprzedni stan.', 'ok');
-}
-
-function refreshBackupModal() {
-  const countEl = $('#backup-count');
-  if (countEl) countEl.textContent = String(people.length);
-
-  const undoWrap = $('#undo-wrap');
-  if (undoWrap) {
-    let hasSnapshot = false;
-    try { hasSnapshot = !!localStorage.getItem(UNDO_IMPORT_KEY); } catch (_) { /* ignore */ }
-    undoWrap.hidden = !hasSnapshot;
-  }
-
-  const corruptWarn = $('#corrupt-warning');
-  if (corruptWarn) {
-    let hasCorrupt = false;
-    try { hasCorrupt = !!localStorage.getItem(CORRUPT_BACKUP_KEY); } catch (_) { /* ignore */ }
-    corruptWarn.hidden = !hasCorrupt;
-  }
-}
-
-function openBackupModal() {
-  const modal = $('#backup-modal');
-  if (!modal) return;
-  if (!isSyncActive()) {
-    // Backup is only available to signed-in users now — send them to sign in instead.
-    openAccountModal();
-    return;
-  }
-  refreshBackupModal();
-  const status = $('#backup-status');
-  if (status) status.hidden = true;
-  modal.setAttribute('aria-hidden', 'false');
-}
-
-function closeBackupModal() {
-  const modal = $('#backup-modal');
-  if (!modal) return;
-  modal.setAttribute('aria-hidden', 'true');
-  pendingImport = null;
-  const preview = $('#import-preview');
-  if (preview) preview.hidden = true;
-}
-
-function bindBackupEvents() {
-  $('#btn-open-backup')?.addEventListener('click', () => {
-    // Plain close (skip the history.back() branch) so it can't race a later
-    // history push — see the identical note on #btn-open-account.
-    closeAccountModal(true);
-    openBackupModal();
-  });
-  $('#btn-close-backup')?.addEventListener('click', closeBackupModal);
-  $('#backup-modal')?.addEventListener('click', (e) => {
-    if (e.target === $('#backup-modal')) closeBackupModal();
-  });
-
-  $('#btn-export')?.addEventListener('click', exportData);
-  $('#btn-copy-export')?.addEventListener('click', copyExportToClipboard);
-
-  $('#btn-import-pick')?.addEventListener('click', () => $('#import-file')?.click());
-
-  $('#import-file')?.addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        pendingImport = parseBackupFile(String(reader.result));
-        const summary = $('#import-summary');
-        if (summary) {
-          summary.textContent = `Znaleziono ${pendingImport.entries.length} os${pendingImport.entries.length === 1 ? 'obę' : 'ób'} w pliku`
-            + (pendingImport.skipped ? ` (pominięto ${pendingImport.skipped} nieczytelnych).` : '.');
-        }
-        const preview = $('#import-preview');
-        if (preview) preview.hidden = false;
-        showBackupStatus('Wybierz, czy dołączyć dane, czy zastąpić obecne.', 'info');
-      } catch (err) {
-        pendingImport = null;
-        const preview = $('#import-preview');
-        if (preview) preview.hidden = true;
-        showBackupStatus(err.message || 'Nie udało się odczytać pliku.', 'warn');
-      }
-    };
-    reader.onerror = () => showBackupStatus('Nie udało się odczytać pliku.', 'warn');
-    reader.readAsText(file);
-    e.target.value = '';
-  });
-
-  $('#btn-import-merge')?.addEventListener('click', () => applyImport('merge'));
-  $('#btn-import-replace')?.addEventListener('click', () => {
-    if (confirm('Zastąpić wszystkie obecne dane danymi z pliku?\n\nObecne dane zostaną zachowane do cofnięcia, ale najpierw upewnij się, że masz kopię.')) {
-      applyImport('replace');
-    }
-  });
-
-  $('#btn-undo-import')?.addEventListener('click', undoImport);
-  $('#btn-download-corrupt')?.addEventListener('click', downloadCorruptBackup);
-}
-
-function downloadCorruptBackup() {
-  let corrupt;
-  try { corrupt = localStorage.getItem(CORRUPT_BACKUP_KEY); } catch (_) { corrupt = null; }
-  if (!corrupt) return;
-
-  const ta = $('#export-output');
-  if (ta) {
-    ta.value = corrupt;
-    const wrap = $('#export-output-wrap');
-    if (wrap) wrap.hidden = false;
-  }
-
-  try {
-    const blob = new Blob([corrupt], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'mentalmap-uszkodzone-dane.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  } catch (_) { /* the textarea above is the fallback */ }
-
-  showBackupStatus('Pobrano uszkodzone dane. Zachowaj ten plik — może dać się z niego odzyskać relacje.', 'ok');
 }
 
 // ═══════════════════════════════════════════
@@ -1193,18 +824,21 @@ function downloadCorruptBackup() {
 // button, or attemptSilentReconnect() finds evidence this device was already
 // connected. Local storage stays the source of truth either way — cloud sync
 // only ever mirrors it, never gates reading/writing it.
+//
+// Records sync as plain fields (see firebase-sync.js for why there's no
+// client-side encryption) — Firestore's per-uid rules are the only
+// protection.
 
 const PENDING_SIGNIN_KEY = 'mentalmap_pending_redirect_signin';
-const SYNC_MODE_KEY = 'mentalmap_sync_mode'; // 'e2e' (email/password) or 'plain' (Google) — set once sign-in succeeds, so a relaunch knows whether to even check Firebase's auth state
+const SYNCED_BEFORE_KEY = 'mentalmap_synced_before'; // set once sign-in succeeds, so a relaunch knows to check Firebase's auth state at all
+const PRE_SIGNIN_SNAPSHOT_KEY = 'mentalmap_pre_signin_snapshot';
 
 let syncApi = null; // cached module namespace from the lazily-imported firebase-sync.js
-// mode: 'e2e' = email/password account, DEK derived from the password, dek is required for isSyncActive.
-//       'plain' = Google account, no password to derive a key from, so records sync unencrypted (Firestore rules only).
-let syncState = { uid: null, email: null, mode: null, dek: null, dekId: null, unsubscribePeople: null };
+let syncState = { uid: null, email: null, verified: false, unsubscribePeople: null };
 let pendingCloudPeople = null; // set only while #account-screen-merge is showing
 
 function isSyncActive() {
-  return !!(syncState.uid && (syncState.mode === 'plain' || syncState.dek));
+  return !!(syncState.uid && syncState.verified);
 }
 
 async function loadSyncModule() {
@@ -1215,6 +849,56 @@ async function loadSyncModule() {
   return mod;
 }
 
+// The only fields that ever leave the device, in both directions: read a
+// pushable record out of a person, and read a person's fields back out of
+// whatever Firestore handed us. Same shape either way, so one function does
+// both jobs.
+function pickSyncFields(obj) {
+  return {
+    name: obj.name,
+    answers: obj.answers,
+    answerIndices: obj.answerIndices || null,
+    // Legacy records from before the gate question existed have no
+    // gateAnswer at all, and Firestore rejects an undefined field outright.
+    gateAnswer: typeof obj.gateAnswer === 'number' ? obj.gateAnswer : null,
+    secretCap: obj.secretCap,
+    gradientIndex: obj.gradientIndex
+  };
+}
+
+// Snapshot local data the first time this device signs into anything, so a
+// guest sign-in (e.g. showing someone your map on their device, or a demo)
+// can be undone cleanly. Guarded so a relaunch of an already-connected
+// device never overwrites the true original with an already-synced state.
+function captureLocalSnapshotIfNeeded() {
+  let already;
+  try { already = localStorage.getItem(PRE_SIGNIN_SNAPSHOT_KEY); } catch (_) { return; }
+  if (already !== null) return;
+  let raw = null;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (_) { /* ignore */ }
+  try { localStorage.setItem(PRE_SIGNIN_SNAPSHOT_KEY, JSON.stringify({ raw })); } catch (_) { /* ignore */ }
+}
+
+// Undoes whatever cloud data this device pulled in since it last signed in,
+// restoring exactly what was on it before. Nothing done while signed in is
+// lost — every change was already pushed live to that account's own copy —
+// so this is safe even for the account's actual owner, not just a guest.
+function restoreLocalSnapshot() {
+  let raw;
+  try {
+    const snap = localStorage.getItem(PRE_SIGNIN_SNAPSHOT_KEY);
+    if (snap === null) return; // this device was never actually signed into anything
+    raw = JSON.parse(snap).raw;
+  } catch (_) { return; }
+  try {
+    if (raw === null) localStorage.removeItem(STORAGE_KEY);
+    else localStorage.setItem(STORAGE_KEY, raw);
+  } catch (_) { /* ignore */ }
+  try { localStorage.removeItem(PRE_SIGNIN_SNAPSHOT_KEY); } catch (_) { /* ignore */ }
+  loadPeople(); // re-parses STORAGE_KEY into `people` and re-renders
+  updateEmptyState();
+}
+
 // Fire-and-forget: called once from init(), after the normal synchronous local
 // load has already rendered. Costs nothing (no network, no import) for the
 // large majority of users who have never touched sync.
@@ -1222,13 +906,10 @@ async function attemptSilentReconnect() {
   let pendingRedirect = false;
   try { pendingRedirect = !!localStorage.getItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
 
-  let storedMode = null;
-  try { storedMode = localStorage.getItem(SYNC_MODE_KEY); } catch (_) { /* ignore */ }
+  let syncedBefore = false;
+  try { syncedBefore = !!localStorage.getItem(SYNCED_BEFORE_KEY); } catch (_) { /* ignore */ }
 
-  let cached = null;
-  try { cached = await MentalMapCrypto.loadCachedDEK(); } catch (_) { /* ignore */ }
-
-  if (!pendingRedirect && !cached && !storedMode) return; // never connected on this device — stay fully local
+  if (!pendingRedirect && !syncedBefore) return; // never connected on this device — stay fully local
 
   try {
     const api = await loadSyncModule();
@@ -1241,30 +922,14 @@ async function attemptSilentReconnect() {
     if (!user) user = await api.getCurrentUser();
     if (!user) return; // no live Firebase session; Account modal will ask to sign in again
 
-    if (cached && cached.uid === user.uid) {
-      syncState.uid = user.uid;
-      syncState.email = user.email || '';
-      syncState.mode = 'e2e';
-      syncState.dek = cached.dek;
-      syncState.dekId = cached.dekId;
-      await pullAndReconcile();
-    } else if (pendingRedirect || storedMode === 'plain') {
-      // The redirect fallback is only ever taken for Google sign-in, so a
-      // completed redirect is always a plain-mode account. No password to
-      // ask for — Google's own session is the only credential needed.
-      await completeSignIn(user, { mode: 'plain' });
-    }
-    // Otherwise: an e2e account whose DEK isn't cached on this device (e.g.
-    // storage was cleared). There's no remembered password to re-derive it
-    // from, so leave the app disconnected — opening the Account modal and
-    // signing in again with the password picks it back up.
+    await completeSignIn(user);
   } catch (e) {
     console.error('Silent reconnect failed:', e);
   }
 }
 
 function showAccountScreen(id) {
-  ['entry', 'merge', 'signed-in'].forEach(name => {
+  ['entry', 'verify', 'merge', 'signed-in'].forEach(name => {
     const el = $(`#account-screen-${name}`);
     if (el) el.hidden = name !== id;
   });
@@ -1394,7 +1059,7 @@ async function handleGoogleSignIn() {
       }
     });
     if (!user) return; // redirect fallback took over; resumes via attemptSilentReconnect()
-    await completeSignIn(user, { mode: 'plain' });
+    await completeSignIn(user);
   } catch (e) {
     try { localStorage.removeItem(PENDING_SIGNIN_KEY); } catch (_) { /* ignore */ }
     if (typeof syncApi?.isUserCancelledSignIn === 'function' && syncApi.isUserCancelledSignIn(e)) {
@@ -1415,7 +1080,7 @@ async function handleEmailSignIn(e) {
   try {
     const api = await loadSyncModule();
     const user = await api.signInWithEmail(email, password);
-    await completeSignIn(user, { mode: 'e2e', password });
+    await completeSignIn(user);
   } catch (e2) {
     console.error('Email sign-in failed:', e2);
     showAccountStatus('Nie udało się zalogować. Sprawdź adres e-mail i hasło.', 'warn');
@@ -1433,80 +1098,128 @@ async function handleEmailSignUp() {
   try {
     const api = await loadSyncModule();
     const user = await api.signUpWithEmail(email, password);
-    await completeSignIn(user, { mode: 'e2e', password });
+    try { await api.sendVerificationEmail(user); } catch (e) { console.error('Failed to send verification email:', e); }
+    await completeSignIn(user);
   } catch (e) {
     console.error('Email sign-up failed:', e);
     showAccountStatus('Nie udało się założyć konta. Może ten adres jest już zajęty?', 'warn');
   }
 }
 
-// Shared continuation after ANY successful Firebase auth (Google or email),
-// whether just completed or resumed on relaunch.
-//
-// Google accounts (mode 'plain') have no password to derive a key from, so
-// they skip crypto.js entirely and sync in the clear. Email/password accounts
-// (mode 'e2e') derive the DEK-wrapping key from the password right here —
-// either unwrapping an existing keyring, or creating one on first sign-in —
-// so unlocking never needs a separate code or screen.
-async function completeSignIn(user, { mode, password } = {}) {
-  syncState.uid = user.uid;
-  syncState.email = user.email || '';
-  syncState.mode = mode;
-
-  if (mode === 'plain') {
-    try { localStorage.setItem(SYNC_MODE_KEY, 'plain'); } catch (_) { /* ignore */ }
-    showAccountScreen('signed-in');
-    refreshAccountSignedInScreen();
-    showAccountStatus('');
-    await pullAndReconcile();
+async function handleForgotPassword() {
+  const email = $('#account-email')?.value.trim();
+  if (!email) {
+    showAccountStatus('Podaj najpierw swój adres e-mail powyżej.', 'warn');
     return;
   }
+  showAccountStatus('Wysyłanie linku…', 'info');
+  try {
+    const api = await loadSyncModule();
+    await api.sendPasswordReset(email);
+    showAccountStatus(`Jeśli istnieje konto na ${email}, wysłaliśmy na nie link do ustawienia nowego hasła.`, 'ok');
+  } catch (e) {
+    // auth/user-not-found would otherwise reveal whether the address has an
+    // account — show the same generic success message either way.
+    if (e && e.code === 'auth/user-not-found') {
+      showAccountStatus(`Jeśli istnieje konto na ${email}, wysłaliśmy na nie link do ustawienia nowego hasła.`, 'ok');
+      return;
+    }
+    if (e && e.code === 'auth/invalid-email') {
+      showAccountStatus('Podaj poprawny adres e-mail.', 'warn');
+      return;
+    }
+    console.error('Password reset failed:', e);
+    showAccountStatus('Nie udało się wysłać wiadomości. Spróbuj ponownie później.', 'warn');
+  }
+}
+
+async function handleCheckVerified() {
+  showAccountStatus('Sprawdzanie…', 'info');
+  try {
+    const api = syncApi || await loadSyncModule();
+    const user = await api.getCurrentUser();
+    if (!user) {
+      showAccountStatus('Zaloguj się ponownie.', 'warn');
+      return;
+    }
+    await completeSignIn(user);
+    if (!syncState.verified) {
+      showAccountStatus('Jeszcze nie kliknięto linku aktywacyjnego.', 'warn');
+    }
+  } catch (e) {
+    console.error('Verification check failed:', e);
+    showAccountStatus('Nie udało się sprawdzić. Spróbuj ponownie.', 'warn');
+  }
+}
+
+async function handleResendVerification() {
+  showAccountStatus('Wysyłanie…', 'info');
+  try {
+    const api = syncApi || await loadSyncModule();
+    const user = await api.getCurrentUser();
+    if (!user) {
+      showAccountStatus('Zaloguj się ponownie.', 'warn');
+      return;
+    }
+    await api.sendVerificationEmail(user);
+    showAccountStatus('Wysłano ponownie. Sprawdź skrzynkę (także spam).', 'ok');
+  } catch (e) {
+    console.error('Resend verification failed:', e);
+    showAccountStatus('Nie udało się wysłać wiadomości. Spróbuj później.', 'warn');
+  }
+}
+
+// Shared continuation after ANY successful Firebase auth (Google or email),
+// whether just completed or resumed on relaunch. Google verifies its own
+// accounts, so this only ever gates email/password sign-ups that haven't
+// clicked their activation link yet.
+async function completeSignIn(user) {
+  syncState.uid = user.uid;
+  syncState.email = user.email || '';
 
   try {
     const api = syncApi || await loadSyncModule();
-    const keyringDocs = await api.fetchKeyringDocs(user.uid);
-    const passwordDoc = keyringDocs.find(d => d.kind === 'password');
-
-    if (passwordDoc) {
-      syncState.dek = await MentalMapCrypto.unlock(passwordDoc, password, { extractable: true });
-      syncState.dekId = passwordDoc.dekId;
-      await MentalMapCrypto.cacheDEK(syncState.dek, syncState.dekId, user.uid);
-    } else {
-      // First time this account has ever synced (or an account from before
-      // this scheme, whose old wrappings we can no longer unlock): start a
-      // fresh password-wrapped keyring. Local storage is always the source
-      // of truth, so nothing on this device is lost either way.
-      const setup = await runFirstTimeSetup(user.uid, password);
-      syncState.dek = setup.dek;
-      syncState.dekId = setup.dekId;
-    }
-
-    try { localStorage.setItem(SYNC_MODE_KEY, 'e2e'); } catch (_) { /* ignore */ }
-    showAccountScreen('signed-in');
-    refreshAccountSignedInScreen();
-    showAccountStatus('');
-    await pullAndReconcile();
+    // Refreshes in place: catches a verification link clicked in another tab
+    // or on another device since this browser last saw this session.
+    await api.refreshUser(user);
   } catch (e) {
-    console.error('Failed to complete sign-in:', e);
-    const msg = e && e.code === 'BAD_SECRET'
-      ? 'Nie udało się odblokować danych w chmurze tym hasłem.'
-      : 'Nie udało się połączyć z kontem. Spróbuj ponownie.';
-    showAccountStatus(msg, 'warn');
+    console.error('Failed to refresh auth state:', e);
+  }
+  syncState.verified = !!user.emailVerified;
+
+  if (!syncState.verified) {
+    const el = $('#account-verify-email');
+    if (el) el.textContent = syncState.email;
+    showAccountScreen('verify');
+    showAccountStatus('');
+    return;
+  }
+
+  // Distinguish a genuinely new sign-in from a routine resume of a session
+  // already established on this device: once synced, local storage already
+  // reflects the last known state, so re-running the one-time merge prompt
+  // on every relaunch (local and cloud both non-empty, every single time)
+  // would ask the same question forever. A resume just picks the realtime
+  // listener back up; only a fresh connection gets the merge dance.
+  let alreadySynced = false;
+  try { alreadySynced = !!localStorage.getItem(SYNCED_BEFORE_KEY); } catch (_) { /* ignore */ }
+
+  try { localStorage.setItem(SYNCED_BEFORE_KEY, '1'); } catch (_) { /* ignore */ }
+  captureLocalSnapshotIfNeeded();
+  showAccountScreen('signed-in');
+  refreshAccountSignedInScreen();
+  showAccountStatus('');
+
+  if (alreadySynced) {
+    startPeopleListener();
+  } else {
+    await pullAndReconcile();
   }
 }
 
-async function runFirstTimeSetup(uid, password) {
-  showAccountStatus('Przygotowywanie szyfrowania…', 'info');
-  const { dek, dekId, docs } = await MentalMapCrypto.setupKeyring({ password });
-  await syncApi.ensureUserDoc(uid, dekId);
-  for (const doc of docs) await syncApi.pushKeyringDoc(uid, doc);
-  await MentalMapCrypto.cacheDEK(dek, dekId, uid);
-  return { dek, dekId };
-}
-
-// One-time reconciliation after a device first unlocks its DEK (either right
-// after unlock, or during a silent reconnect that found a matching cached
-// key). Not used for ongoing sync — that's startPeopleListener() below.
+// One-time reconciliation the first time a device connects a given account —
+// see the alreadySynced check in completeSignIn() for why a routine relaunch
+// skips this. Not used for ongoing sync — that's startPeopleListener() below.
 async function pullAndReconcile() {
   showAccountStatus('Pobieranie danych…', 'info');
   let records;
@@ -1518,36 +1231,26 @@ async function pullAndReconcile() {
     return;
   }
 
-  const decrypted = [];
-  for (const rec of records) {
-    try {
-      const payload = syncState.mode === 'e2e'
-        ? await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, rec.id)
-        : MentalMapCrypto.sensitivePayload(rec);
-      decrypted.push(Object.assign({
-        id: rec.id,
-        angle: Math.random() * Math.PI * 2,
-        speed: 0.1,
-        syncUpdatedAt: rec.updatedAtMs || Date.now()
-      }, payload));
-    } catch (e) {
-      console.error('Failed to decrypt a cloud record, skipping:', rec.id, e);
-    }
-  }
-  decrypted.forEach(recomputeDerived);
+  const pulled = records.map(rec => Object.assign({
+    id: rec.id,
+    angle: Math.random() * Math.PI * 2,
+    speed: 0.1,
+    syncUpdatedAt: rec.updatedAtMs || Date.now()
+  }, pickSyncFields(rec)));
+  pulled.forEach(recomputeDerived);
 
   const localHasData = people.length > 0;
-  const cloudHasData = decrypted.length > 0;
+  const cloudHasData = pulled.length > 0;
 
   if (localHasData && cloudHasData) {
-    pendingCloudPeople = decrypted;
+    pendingCloudPeople = pulled;
     showAccountScreen('merge');
     showAccountStatus('');
     return;
   }
 
   if (cloudHasData) {
-    people = decrypted;
+    people = pulled;
     distributePlanets();
     savePeople();
     renderPlanets();
@@ -1617,7 +1320,7 @@ function startPeopleListener() {
 // Ongoing realtime sync. Equal-or-older incoming timestamps are dropped
 // silently — that's expected on every change this same device just pushed
 // itself (an echo of our own write), not a bug.
-async function handleRemoteChanges(changes) {
+function handleRemoteChanges(changes) {
   if (!isSyncActive()) return;
   let touched = false;
 
@@ -1635,21 +1338,14 @@ async function handleRemoteChanges(changes) {
     const existing = people.find(p => p.id === personId);
     if (existing && (existing.syncUpdatedAt || 0) >= incomingMs) continue;
 
-    try {
-      const payload = syncState.mode === 'e2e'
-        ? await MentalMapCrypto.decryptRecord(rec, syncState.dek, syncState.uid, personId)
-        : MentalMapCrypto.sensitivePayload(rec);
-      const merged = Object.assign(existing || {
-        id: personId,
-        angle: Math.random() * Math.PI * 2,
-        speed: 0.1
-      }, payload, { syncUpdatedAt: incomingMs });
-      recomputeDerived(merged);
-      if (!existing) people.push(merged);
-      touched = true;
-    } catch (e) {
-      console.error('Failed to decrypt remote change, skipping:', personId, e);
-    }
+    const merged = Object.assign(existing || {
+      id: personId,
+      angle: Math.random() * Math.PI * 2,
+      speed: 0.1
+    }, pickSyncFields(rec), { syncUpdatedAt: incomingMs });
+    recomputeDerived(merged);
+    if (!existing) people.push(merged);
+    touched = true;
   }
 
   if (touched) {
@@ -1666,16 +1362,8 @@ async function handleRemoteChanges(changes) {
 function queueSyncUpsert(person) {
   if (!isSyncActive() || !person) return;
   person.syncUpdatedAt = Date.now();
-  (async () => {
-    try {
-      const rec = syncState.mode === 'e2e'
-        ? await MentalMapCrypto.encryptRecord(person, syncState.dek, syncState.uid, person.id)
-        : MentalMapCrypto.sensitivePayload(person);
-      await syncApi.pushPerson(syncState.uid, person.id, rec, person.syncUpdatedAt);
-    } catch (e) {
-      console.error('Cloud sync push failed for', person.id, e);
-    }
-  })();
+  syncApi.pushPerson(syncState.uid, person.id, pickSyncFields(person), person.syncUpdatedAt)
+    .catch(e => console.error('Cloud sync push failed for', person.id, e));
 }
 
 function queueSyncDelete(personId) {
@@ -1693,16 +1381,11 @@ function handleSignOut() {
     syncState.unsubscribePeople();
   }
   syncApi?.signOutUser().catch(e => console.error('Sign out failed:', e));
-  syncState = { uid: null, email: null, mode: null, dek: null, dekId: null, unsubscribePeople: null };
-  try { localStorage.removeItem(SYNC_MODE_KEY); } catch (_) { /* ignore */ }
+  syncState = { uid: null, email: null, verified: false, unsubscribePeople: null };
+  try { localStorage.removeItem(SYNCED_BEFORE_KEY); } catch (_) { /* ignore */ }
+  restoreLocalSnapshot();
   showAccountScreen('entry');
-  showAccountStatus('Wylogowano. Dane na tym urządzeniu zostają bez zmian.', 'ok');
-}
-
-function handleForgetDevice() {
-  if (!confirm('Zapomnieć to urządzenie?\n\nPrzy następnym logowaniu trzeba będzie zalogować się ponownie (e-mail i hasło albo Google). Dane na tym urządzeniu zostaną bez zmian.')) return;
-  MentalMapCrypto.forgetDevice().catch(() => { /* best effort */ });
-  handleSignOut();
+  showAccountStatus('Wylogowano.', 'ok');
 }
 
 function bindAccountEvents() {
@@ -1714,6 +1397,11 @@ function bindAccountEvents() {
   $('#btn-google-signin')?.addEventListener('click', handleGoogleSignIn);
   $('#account-email-form')?.addEventListener('submit', handleEmailSignIn);
   $('#btn-email-signup')?.addEventListener('click', handleEmailSignUp);
+  $('#btn-forgot-password')?.addEventListener('click', handleForgotPassword);
+
+  $('#btn-check-verified')?.addEventListener('click', handleCheckVerified);
+  $('#btn-resend-verification')?.addEventListener('click', handleResendVerification);
+  $('#btn-verify-sign-out')?.addEventListener('click', handleSignOut);
 
   $('#btn-merge-combine')?.addEventListener('click', applyMergeCombine);
   $('#btn-merge-use-cloud')?.addEventListener('click', () => {
@@ -1728,7 +1416,6 @@ function bindAccountEvents() {
   });
 
   $('#btn-sign-out')?.addEventListener('click', handleSignOut);
-  $('#btn-forget-device')?.addEventListener('click', handleForgetDevice);
 }
 
 // ═══════════════════════════════════════════
@@ -1820,7 +1507,6 @@ function bindEvents() {
     if (e.key === 'Escape') {
       if (surveyModal?.getAttribute('aria-hidden') === 'false') closeModal();
       if (infoModal?.getAttribute('aria-hidden') === 'false') closeInfoModal();
-      if ($('#backup-modal')?.getAttribute('aria-hidden') === 'false') closeBackupModal();
       if ($('#account-modal')?.getAttribute('aria-hidden') === 'false') closeAccountModal();
       if ($('#settings-modal')?.getAttribute('aria-hidden') === 'false') closeSettingsModal();
     }

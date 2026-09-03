@@ -774,37 +774,6 @@ body.incognito-mode .stats-person-chip__name {
   margin: 20px 0 16px;
 }
 
-.backup-corrupt {
-  background: rgba(239, 71, 111, 0.08);
-  border: 1px solid rgba(239, 71, 111, 0.35);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.export-output {
-  width: 100%;
-  background: #0d0d1c;
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  color: var(--text-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  padding: 8px;
-  margin-bottom: 10px;
-  resize: vertical;
-}
-
-.import-preview {
-  margin-top: 12px;
-}
-
-.import-summary {
-  font-size: 13px;
-  color: var(--text-primary);
-  margin-bottom: 10px;
-}
-
 .backup-status {
   font-size: 13px;
   line-height: 1.45;
@@ -874,6 +843,18 @@ body.incognito-mode .stats-person-chip__name {
 .account-merge-choices {
   display: flex;
   flex-direction: column;
+}
+
+.link-btn {
+  display: block;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: -4px 0 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* ── Settings modal ── */

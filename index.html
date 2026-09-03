@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.76">
+    <link rel="stylesheet" href="style.css?v=0.9.77">
 </head>
 <body>
     <script>
@@ -220,73 +220,6 @@
         </div>
     </div>
 
-    <!-- Backup / restore modal -->
-    <div id="backup-modal" class="modal-overlay" aria-hidden="true">
-        <div class="info-container">
-            <div class="info-header">
-                <h2>Kopia zapasowa</h2>
-                <button type="button" class="btn-icon" id="btn-close-backup" aria-label="Zamknij">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="info-content">
-                <p class="backup-note">Twoje dane są zapisane wyłącznie w tej przeglądarce. Jeśli wyczyścisz dane przeglądarki, zmienisz urządzenie albo system usunie pamięć aplikacji — przepadną bezpowrotnie.</p>
-                <p class="backup-note backup-note--warn">Zrób kopię już teraz i trzymaj plik w bezpiecznym miejscu. Plik zawiera imiona i nazwiska — traktuj go jak dane wrażliwe.</p>
-
-                <div class="backup-stat">Zapisanych osób: <strong id="backup-count">0</strong></div>
-
-                <div id="corrupt-warning" class="backup-corrupt" hidden>
-                    <p class="backup-note backup-note--warn">Wykryto wcześniej zapisane dane, których nie dało się odczytać. Zostały zachowane w nienaruszonym stanie — pobierz je, zanim cokolwiek zrobisz.</p>
-                    <button type="button" id="btn-download-corrupt" class="btn backup-btn backup-btn--secondary">Pobierz uszkodzone dane</button>
-                </div>
-
-                <button type="button" id="btn-export" class="btn btn--save backup-btn">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                    Pobierz kopię danych
-                </button>
-
-                <div id="export-output-wrap" hidden>
-                    <p class="backup-note">Jeśli plik się nie pobrał (zdarza się w aplikacji na Androida), skopiuj poniższy tekst i zapisz go w notatniku:</p>
-                    <textarea id="export-output" class="export-output" readonly rows="6" aria-label="Dane kopii zapasowej"></textarea>
-                    <button type="button" id="btn-copy-export" class="btn backup-btn backup-btn--secondary">Kopiuj do schowka</button>
-                </div>
-
-                <hr class="backup-sep">
-
-                <p class="backup-note">Masz plik z kopią? Wczytaj go tutaj.</p>
-                <input type="file" id="import-file" accept="application/json,.json" hidden>
-                <button type="button" id="btn-import-pick" class="btn backup-btn backup-btn--secondary">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 6px;">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    Wybierz plik kopii
-                </button>
-
-                <div id="import-preview" class="import-preview" hidden>
-                    <div id="import-summary" class="import-summary"></div>
-                    <button type="button" id="btn-import-merge" class="btn backup-btn backup-btn--secondary">Dołącz do obecnych danych</button>
-                    <button type="button" id="btn-import-replace" class="btn backup-btn backup-btn--danger">Zastąp obecne dane</button>
-                </div>
-
-                <div id="backup-status" class="backup-status" hidden></div>
-
-                <div id="undo-wrap" hidden>
-                    <hr class="backup-sep">
-                    <p class="backup-note">Poprzedni stan został zachowany — możesz cofnąć ostatni import.</p>
-                    <button type="button" id="btn-undo-import" class="btn backup-btn backup-btn--secondary">Cofnij ostatni import</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Account / cloud sync modal -->
     <div id="account-modal" class="modal-overlay" aria-hidden="true">
         <div class="info-container">
@@ -302,7 +235,7 @@
 
                 <!-- Entry: signed out -->
                 <div id="account-screen-entry">
-                    <p class="backup-note">Twoje dane zostają wyłącznie na tym urządzeniu, chyba że się zalogujesz. Logując się e-mailem i hasłem, dane w chmurze są szyfrowane w tej przeglądarce tym hasłem — nikt poza Tobą, łącznie z nami, nie może ich odczytać. Logując się przez Google, dane trafiają do bazy dostępnej tylko z Twojego konta. W obu wypadkach zalogowanie się na innym urządzeniu tym samym kontem od razu daje dostęp do Twoich danych — bez dodatkowych kodów.</p>
+                    <p class="backup-note">Twoje dane zostają wyłącznie na tym urządzeniu, chyba że się zalogujesz. Po zalogowaniu (e-mailem i hasłem albo przez Google) trafiają też do bezpiecznej bazy w chmurze, dostępnej tylko z Twojego konta — zalogowanie się na innym urządzeniu tym samym kontem od razu daje dostęp do Twoich danych, bez dodatkowych kodów.</p>
 
                     <button type="button" id="btn-google-signin" class="btn account-btn-google">
                         <svg width="18" height="18" viewBox="0 0 18 18" style="vertical-align: middle; margin-right: 8px;">
@@ -323,12 +256,20 @@
                         <div class="form-group">
                             <input type="password" id="account-password" class="account-input" placeholder="Hasło (min. 8 znaków)" required minlength="8" autocomplete="current-password">
                         </div>
-                        <p class="backup-note backup-note--warn">Zapamiętaj to hasło. To ono odblokowuje dane w chmurze na każdym urządzeniu — jeśli je zapomnisz, nie da się ich odzyskać (dane na tym urządzeniu zostaną bez zmian).</p>
+                        <button type="button" id="btn-forgot-password" class="link-btn">Zapomniałeś/aś hasła?</button>
                         <div class="account-merge-choices">
                             <button type="submit" id="btn-email-signin" class="btn btn--save backup-btn">Zaloguj</button>
                             <button type="button" id="btn-email-signup" class="btn backup-btn backup-btn--secondary">Załóż konto</button>
                         </div>
                     </form>
+                </div>
+
+                <!-- Awaiting email verification -->
+                <div id="account-screen-verify" hidden>
+                    <p class="backup-note">Wysłaliśmy link aktywacyjny na adres <strong id="account-verify-email"></strong>. Kliknij go, a potem wróć tutaj.</p>
+                    <button type="button" id="btn-check-verified" class="btn btn--save backup-btn">Sprawdź ponownie</button>
+                    <button type="button" id="btn-resend-verification" class="btn backup-btn backup-btn--secondary">Wyślij link ponownie</button>
+                    <button type="button" id="btn-verify-sign-out" class="btn backup-btn backup-btn--secondary">Wyloguj</button>
                 </div>
 
                 <!-- Merge choice when both local and cloud data exist -->
@@ -345,10 +286,7 @@
                 <div id="account-screen-signed-in" hidden>
                     <p class="backup-note">Zalogowano jako <strong id="account-signed-in-email"></strong>.</p>
                     <div class="backup-stat"><span id="account-sync-status">Synchronizacja aktywna</span></div>
-                    <button type="button" id="btn-open-backup" class="btn backup-btn backup-btn--secondary">Kopia zapasowa danych</button>
-                    <hr class="backup-sep">
                     <button type="button" id="btn-sign-out" class="btn backup-btn backup-btn--secondary">Wyloguj</button>
-                    <button type="button" id="btn-forget-device" class="btn backup-btn backup-btn--danger">Zapomnij to urządzenie</button>
                 </div>
 
                 <div id="account-status" class="backup-status" hidden></div>
@@ -413,8 +351,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.76</div>
-    <script src="crypto.js?v=0.9.76"></script>
-    <script src="app.js?v=0.9.76"></script>
+    <div id="app-version">v0.9.77</div>
+    <script src="app.js?v=0.9.77"></script>
 </body>
 </html>
