@@ -403,6 +403,28 @@ function buildSurveyForm() {
     title.textContent = `${qIndex + 2}. ${q.text}`;
     card.appendChild(title);
 
+    // Collapsed view for an already-answered question: current answer plus a
+    // button to expand the full option list and change it. Hidden unless the
+    // card carries the `is-collapsed` class — see openEditModal(), which
+    // collapses every answered question, and openAddModal(), which resets a
+    // fresh survey back to fully expanded.
+    const summary = document.createElement('div');
+    summary.className = 'answer-summary';
+
+    const summaryText = document.createElement('span');
+    summaryText.className = 'answer-summary__text';
+    summary.appendChild(summaryText);
+
+    const summaryToggle = document.createElement('button');
+    summaryToggle.type = 'button';
+    summaryToggle.className = 'answer-summary__toggle';
+    summaryToggle.textContent = 'Zmień';
+    summaryToggle.setAttribute('aria-label', 'Rozwiń, aby zmienić odpowiedź');
+    summaryToggle.addEventListener('click', () => card.classList.remove('is-collapsed'));
+    summary.appendChild(summaryToggle);
+
+    card.appendChild(summary);
+
     const optionsWrap = document.createElement('div');
     optionsWrap.className = 'options-container';
 
@@ -418,6 +440,8 @@ function buildSurveyForm() {
       radio.required = true;
       radio.addEventListener('change', () => {
         delete radio.dataset.legacyGuess;
+        summaryText.textContent = answer.text;
+        card.dataset.tier = rankAnswer(q, answer).tier;
         updateScorePreview();
       });
 
@@ -470,29 +494,81 @@ function buildSurveyForm() {
   questionsContainer.appendChild(secretCard);
 }
 
-// Visually reorders the regular question cards (via CSS `order`, not DOM position)
-// so the weakest answers show up first — the lower the answer, the higher its
-// priority to appear at the top. "Weak" is measured against that *question's own*
-// max, not the raw points value: questions use different point scales (some top
-// out at 2, others at 6), so comparing raw points across questions would let a
-// mediocre answer on a wide-range question outrank a genuinely maxed answer on a
-// narrow-range one. Gate/secret cards keep their fixed spot at the very
-// start/end. DOM order stays untouched on purpose — handleSubmit() and
-// updateScorePreview() rely on SURVEY_QUESTIONS index order when walking
-// `.question-card` elements.
+// This exact answer means "no data yet" rather than a real judgement, on the
+// questions that offer it — it always gets top priority and a neutral color,
+// regardless of its raw points value (which is usually 0, tying it with a
+// genuine middling answer).
+const NO_SITUATION_TEXT = 'Jeszcze nie było sytuacji, by to ocenić.';
+
+// Ranks one answer within its own question, for both the collapsed summary
+// color and the reordering priority. Ranks the question's *judged* answers
+// (everything except the "no situation" one) by points and reports where this
+// answer falls — worst, second-worst, best, or "mid" for anything in between
+// — rather than the raw points value or points-vs-max deficit. Questions use
+// different point scales (some top out at 2, others at 6), so comparing point
+// values or deficits across questions could still rank a mediocre answer on a
+// wide-range question above another question's genuinely worst answer; rank
+// position doesn't have that problem.
+// Returns { tier, priority }: tier is 'none' | 'worst' | 'almostWorst' |
+// 'mid' | 'best'; priority is the CSS `order` value to use (more negative /
+// smaller = higher priority = shows up first).
+function rankAnswer(q, answer) {
+  if (!answer || answer.text === NO_SITUATION_TEXT) {
+    return { tier: 'none', priority: -1000 };
+  }
+
+  const judged = q.answers.filter(a => a.text !== NO_SITUATION_TEXT);
+  const ranked = [...judged].sort((a, b) => b.points - a.points); // best first
+  const rank = ranked.indexOf(answer); // 0 = best
+  const priority = ranked.length - rank; // 1 = worst .. N = best
+
+  let tier;
+  if (rank === 0) tier = 'best';
+  else if (rank === ranked.length - 1) tier = 'worst';
+  else if (rank === ranked.length - 2) tier = 'almostWorst';
+  else tier = 'mid';
+
+  return { tier, priority };
+}
+
+// Resolves which answer a person actually picked for SURVEY_QUESTIONS[i] and
+// ranks it via rankAnswer(). Returns { tier, priority, answer } — answer is
+// the matched answer object, or null if nothing could be resolved.
+function getAnswerTier(q, person, i) {
+  const idx = person.answerIndices?.[i];
+  let chosen = typeof idx === 'number' ? q.answers[idx] : undefined;
+
+  if (!chosen) {
+    // Legacy entry with no confirmed index: only the raw points value is
+    // known, which is ambiguous when a judged answer ties with the "no
+    // situation" one (usually both 0) — prefer the judged reading since it's
+    // the more common case.
+    const pts = person.answers?.[i];
+    if (typeof pts !== 'number') return { tier: 'none', priority: -1000, answer: null };
+    const judged = q.answers.filter(a => a.text !== NO_SITUATION_TEXT);
+    chosen = judged.find(a => a.points === pts) || q.answers.find(a => a.points === pts);
+  }
+
+  return { ...rankAnswer(q, chosen), answer: chosen || null };
+}
+
+// Visually reorders the regular question cards (via CSS `order`, not DOM
+// position) so the answers most worth revisiting show up first — see
+// getAnswerTier() for how priority is ranked. Gate/secret cards keep their
+// fixed spot at the very start/end. DOM order stays untouched on purpose —
+// handleSubmit() and updateScorePreview() rely on SURVEY_QUESTIONS index
+// order when walking `.question-card` elements.
 function reorderQuestionsByCompletion(person) {
   if (!questionsContainer) return;
   const gateCard = document.getElementById('card-gate');
   const secretCard = document.getElementById('card-secret');
-  if (gateCard) gateCard.style.order = '-1000';
-  if (secretCard) secretCard.style.order = '1000';
+  if (gateCard) gateCard.style.order = '-2000';
+  if (secretCard) secretCard.style.order = '2000';
 
   SURVEY_QUESTIONS.forEach((q, i) => {
     const card = document.getElementById(`card-q${i}`);
     if (!card) return;
-    const maxPoints = Math.max(...q.answers.map(a => a.points));
-    const deficit = (person.answers?.[i] ?? 0) - maxPoints; // <= 0; more negative = weaker
-    card.style.order = String(deficit);
+    card.style.order = String(getAnswerTier(q, person, i).priority);
   });
 }
 
@@ -501,6 +577,35 @@ function resetQuestionOrder() {
   if (!questionsContainer) return;
   questionsContainer.querySelectorAll('.question-card').forEach(card => {
     card.style.order = '';
+  });
+}
+
+// Collapses every already-answered question down to "question + current
+// answer + Zmień button" so a filled-out survey takes far less room to scan,
+// and colors each one by rankAnswer()'s tier. Called when opening an existing
+// person; expanding one back to its full option list (see buildSurveyForm's
+// "Zmień" button) is the only way back in, on purpose.
+function renderAnswerSummaries(person) {
+  if (!questionsContainer) return;
+  SURVEY_QUESTIONS.forEach((q, i) => {
+    const card = document.getElementById(`card-q${i}`);
+    if (!card) return;
+    const summaryText = card.querySelector('.answer-summary__text');
+    const { tier, answer } = getAnswerTier(q, person, i);
+    if (summaryText) summaryText.textContent = answer ? answer.text : 'Brak odpowiedzi';
+    card.dataset.tier = tier;
+    card.classList.add('is-collapsed');
+  });
+}
+
+// Expands every question back to its full option list with no answer
+// highlighting (used when starting a fresh survey, which has no current
+// answers to summarize).
+function resetQuestionCollapse() {
+  if (!questionsContainer) return;
+  questionsContainer.querySelectorAll('.question-card').forEach(card => {
+    card.classList.remove('is-collapsed');
+    delete card.dataset.tier;
   });
 }
 
@@ -1849,6 +1954,7 @@ function openAddModal() {
   editingId = null;
   surveyForm.reset();
   resetQuestionOrder();
+  resetQuestionCollapse();
   surveyForm.scrollTop = 0;
   updateColorPickerSelection(Math.floor(Math.random() * PLANET_GRADIENTS.length));
   modalTitle.textContent = 'Nowa relacja';
@@ -1903,6 +2009,7 @@ function openEditModal(id, mode = 'survey') {
   }
 
   reorderQuestionsByCompletion(person);
+  renderAnswerSummaries(person);
   surveyForm.scrollTop = surveyScrollPositions[id] || 0;
 
   modalTitle.textContent = `Edytuj: ${person.name}`;
@@ -1993,6 +2100,7 @@ window.switchToSurveyAndScroll = function(cardId) {
   // Find card and scroll
   const card = document.getElementById(cardId);
   if (card) {
+    card.classList.remove('is-collapsed'); // reveal the option list if it was collapsed
     setTimeout(() => {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
       card.style.outline = '2px solid #ef476f';
