@@ -189,8 +189,8 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
-const APP_VERSION = 'v0.9.77';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.77' -> '0.9.77', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.78';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.78' -> '0.9.78', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
 // default), 'off' (neutral/colorless), or 'blurred' (bands blend into each
@@ -358,12 +358,13 @@ function buildSurveyForm() {
   // ── Gate question (rendered first, stored separately) ──
   const gateCard = document.createElement('div');
   gateCard.className = 'question-card';
-
   gateCard.id = 'card-gate';
 
   const gateTitle = document.createElement('h3');
   gateTitle.textContent = `1. ${GATE_QUESTION.text}`;
   gateCard.appendChild(gateTitle);
+
+  const gateSummaryText = buildAnswerSummary(gateCard);
 
   const gateOptions = document.createElement('div');
   gateOptions.className = 'options-container';
@@ -377,7 +378,11 @@ function buildSurveyForm() {
     radio.name = 'gate';
     radio.value = answer.penalty;
     radio.required = true;
-    radio.addEventListener('change', updateScorePreview);
+    radio.addEventListener('change', () => {
+      gateSummaryText.textContent = answer.text;
+      gateCard.dataset.tier = rankAnswer(GATE_QUESTION, answer, 'penalty').tier;
+      updateScorePreview();
+    });
 
     const textSpan = document.createElement('span');
     textSpan.className = 'answer-text';
@@ -401,27 +406,7 @@ function buildSurveyForm() {
     title.textContent = `${qIndex + 2}. ${q.text}`;
     card.appendChild(title);
 
-    // Collapsed view for an already-answered question: current answer plus a
-    // button to expand the full option list and change it. Hidden unless the
-    // card carries the `is-collapsed` class — see openEditModal(), which
-    // collapses every answered question, and openAddModal(), which resets a
-    // fresh survey back to fully expanded.
-    const summary = document.createElement('div');
-    summary.className = 'answer-summary';
-
-    const summaryText = document.createElement('span');
-    summaryText.className = 'answer-summary__text';
-    summary.appendChild(summaryText);
-
-    const summaryToggle = document.createElement('button');
-    summaryToggle.type = 'button';
-    summaryToggle.className = 'answer-summary__toggle';
-    summaryToggle.textContent = 'Zmień';
-    summaryToggle.setAttribute('aria-label', 'Rozwiń, aby zmienić odpowiedź');
-    summaryToggle.addEventListener('click', () => card.classList.remove('is-collapsed'));
-    summary.appendChild(summaryToggle);
-
-    card.appendChild(summary);
+    const summaryText = buildAnswerSummary(card);
 
     const optionsWrap = document.createElement('div');
     optionsWrap.className = 'options-container';
@@ -465,6 +450,8 @@ function buildSurveyForm() {
   secretTitle.textContent = `${SURVEY_QUESTIONS.length + 2}. ${SECRET_QUESTION.text}`;
   secretCard.appendChild(secretTitle);
 
+  const secretSummaryText = buildAnswerSummary(secretCard);
+
   const secretOptions = document.createElement('div');
   secretOptions.className = 'options-container';
 
@@ -477,7 +464,11 @@ function buildSurveyForm() {
     radio.name = 'secret';
     radio.value = answer.cap;
     radio.required = true;
-    radio.addEventListener('change', updateScorePreview);
+    radio.addEventListener('change', () => {
+      secretSummaryText.textContent = answer.text;
+      secretCard.dataset.tier = rankAnswer(SECRET_QUESTION, answer, 'cap').tier;
+      updateScorePreview();
+    });
 
     const textSpan = document.createElement('span');
     textSpan.className = 'answer-text';
@@ -492,6 +483,29 @@ function buildSurveyForm() {
   questionsContainer.appendChild(secretCard);
 }
 
+// Builds the collapsed "current answer + Zmień" summary block for a question
+// card and appends it before the (later-appended) option list. Returns the
+// summary text span so the per-answer 'change' listener can keep it live.
+function buildAnswerSummary(card) {
+  const summary = document.createElement('div');
+  summary.className = 'answer-summary';
+
+  const summaryText = document.createElement('span');
+  summaryText.className = 'answer-summary__text';
+  summary.appendChild(summaryText);
+
+  const summaryToggle = document.createElement('button');
+  summaryToggle.type = 'button';
+  summaryToggle.className = 'answer-summary__toggle';
+  summaryToggle.textContent = 'Zmień';
+  summaryToggle.setAttribute('aria-label', 'Rozwiń, aby zmienić odpowiedź');
+  summaryToggle.addEventListener('click', () => card.classList.remove('is-collapsed'));
+  summary.appendChild(summaryToggle);
+
+  card.appendChild(summary);
+  return summaryText;
+}
+
 // This exact answer means "no data yet" rather than a real judgement, on the
 // questions that offer it — it always gets top priority and a neutral color,
 // regardless of its raw points value (which is usually 0, tying it with a
@@ -500,23 +514,26 @@ const NO_SITUATION_TEXT = 'Jeszcze nie było sytuacji, by to ocenić.';
 
 // Ranks one answer within its own question, for both the collapsed summary
 // color and the reordering priority. Ranks the question's *judged* answers
-// (everything except the "no situation" one) by points and reports where this
-// answer falls — worst, second-worst, best, or "mid" for anything in between
-// — rather than the raw points value or points-vs-max deficit. Questions use
-// different point scales (some top out at 2, others at 6), so comparing point
-// values or deficits across questions could still rank a mediocre answer on a
-// wide-range question above another question's genuinely worst answer; rank
-// position doesn't have that problem.
+// (everything except the "no situation" one) by their value field — 'points'
+// for the 16 regular questions, 'penalty' for the gate question, 'cap' for
+// the secret question, all "higher = better" — and reports where this answer
+// falls: worst, second-worst, best, or "mid" for anything in between. Rank
+// position is used rather than the raw value or a value-vs-max deficit
+// because questions use different scales (points top out anywhere from 2 to
+// 6; gate and secret use entirely different units), so comparing magnitudes
+// across questions could still rank a mediocre answer on one question above
+// another question's genuinely worst answer.
 // Returns { tier, priority }: tier is 'none' | 'worst' | 'almostWorst' |
 // 'mid' | 'best'; priority is the CSS `order` value to use (more negative /
-// smaller = higher priority = shows up first).
-function rankAnswer(q, answer) {
+// smaller = higher priority = shows up first) — comparable across every
+// question, gate and secret included, so they all share one priority queue.
+function rankAnswer(q, answer, valueKey = 'points') {
   if (!answer || answer.text === NO_SITUATION_TEXT) {
     return { tier: 'none', priority: -1000 };
   }
 
   const judged = q.answers.filter(a => a.text !== NO_SITUATION_TEXT);
-  const ranked = [...judged].sort((a, b) => b.points - a.points); // best first
+  const ranked = [...judged].sort((a, b) => b[valueKey] - a[valueKey]); // best first
   const rank = ranked.indexOf(answer); // 0 = best
   const priority = ranked.length - rank; // 1 = worst .. N = best
 
@@ -550,18 +567,32 @@ function getAnswerTier(q, person, i) {
   return { ...rankAnswer(q, chosen), answer: chosen || null };
 }
 
-// Visually reorders the regular question cards (via CSS `order`, not DOM
-// position) so the answers most worth revisiting show up first — see
-// getAnswerTier() for how priority is ranked. Gate/secret cards keep their
-// fixed spot at the very start/end. DOM order stays untouched on purpose —
-// handleSubmit() and updateScorePreview() rely on SURVEY_QUESTIONS index
-// order when walking `.question-card` elements.
+// Same idea as getAnswerTier(), for the gate and secret questions: their
+// chosen answer is looked up directly (both use point-like fields with no
+// duplicate values, so there's no index ambiguity to resolve).
+function getGateTier(person) {
+  const answer = GATE_QUESTION.answers.find(a => a.penalty === person.gateAnswer);
+  return { ...rankAnswer(GATE_QUESTION, answer, 'penalty'), answer: answer || null };
+}
+
+function getSecretTier(person) {
+  const answer = SECRET_QUESTION.answers.find(a => a.cap === person.secretCap);
+  return { ...rankAnswer(SECRET_QUESTION, answer, 'cap'), answer: answer || null };
+}
+
+// Visually reorders every question card (via CSS `order`, not DOM position),
+// gate and secret included, so the answers most worth revisiting show up
+// first — see rankAnswer() for how priority is ranked; all cards share one
+// priority queue, so a bad gate/secret answer surfaces alongside a bad
+// regular one instead of being pinned at a fixed spot. DOM order stays
+// untouched on purpose — handleSubmit() and updateScorePreview() rely on
+// SURVEY_QUESTIONS index order when walking `.question-card` elements.
 function reorderQuestionsByCompletion(person) {
   if (!questionsContainer) return;
   const gateCard = document.getElementById('card-gate');
   const secretCard = document.getElementById('card-secret');
-  if (gateCard) gateCard.style.order = '-2000';
-  if (secretCard) secretCard.style.order = '2000';
+  if (gateCard) gateCard.style.order = String(getGateTier(person).priority);
+  if (secretCard) secretCard.style.order = String(getSecretTier(person).priority);
 
   SURVEY_QUESTIONS.forEach((q, i) => {
     const card = document.getElementById(`card-q${i}`);
@@ -585,15 +616,25 @@ function resetQuestionOrder() {
 // "Zmień" button) is the only way back in, on purpose.
 function renderAnswerSummaries(person) {
   if (!questionsContainer) return;
-  SURVEY_QUESTIONS.forEach((q, i) => {
-    const card = document.getElementById(`card-q${i}`);
+
+  const applyCollapsedSummary = (card, tier, answer) => {
     if (!card) return;
     const summaryText = card.querySelector('.answer-summary__text');
-    const { tier, answer } = getAnswerTier(q, person, i);
     if (summaryText) summaryText.textContent = answer ? answer.text : 'Brak odpowiedzi';
     card.dataset.tier = tier;
     card.classList.add('is-collapsed');
+  };
+
+  const gateResult = getGateTier(person);
+  applyCollapsedSummary(document.getElementById('card-gate'), gateResult.tier, gateResult.answer);
+
+  SURVEY_QUESTIONS.forEach((q, i) => {
+    const result = getAnswerTier(q, person, i);
+    applyCollapsedSummary(document.getElementById(`card-q${i}`), result.tier, result.answer);
   });
+
+  const secretResult = getSecretTier(person);
+  applyCollapsedSummary(document.getElementById('card-secret'), secretResult.tier, secretResult.answer);
 }
 
 // Expands every question back to its full option list with no answer
