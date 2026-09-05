@@ -1023,7 +1023,10 @@ body.incognito-mode .stats-person-chip__name {
 }
 
 .level-tile__preview--blurred {
-  background: radial-gradient(circle, var(--level-3-color) 0%, var(--level-3-color) 22%, var(--level-2-color) 45%, var(--level-2-color) 55%, var(--level-1-color) 78%, var(--level-1-color) 100%);
+  /* Same hard-edged bands as --on, actually blurred (not just gradient-smoothed)
+     so the icon previews the real effect: a soft, feathered edge, not a color ramp. */
+  background: radial-gradient(circle, var(--level-3-color) 0%, var(--level-3-color) 33%, var(--level-2-color) 33%, var(--level-2-color) 66%, var(--level-1-color) 66%, var(--level-1-color) 100%);
+  filter: blur(2.5px);
 }
 
 .level-tile__label {
@@ -1035,6 +1038,39 @@ body.incognito-mode .stats-person-chip__name {
 
 .level-tile.is-selected .level-tile__label {
   color: var(--text-primary);
+}
+
+.level-opacity-control {
+  margin-top: 14px;
+}
+
+.level-opacity-control[hidden] {
+  display: none;
+}
+
+.level-opacity-control__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.level-opacity-control__row label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.level-opacity-control__value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+#level-opacity-slider {
+  width: 100%;
+  accent-color: var(--card-selected-border);
+  cursor: pointer;
 }
 
 #stats-view {
