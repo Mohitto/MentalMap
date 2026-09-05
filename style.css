@@ -1433,13 +1433,20 @@ body.incognito-mode .stats-person-chip__name {
   position: relative;
 }
 
+.question-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .question-card h3 {
   font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
-  margin-bottom: 12px;
   color: var(--text-primary);
-  padding-right: 8px;
+  flex: 1;
 }
 
 .options-container {
@@ -1546,13 +1553,13 @@ body.incognito-mode .stats-person-chip__name {
   color: var(--card-selected-border);
 }
 
-/* Collapsed answer summary: question + current answer + "Zmień" to expand.
-   Hidden by default (a fresh, unanswered survey shows the full option list);
-   openEditModal() adds .is-collapsed per card to switch to this compact view. */
+/* Collapsed answer summary: question + current answer, with a chevron toggle
+   (in .question-card__header) that stays visible either way so you can
+   freely collapse/expand while navigating. Hidden by default (a fresh,
+   unanswered survey shows the full option list); openEditModal() adds
+   .is-collapsed per card to switch to this compact view. */
 .answer-summary {
   display: none;
-  align-items: center;
-  gap: 12px;
   background: var(--card-bg);
   border: 1.5px solid var(--input-border);
   border-left: 4px solid var(--text-muted);
@@ -1561,7 +1568,7 @@ body.incognito-mode .stats-person-chip__name {
 }
 
 .question-card.is-collapsed .answer-summary {
-  display: flex;
+  display: block;
 }
 
 .question-card.is-collapsed .options-container {
@@ -1572,24 +1579,35 @@ body.incognito-mode .stats-person-chip__name {
   font-size: 13px;
   line-height: 1.4;
   color: var(--text-secondary);
-  flex: 1;
 }
 
+/* Chevron toggle: points down when collapsed ("expand"), flips to point up
+   when expanded ("collapse") — the classic accordion affordance. */
 .answer-summary__toggle {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   background: rgba(67, 97, 238, 0.14);
   color: var(--card-selected-border);
   border: none;
   border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .answer-summary__toggle:active {
-  transform: scale(0.94);
+  transform: scale(0.9);
+}
+
+.answer-summary__toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.question-card:not(.is-collapsed) .answer-summary__toggle svg {
+  transform: rotate(180deg);
 }
 
 /* Tier colors, from most to least worth revisiting */
