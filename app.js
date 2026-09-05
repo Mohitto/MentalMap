@@ -245,6 +245,7 @@ const solarSystem = $('#solar-system');
 const orbitLinesContainer = $('#orbit-lines-container');
 const planetsContainer = $('#planets-container');
 const labelsContainer = $('#labels-container');
+const menuLayerContainer = $('#planet-menu-container');
 const fabAdd = $('#fab-add');
 const surveyModal = $('#survey-modal');
 const surveyForm = $('#survey-form');
@@ -2065,6 +2066,7 @@ function renderPlanets() {
   if (!planetsContainer || !labelsContainer) return;
   planetsContainer.innerHTML = '';
   labelsContainer.innerHTML = '';
+  if (menuLayerContainer) menuLayerContainer.innerHTML = '';
   if (orbitLinesContainer) orbitLinesContainer.innerHTML = '';
 
   emptyState.style.display = people.length === 0 ? 'block' : 'none';
@@ -2091,24 +2093,6 @@ function renderPlanets() {
       planetEl.style.setProperty('--custom-glow', customGlow);
     }
 
-    // Planet Menu
-    const menu = document.createElement('div');
-    menu.className = 'planet-menu';
-    menu.innerHTML = `
-      <div class="planet-menu-item action-color" data-action="color" title="Edycja wizualna">🖌️</div>
-      <div class="planet-menu-item action-survey" data-action="survey" title="Edycja ankiety">✔️</div>
-      <div class="planet-menu-item action-summary" data-action="summary" title="Podsumowanie">≡</div>
-    `;
-
-    menu.querySelectorAll('.planet-menu-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        handlePlanetAction(person.id, btn.dataset.action);
-      });
-    });
-
-    group.appendChild(menu);
-
     // Click to select planet
     group.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -2117,6 +2101,51 @@ function renderPlanets() {
 
     group.appendChild(planetEl);
     planetsContainer.appendChild(group);
+
+    // Planet Menu — rendered on its own top layer (above the name labels) so it's
+    // never covered, positioned in sync with the planet via the same orbit transform.
+    const menuGroup = document.createElement('div');
+    menuGroup.className = 'menu-group';
+    menuGroup.dataset.id = person.id;
+
+    const menu = document.createElement('div');
+    menu.className = 'planet-menu';
+    menu.innerHTML = `
+      <div class="planet-menu-item action-color" data-action="color" data-tooltip="Wygląd planety" aria-label="Edycja wyglądu planety">🎨</div>
+      <div class="planet-menu-item action-survey" data-action="survey" data-tooltip="Edycja ankiety" aria-label="Edycja ankiety">📋</div>
+      <div class="planet-menu-item action-summary" data-action="summary" data-tooltip="Podsumowanie" aria-label="Podsumowanie">📊</div>
+    `;
+
+    menu.querySelectorAll('.planet-menu-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handlePlanetAction(person.id, btn.dataset.action);
+      });
+
+      // Touch devices: press-and-hold reveals the caption instead of hover
+      let tooltipTimer = null;
+      let longPressShown = false;
+      btn.addEventListener('touchstart', () => {
+        longPressShown = false;
+        tooltipTimer = setTimeout(() => {
+          btn.classList.add('show-tooltip');
+          longPressShown = true;
+        }, 450);
+      }, { passive: true });
+      const clearTooltipHold = (e) => {
+        clearTimeout(tooltipTimer);
+        if (longPressShown) {
+          e.preventDefault();
+          setTimeout(() => btn.classList.remove('show-tooltip'), 1000);
+          longPressShown = false;
+        }
+      };
+      btn.addEventListener('touchend', clearTooltipHold);
+      btn.addEventListener('touchcancel', clearTooltipHold);
+    });
+
+    menuGroup.appendChild(menu);
+    if (menuLayerContainer) menuLayerContainer.appendChild(menuGroup);
 
     // Label Group
     const labelGroup = document.createElement('div');
@@ -2198,6 +2227,10 @@ function togglePlanetMenu(id) {
   if (group) {
     group.classList.add('is-active');
   }
+  const menuGroup = menuLayerContainer?.querySelector(`.menu-group[data-id="${id}"]`);
+  if (menuGroup) {
+    menuGroup.classList.add('is-active');
+  }
 
   centerCameraOnPlanet(id);
 }
@@ -2207,6 +2240,10 @@ function closePlanetMenu(restoreCamera = true) {
     const group = planetsContainer?.querySelector(`.planet-group[data-id="${selectedPlanetId}"]`);
     if (group) {
       group.classList.remove('is-active');
+    }
+    const menuGroup = menuLayerContainer?.querySelector(`.menu-group[data-id="${selectedPlanetId}"]`);
+    if (menuGroup) {
+      menuGroup.classList.remove('is-active');
     }
     selectedPlanetId = null;
     
@@ -2333,6 +2370,11 @@ function startAnimation() {
         const labelGroup = labelsContainer.querySelector(`.label-group[data-id="${person.id}"]`);
         if (labelGroup) {
           labelGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+        }
+
+        const menuGroup = menuLayerContainer?.querySelector(`.menu-group[data-id="${person.id}"]`);
+        if (menuGroup) {
+          menuGroup.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
         }
       });
 
