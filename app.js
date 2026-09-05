@@ -189,8 +189,8 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
-const APP_VERSION = 'v0.9.79';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.78' -> '0.9.78', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.80';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.80' -> '0.9.80', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
 // default), 'off' (neutral/colorless), or 'blurred' (bands blend into each
@@ -361,11 +361,7 @@ function buildSurveyForm() {
   gateCard.className = 'question-card';
   gateCard.id = 'card-gate';
 
-  const gateTitle = document.createElement('h3');
-  gateTitle.textContent = `1. ${GATE_QUESTION.text}`;
-  gateCard.appendChild(gateTitle);
-
-  const gateSummaryText = buildAnswerSummary(gateCard);
+  const gateSummaryText = buildAnswerSummary(gateCard, `1. ${GATE_QUESTION.text}`);
 
   const gateOptions = document.createElement('div');
   gateOptions.className = 'options-container';
@@ -403,11 +399,7 @@ function buildSurveyForm() {
     card.className = 'question-card';
     card.id = `card-q${qIndex}`;
 
-    const title = document.createElement('h3');
-    title.textContent = `${qIndex + 2}. ${q.text}`;
-    card.appendChild(title);
-
-    const summaryText = buildAnswerSummary(card);
+    const summaryText = buildAnswerSummary(card, `${qIndex + 2}. ${q.text}`);
 
     const optionsWrap = document.createElement('div');
     optionsWrap.className = 'options-container';
@@ -447,11 +439,7 @@ function buildSurveyForm() {
   secretCard.className = 'question-card';
   secretCard.id = 'card-secret';
 
-  const secretTitle = document.createElement('h3');
-  secretTitle.textContent = `${SURVEY_QUESTIONS.length + 2}. ${SECRET_QUESTION.text}`;
-  secretCard.appendChild(secretTitle);
-
-  const secretSummaryText = buildAnswerSummary(secretCard);
+  const secretSummaryText = buildAnswerSummary(secretCard, `${SURVEY_QUESTIONS.length + 2}. ${SECRET_QUESTION.text}`);
 
   const secretOptions = document.createElement('div');
   secretOptions.className = 'options-container';
@@ -484,10 +472,31 @@ function buildSurveyForm() {
   questionsContainer.appendChild(secretCard);
 }
 
-// Builds the collapsed "current answer + Zmień" summary block for a question
-// card and appends it before the (later-appended) option list. Returns the
-// summary text span so the per-answer 'change' listener can keep it live.
-function buildAnswerSummary(card) {
+// Builds a question card's title row (question text + a chevron toggle that
+// stays put whether the card is collapsed or expanded, so you can freely
+// collapse/expand while navigating) plus the collapsed "current answer" line
+// shown only while collapsed. Appends both before the (later-appended) option
+// list. Returns the summary text span so the per-answer 'change' listener can
+// keep it live.
+function buildAnswerSummary(card, titleText) {
+  const header = document.createElement('div');
+  header.className = 'question-card__header';
+
+  const title = document.createElement('h3');
+  title.textContent = titleText;
+  header.appendChild(title);
+
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'answer-summary__toggle';
+  toggle.setAttribute('aria-label', 'Zwiń lub rozwiń odpowiedzi');
+  toggle.setAttribute('aria-expanded', 'true');
+  toggle.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  toggle.addEventListener('click', () => setCardCollapsed(card, !card.classList.contains('is-collapsed')));
+  header.appendChild(toggle);
+
+  card.appendChild(header);
+
   const summary = document.createElement('div');
   summary.className = 'answer-summary';
 
@@ -495,16 +504,17 @@ function buildAnswerSummary(card) {
   summaryText.className = 'answer-summary__text';
   summary.appendChild(summaryText);
 
-  const summaryToggle = document.createElement('button');
-  summaryToggle.type = 'button';
-  summaryToggle.className = 'answer-summary__toggle';
-  summaryToggle.textContent = 'Zmień';
-  summaryToggle.setAttribute('aria-label', 'Rozwiń, aby zmienić odpowiedź');
-  summaryToggle.addEventListener('click', () => card.classList.remove('is-collapsed'));
-  summary.appendChild(summaryToggle);
-
   card.appendChild(summary);
   return summaryText;
+}
+
+// Single place that flips a question card between collapsed and expanded,
+// keeping the toggle button's aria-expanded in sync either way.
+function setCardCollapsed(card, collapsed) {
+  if (!card) return;
+  card.classList.toggle('is-collapsed', collapsed);
+  const toggle = card.querySelector('.answer-summary__toggle');
+  if (toggle) toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
 }
 
 // This exact answer means "no data yet" rather than a real judgement, on the
@@ -611,10 +621,10 @@ function resetQuestionOrder() {
 }
 
 // Collapses every already-answered question down to "question + current
-// answer + Zmień button" so a filled-out survey takes far less room to scan,
-// and colors each one by rankAnswer()'s tier. Called when opening an existing
-// person; expanding one back to its full option list (see buildSurveyForm's
-// "Zmień" button) is the only way back in, on purpose.
+// answer" (chevron toggle) so a filled-out survey takes far less room to
+// scan, and colors each one by rankAnswer()'s tier. Called when opening an
+// existing person; the chevron toggles each card back to its full option
+// list and back again, freely, so navigating the whole list stays easy.
 function renderAnswerSummaries(person) {
   if (!questionsContainer) return;
 
@@ -623,7 +633,7 @@ function renderAnswerSummaries(person) {
     const summaryText = card.querySelector('.answer-summary__text');
     if (summaryText) summaryText.textContent = answer ? answer.text : 'Brak odpowiedzi';
     card.dataset.tier = tier;
-    card.classList.add('is-collapsed');
+    setCardCollapsed(card, true);
   };
 
   const gateResult = getGateTier(person);
@@ -644,7 +654,7 @@ function renderAnswerSummaries(person) {
 function resetQuestionCollapse() {
   if (!questionsContainer) return;
   questionsContainer.querySelectorAll('.question-card').forEach(card => {
-    card.classList.remove('is-collapsed');
+    setCardCollapsed(card, false);
     delete card.dataset.tier;
   });
 }
@@ -1828,7 +1838,7 @@ window.switchToSurveyAndScroll = function(cardId) {
   // Find card and scroll
   const card = document.getElementById(cardId);
   if (card) {
-    card.classList.remove('is-collapsed'); // reveal the option list if it was collapsed
+    setCardCollapsed(card, false); // reveal the option list if it was collapsed
     setTimeout(() => {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
       card.style.outline = '2px solid #ef476f';
