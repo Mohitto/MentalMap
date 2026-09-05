@@ -472,6 +472,10 @@ html, body {
   box-shadow: 0 4px 12px rgba(0,0,0,0.7);
 }
 
+.planet-menu-item svg {
+  flex-shrink: 0;
+}
+
 /* Caption shown below the button on hover, or on touch-and-hold */
 .planet-menu-item::after {
   content: attr(data-tooltip);
