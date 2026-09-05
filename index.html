@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.80">
+    <link rel="stylesheet" href="style.css?v=0.9.81">
 </head>
 <body>
     <script>
@@ -344,6 +344,14 @@
                     </button>
                 </div>
 
+                <div class="level-opacity-control" id="level-opacity-control">
+                    <div class="level-opacity-control__row">
+                        <label for="level-opacity-slider">Przezroczystość pól</label>
+                        <span id="level-opacity-value" class="level-opacity-control__value">30%</span>
+                    </div>
+                    <input type="range" id="level-opacity-slider" min="5" max="90" step="5" value="30" aria-label="Przezroczystość pól poziomów">
+                </div>
+
             </div>
         </div>
     </div>
@@ -354,7 +362,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.80</div>
-    <script src="app.js?v=0.9.80"></script>
+    <div id="app-version">v0.9.81</div>
+    <script src="app.js?v=0.9.81"></script>
 </body>
 </html>
