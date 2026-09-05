@@ -189,12 +189,14 @@ const SECRET_QUESTION = {
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
+const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
 const APP_VERSION = 'v0.9.79';
 const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.79' -> '0.9.79', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
-// default), 'off' (neutral/colorless), or 'blurred' (bands blend into each
-// other instead of cutting off sharply). Persisted so the choice sticks.
+// default), 'off' (neutral/colorless), or 'blurred' (bands feather into each
+// other via a blur filter instead of cutting off sharply). Persisted so the
+// choice sticks.
 let levelViewMode = 'on';
 try {
   const savedLevelView = localStorage.getItem(LEVEL_VIEW_KEY);
@@ -202,6 +204,16 @@ try {
     levelViewMode = savedLevelView;
   }
 } catch (_) { /* ignore — default 'on' */ }
+
+// User-adjustable opacity for the level fields (0-1), shared by 'on' and
+// 'blurred' so switching between them never changes how visible the fields are.
+let levelViewOpacity = 0.3;
+try {
+  const savedOpacity = parseFloat(localStorage.getItem(LEVEL_OPACITY_KEY));
+  if (Number.isFinite(savedOpacity) && savedOpacity >= 0.05 && savedOpacity <= 0.9) {
+    levelViewOpacity = savedOpacity;
+  }
+} catch (_) { /* ignore — default 0.3 */ }
 
 // Guards for the persistence layer (see loadPeople / savePeople).
 let saveBlocked = false;
@@ -1050,6 +1062,22 @@ function refreshSettingsModal() {
   $$('.level-tile').forEach(tile => {
     tile.classList.toggle('is-selected', tile.dataset.levelView === levelViewMode);
   });
+
+  const slider = $('#level-opacity-slider');
+  if (slider) slider.value = String(Math.round(levelViewOpacity * 100));
+  updateLevelOpacityLabel();
+  updateLevelOpacityControlVisibility();
+}
+
+function updateLevelOpacityLabel() {
+  const label = $('#level-opacity-value');
+  if (label) label.textContent = `${Math.round(levelViewOpacity * 100)}%`;
+}
+
+// No colored fields to adjust once the user has turned them off entirely.
+function updateLevelOpacityControlVisibility() {
+  const control = $('#level-opacity-control');
+  if (control) control.hidden = levelViewMode === 'off';
 }
 
 function openSettingsModal() {
@@ -1076,6 +1104,14 @@ function setLevelViewMode(mode) {
   $$('.level-tile').forEach(tile => {
     tile.classList.toggle('is-selected', tile.dataset.levelView === mode);
   });
+  updateLevelOpacityControlVisibility();
+}
+
+function setLevelViewOpacity(percent) {
+  const clamped = Math.min(90, Math.max(5, percent));
+  levelViewOpacity = clamped / 100;
+  try { localStorage.setItem(LEVEL_OPACITY_KEY, String(levelViewOpacity)); } catch (_) { /* ignore */ }
+  updateLevelOpacityLabel();
 }
 
 function bindSettingsEvents() {
@@ -1096,6 +1132,8 @@ function bindSettingsEvents() {
   $$('.level-tile').forEach(tile => {
     tile.addEventListener('click', () => setLevelViewMode(tile.dataset.levelView));
   });
+
+  $('#level-opacity-slider')?.addEventListener('input', (e) => setLevelViewOpacity(Number(e.target.value)));
 }
 
 async function handleGoogleSignIn() {
@@ -2310,38 +2348,29 @@ function handlePlanetAction(id, action) {
 // LEVEL ZONE RENDERING (orbit rings: off / on / blurred)
 // ═══════════════════════════════════════════
 
-// Same translucent fills the "on" mode's plain CSS uses (.orbit-ring[data-level]),
-// duplicated here so blurred mode can build a gradient from them — it must match
-// "on" mode's opacity exactly, not just its hue.
-const LEVEL_RGBA = { 1: 'rgba(239, 68, 68, 0.06)', 2: 'rgba(245, 158, 11, 0.07)', 3: 'rgba(34, 197, 94, 0.08)' };
+const LEVEL_RGB = { 1: '239, 68, 68', 2: '245, 158, 11', 3: '34, 197, 94' };
 const LEVEL_OFF_OPACITY = { 3: 0.09, 2: 0.06, 1: 0.04 };
+// Blurred mode's feather radius, in px — enough to visibly melt one ring's
+// edge into the next, scaled against typical ring sizes (tens to hundreds of px).
+const LEVEL_BLUR_PX = 26;
 
-// Blurred mode: each ring keeps its own color through most of its radius,
-// then blends into the color of the next band down (skipping past any empty
-// levels), so boundaries fade into each other instead of cutting sharply.
-// Level 0 has no fill of its own (it's the open void beyond the outermost
-// band), so the outermost colored ring fades to transparent rather than
-// blending into an invented color.
-function nextActiveLevelRgba(level, layout) {
-  for (let l = level - 1; l >= 1; l--) {
-    if (layout[l]) return LEVEL_RGBA[l];
-  }
-  return 'transparent';
-}
-
-function applyLevelRingStyle(ring, level, layout) {
+// 'on' and 'blurred' render each ring as the same flat, user-adjustable-opacity
+// color (levelViewOpacity) — the only difference is 'blurred' also feathers the
+// ring's edge with an actual blur filter, so it visually melts into whichever
+// ring sits behind it instead of cutting off sharply. That's a real optical
+// blur, not a color gradient — a gradient still has a crisp edge, it just
+// changes hue along the way, which reads as "different colors", not "blurred".
+function applyLevelRingStyle(ring, level) {
   if (!ring || level === 0) {
-    if (ring) ring.style.background = '';
+    if (ring) { ring.style.background = ''; ring.style.filter = ''; }
     return;
   }
   if (levelViewMode === 'off') {
     ring.style.background = `rgba(255, 255, 255, ${LEVEL_OFF_OPACITY[level]})`;
-  } else if (levelViewMode === 'blurred') {
-    const ownColor = LEVEL_RGBA[level];
-    const nextColor = nextActiveLevelRgba(level, layout);
-    ring.style.background = `radial-gradient(circle, ${ownColor} 0%, ${ownColor} 45%, ${nextColor} 100%)`;
+    ring.style.filter = '';
   } else {
-    ring.style.background = '';
+    ring.style.background = `rgba(${LEVEL_RGB[level]}, ${levelViewOpacity})`;
+    ring.style.filter = levelViewMode === 'blurred' ? `blur(${LEVEL_BLUR_PX}px)` : '';
   }
 }
 
@@ -2406,7 +2435,7 @@ function startAnimation() {
           ring.style.display = '';
           ring.style.width = `${r * 2}px`;
           ring.style.height = `${r * 2}px`;
-          applyLevelRingStyle(ring, level, dynamicLayout);
+          applyLevelRingStyle(ring, level);
         }
 
         if (label) {
