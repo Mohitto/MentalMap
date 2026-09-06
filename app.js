@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
 const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
-const APP_VERSION = 'v0.9.79';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.79' -> '0.9.79', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.81';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.81' -> '0.9.81', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
 // default), 'off' (neutral/colorless), or 'blurred' (bands feather into each
@@ -2159,9 +2159,28 @@ function renderPlanets() {
     const menu = document.createElement('div');
     menu.className = 'planet-menu';
     menu.innerHTML = `
-      <div class="planet-menu-item action-color" data-action="color" data-tooltip="Wygląd planety" aria-label="Edycja wyglądu planety">🎨</div>
-      <div class="planet-menu-item action-survey" data-action="survey" data-tooltip="Edycja ankiety" aria-label="Edycja ankiety">📋</div>
-      <div class="planet-menu-item action-summary" data-action="summary" data-tooltip="Podsumowanie" aria-label="Podsumowanie">📊</div>
+      <div class="planet-menu-item action-color" data-action="color" data-tooltip="Wygląd planety" aria-label="Edycja wyglądu planety">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21a9 8 0 1 1 8-9c0 2-1.2 3-3 3h-1.3c-.7 0-1.2.6-1.2 1.2 0 .3.1.5.3.8.2.3.3.6.3 1 0 1.1-.9 2-2.1 2-.4 0-.7-.1-1-.3"/>
+          <circle cx="7.5" cy="10.5" r="1.1"/>
+          <circle cx="10" cy="7" r="1.1"/>
+          <circle cx="15" cy="8" r="1.1"/>
+        </svg>
+      </div>
+      <div class="planet-menu-item action-survey" data-action="survey" data-tooltip="Edycja ankiety" aria-label="Edycja ankiety">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="4" width="12" height="17" rx="2"/>
+          <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
+      <div class="planet-menu-item action-summary" data-action="summary" data-tooltip="Podsumowanie" aria-label="Podsumowanie">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="6" y1="20" x2="6" y2="14"/>
+          <line x1="12" y1="20" x2="12" y2="8"/>
+          <line x1="18" y1="20" x2="18" y2="11"/>
+        </svg>
+      </div>
     `;
 
     menu.querySelectorAll('.planet-menu-item').forEach(btn => {
