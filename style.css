@@ -969,6 +969,14 @@ body.incognito-mode .stats-person-chip__name {
   color: var(--text-muted);
 }
 
+.settings-account-row__hint--warn {
+  color: #fca5a5;
+}
+
+.sync-status--warn {
+  color: #fca5a5;
+}
+
 .settings-account-row__chevron {
   flex-shrink: 0;
   color: var(--text-muted);
