@@ -1813,10 +1813,14 @@ body.incognito-mode .stats-person-chip__name {
   }
 }
 
-.color-picker { display: flex; gap: 12px; overflow-x: auto; padding: 8px 4px; scrollbar-width: none; }
+.color-picker { display: flex; gap: 16px; overflow-x: auto; padding: 8px 6px; scrollbar-width: none; }
 .color-picker::-webkit-scrollbar { display: none; }
-.color-swatch { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-.color-swatch.selected { border-color: #fff; transform: scale(1.15); box-shadow: 0 4px 12px rgba(255,255,255,0.3); }
+.color-swatch { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.5); position: relative; }
+/* Scaling up the selected swatch doesn't affect its flex layout box, so
+   without raising it above its neighbors in paint order, the next (later)
+   swatch — drawn on top by default — visually clips the glow and the
+   scaled-up edge instead of letting it show over the gap. */
+.color-swatch.selected { border-color: #fff; transform: scale(1.15); box-shadow: 0 4px 12px rgba(255,255,255,0.3); z-index: 1; }
 /* ── MODAL MODES (color / survey / summary) ── */
 
 #survey-modal[data-mode="color"] #questions-container,
