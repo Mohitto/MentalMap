@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
 const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
-const APP_VERSION = 'v0.9.82';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.82' -> '0.9.82', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.83';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.83' -> '0.9.83', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands),
 // 'off' (neutral/colorless), or 'blurred' (bands feather into each other via a
@@ -1072,14 +1072,23 @@ function refreshSettingsModal() {
   });
 
   const slider = $('#level-opacity-slider');
-  if (slider) slider.value = String(Math.round(levelViewOpacity * 100));
+  if (slider) slider.value = String(levelViewTransparencyPercent());
   updateLevelOpacityLabel();
   updateLevelOpacityControlVisibility();
 }
 
+// The slider reads as "transparency" (higher = more see-through), which is
+// the inverse of levelViewOpacity (the alpha actually used to paint the
+// rings — higher = more solid). Keep that inversion in this one spot rather
+// than storing transparency directly, so the rendering code (and the
+// persisted/synced value) still just means "alpha", unambiguously.
+function levelViewTransparencyPercent() {
+  return Math.round((1 - levelViewOpacity) * 100);
+}
+
 function updateLevelOpacityLabel() {
   const label = $('#level-opacity-value');
-  if (label) label.textContent = `${Math.round(levelViewOpacity * 100)}%`;
+  if (label) label.textContent = `${levelViewTransparencyPercent()}%`;
 }
 
 // No colored fields to adjust once the user has turned them off entirely.
@@ -1116,9 +1125,11 @@ function setLevelViewMode(mode) {
   queueSyncSettings();
 }
 
-function setLevelViewOpacity(percent) {
-  const clamped = Math.min(90, Math.max(5, percent));
-  levelViewOpacity = clamped / 100;
+// `transparencyPercent` is what the slider hands us (higher = more
+// see-through) — invert it to get the alpha actually used for painting.
+function setLevelViewOpacity(transparencyPercent) {
+  const clamped = Math.min(90, Math.max(5, transparencyPercent));
+  levelViewOpacity = 1 - (clamped / 100);
   try { localStorage.setItem(LEVEL_OPACITY_KEY, String(levelViewOpacity)); } catch (_) { /* ignore */ }
   updateLevelOpacityLabel();
   queueSyncSettings();
