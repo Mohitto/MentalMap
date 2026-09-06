@@ -190,14 +190,14 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
 const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
-const APP_VERSION = 'v0.9.79';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.79' -> '0.9.79', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.80';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.80' -> '0.9.80', matches the ?v= convention used elsewhere
 
-// How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
-// default), 'off' (neutral/colorless), or 'blurred' (bands feather into each
-// other via a blur filter instead of cutting off sharply). Persisted so the
+// How the level zones (green/yellow/red) render on the map: 'on' (solid bands),
+// 'off' (neutral/colorless), or 'blurred' (bands feather into each other via a
+// blur filter instead of cutting off sharply — the default). Persisted so the
 // choice sticks.
-let levelViewMode = 'on';
+let levelViewMode = 'blurred';
 try {
   const savedLevelView = localStorage.getItem(LEVEL_VIEW_KEY);
   if (savedLevelView === 'on' || savedLevelView === 'off' || savedLevelView === 'blurred') {
