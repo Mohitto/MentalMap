@@ -24,7 +24,7 @@ import {
   sendPasswordResetEmail, sendEmailVerification, reload
 } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-auth.js';
 import {
-  initializeFirestore, persistentLocalCache, doc, setDoc, getDocs, collection,
+  initializeFirestore, persistentLocalCache, doc, setDoc, getDoc, getDocs, collection,
   deleteDoc, onSnapshot, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js';
 
@@ -183,4 +183,16 @@ export function subscribePeople(uid, onChanges) {
     },
     (err) => console.error('Firestore people listener error:', err)
   );
+}
+
+// A single small doc for app preferences (currently just the level-field
+// view) — one doc rather than a collection since there's only ever one.
+export async function pushSettings(uid, settings) {
+  const ref = doc(db, 'users', uid, 'settings', 'preferences');
+  await setDoc(ref, Object.assign({}, settings, { updatedAt: serverTimestamp() }));
+}
+
+export async function fetchSettingsOnce(uid) {
+  const snap = await getDoc(doc(db, 'users', uid, 'settings', 'preferences'));
+  return snap.exists() ? snap.data() : null;
 }

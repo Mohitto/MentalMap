@@ -193,11 +193,11 @@ const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
 const APP_VERSION = 'v0.9.81';
 const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.81' -> '0.9.81', matches the ?v= convention used elsewhere
 
-// How the level zones (green/yellow/red) render on the map: 'on' (solid bands,
-// default), 'off' (neutral/colorless), or 'blurred' (bands feather into each
-// other via a blur filter instead of cutting off sharply). Persisted so the
+// How the level zones (green/yellow/red) render on the map: 'on' (solid bands),
+// 'off' (neutral/colorless), or 'blurred' (bands feather into each other via a
+// blur filter instead of cutting off sharply — the default). Persisted so the
 // choice sticks.
-let levelViewMode = 'on';
+let levelViewMode = 'blurred';
 try {
   const savedLevelView = localStorage.getItem(LEVEL_VIEW_KEY);
   if (savedLevelView === 'on' || savedLevelView === 'off' || savedLevelView === 'blurred') {
@@ -1105,6 +1105,7 @@ function setLevelViewMode(mode) {
     tile.classList.toggle('is-selected', tile.dataset.levelView === mode);
   });
   updateLevelOpacityControlVisibility();
+  queueSyncSettings();
 }
 
 function setLevelViewOpacity(percent) {
@@ -1112,6 +1113,42 @@ function setLevelViewOpacity(percent) {
   levelViewOpacity = clamped / 100;
   try { localStorage.setItem(LEVEL_OPACITY_KEY, String(levelViewOpacity)); } catch (_) { /* ignore */ }
   updateLevelOpacityLabel();
+  queueSyncSettings();
+}
+
+// No-op whenever sync isn't active, same convention as queueSyncUpsert for people.
+function queueSyncSettings() {
+  if (!isSyncActive()) return;
+  syncApi.pushSettings(syncState.uid, { levelViewMode, levelViewOpacity })
+    .catch(e => console.error('Cloud sync of settings failed:', e));
+}
+
+// Called once per successful (re)connect — see completeSignIn(). Cloud wins
+// when it already has a value (another device set it); otherwise this is the
+// first device to connect this account, so it pushes its own local choice up.
+async function pullAndApplySettings() {
+  let remote = null;
+  try {
+    remote = await syncApi.fetchSettingsOnce(syncState.uid);
+  } catch (e) {
+    console.error('Failed to fetch cloud settings:', e);
+    return;
+  }
+
+  if (!remote) {
+    queueSyncSettings();
+    return;
+  }
+
+  if (remote.levelViewMode === 'on' || remote.levelViewMode === 'off' || remote.levelViewMode === 'blurred') {
+    levelViewMode = remote.levelViewMode;
+    try { localStorage.setItem(LEVEL_VIEW_KEY, levelViewMode); } catch (_) { /* ignore */ }
+  }
+  if (Number.isFinite(remote.levelViewOpacity) && remote.levelViewOpacity >= 0.05 && remote.levelViewOpacity <= 0.9) {
+    levelViewOpacity = remote.levelViewOpacity;
+    try { localStorage.setItem(LEVEL_OPACITY_KEY, String(levelViewOpacity)); } catch (_) { /* ignore */ }
+  }
+  refreshSettingsModal();
 }
 
 function bindSettingsEvents() {
@@ -1284,6 +1321,8 @@ async function completeSignIn(user) {
     showAccountStatus('');
     return;
   }
+
+  pullAndApplySettings();
 
   // Distinguish a genuinely new sign-in from a routine resume of a session
   // already established on this device: once synced, local storage already
