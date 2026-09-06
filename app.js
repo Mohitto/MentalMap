@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
 const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
-const APP_VERSION = 'v0.9.83';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.83' -> '0.9.83', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.84';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.84' -> '0.9.84', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands),
 // 'off' (neutral/colorless), or 'blurred' (bands feather into each other via a
@@ -904,13 +904,47 @@ function savePeople() {
 const PENDING_SIGNIN_KEY = 'mentalmap_pending_redirect_signin';
 const SYNCED_BEFORE_KEY = 'mentalmap_synced_before'; // set once sign-in succeeds, so a relaunch knows to check Firebase's auth state at all
 const PRE_SIGNIN_SNAPSHOT_KEY = 'mentalmap_pre_signin_snapshot';
+const SYNC_ERROR_KEY = 'mentalmap_last_sync_error';
 
 let syncApi = null; // cached module namespace from the lazily-imported firebase-sync.js
-let syncState = { uid: null, email: null, verified: false, unsubscribePeople: null };
+// cloudCount: last known number of people docs found for this account, purely
+// for display — refreshed on connect and after every full pull.
+let syncState = { uid: null, email: null, verified: false, cloudCount: null, unsubscribePeople: null };
 let pendingCloudPeople = null; // set only while #account-screen-merge is showing
 
 function isSyncActive() {
   return !!(syncState.uid && syncState.verified);
+}
+
+// A push/fetch failure (most often Firestore rejecting the write — e.g. the
+// security rules deployed in the Firebase console don't match what the app
+// actually sends) used to fail silently: "Synchronizacja aktywna" kept
+// showing even though nothing ever reached the server. Persisted (not just
+// in-memory) so it survives a reload — the next time the user opens Account
+// or Settings, a stuck error is visible instead of invisible.
+function recordSyncError(message) {
+  try { localStorage.setItem(SYNC_ERROR_KEY, JSON.stringify({ message, at: Date.now() })); } catch (_) { /* ignore */ }
+  refreshAccountSignedInScreen();
+  refreshSettingsModal();
+}
+
+function clearSyncError() {
+  try { localStorage.removeItem(SYNC_ERROR_KEY); } catch (_) { /* ignore */ }
+}
+
+function readSyncError() {
+  try {
+    const raw = localStorage.getItem(SYNC_ERROR_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+}
+
+function pluralOsob(n) {
+  if (n === 1) return `${n} osoba`;
+  const lastDigit = n % 10;
+  const lastTwo = n % 100;
+  if (lastDigit >= 2 && lastDigit <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return `${n} osoby`;
+  return `${n} osób`;
 }
 
 async function loadSyncModule() {
@@ -1019,6 +1053,20 @@ function showAccountStatus(message, kind = 'info') {
 function refreshAccountSignedInScreen() {
   const emailEl = $('#account-signed-in-email');
   if (emailEl) emailEl.textContent = syncState.email || '';
+
+  const statusEl = $('#account-sync-status');
+  if (statusEl) {
+    const err = readSyncError();
+    if (err) {
+      statusEl.textContent = err.message;
+      statusEl.classList.add('sync-status--warn');
+    } else {
+      statusEl.textContent = typeof syncState.cloudCount === 'number'
+        ? `Synchronizacja aktywna — ${pluralOsob(syncState.cloudCount)} w chmurze`
+        : 'Synchronizacja aktywna';
+      statusEl.classList.remove('sync-status--warn');
+    }
+  }
 }
 
 function openAccountModal() {
@@ -1060,10 +1108,13 @@ function refreshSettingsModal() {
   if (titleEl && hintEl) {
     if (isSyncActive()) {
       titleEl.textContent = syncState.email || 'Konto';
-      hintEl.textContent = 'Synchronizacja aktywna — zarządzaj kontem';
+      const err = readSyncError();
+      hintEl.textContent = err ? 'Błąd synchronizacji — sprawdź Konto' : 'Synchronizacja aktywna — zarządzaj kontem';
+      hintEl.classList.toggle('settings-account-row__hint--warn', !!err);
     } else {
       titleEl.textContent = 'Zaloguj się';
       hintEl.textContent = 'Zapewni Ci to kopię zapasową na innych urządzeniach';
+      hintEl.classList.remove('settings-account-row__hint--warn');
     }
   }
 
@@ -1139,7 +1190,11 @@ function setLevelViewOpacity(transparencyPercent) {
 function queueSyncSettings() {
   if (!isSyncActive()) return;
   syncApi.pushSettings(syncState.uid, { levelViewMode, levelViewOpacity })
-    .catch(e => console.error('Cloud sync of settings failed:', e));
+    .then(clearSyncError)
+    .catch(e => {
+      console.error('Cloud sync of settings failed:', e);
+      recordSyncError('Nie udało się zapisać ustawień w chmurze — sprawdź reguły Firestore.');
+    });
 }
 
 // Called once per successful (re)connect — see completeSignIn(). Cloud wins
@@ -1360,9 +1415,27 @@ async function completeSignIn(user) {
 
   if (alreadySynced) {
     startPeopleListener();
+    refreshCloudCount();
   } else {
     await pullAndReconcile();
   }
+}
+
+// Lightweight read-only check, used only on a routine resume (see
+// alreadySynced above) where pullAndReconcile's full fetch-and-merge is
+// skipped — keeps the "N osób w chmurze" status honest without re-running
+// the merge dance on every relaunch.
+async function refreshCloudCount() {
+  try {
+    const records = await syncApi.fetchAllPeopleOnce(syncState.uid);
+    syncState.cloudCount = records.length;
+    clearSyncError();
+  } catch (e) {
+    console.error('Failed to refresh cloud count:', e);
+    recordSyncError('Nie udało się pobrać danych z chmury — sprawdź połączenie lub reguły Firestore.');
+  }
+  refreshAccountSignedInScreen();
+  refreshSettingsModal();
 }
 
 // One-time reconciliation the first time a device connects a given account —
@@ -1376,8 +1449,10 @@ async function pullAndReconcile() {
   } catch (e) {
     console.error('Failed to fetch cloud people:', e);
     showAccountStatus('Nie udało się pobrać danych z chmury.', 'warn');
+    recordSyncError('Nie udało się pobrać danych z chmury — sprawdź połączenie lub reguły Firestore.');
     return;
   }
+  clearSyncError();
 
   const pulled = records.map(rec => Object.assign({
     id: rec.id,
@@ -1386,6 +1461,7 @@ async function pullAndReconcile() {
     syncUpdatedAt: rec.updatedAtMs || Date.now()
   }, pickSyncFields(rec)));
   pulled.forEach(recomputeDerived);
+  syncState.cloudCount = pulled.length;
 
   const localHasData = people.length > 0;
   const cloudHasData = pulled.length > 0;
@@ -1511,12 +1587,21 @@ function queueSyncUpsert(person) {
   if (!isSyncActive() || !person) return;
   person.syncUpdatedAt = Date.now();
   syncApi.pushPerson(syncState.uid, person.id, pickSyncFields(person), person.syncUpdatedAt)
-    .catch(e => console.error('Cloud sync push failed for', person.id, e));
+    .then(clearSyncError)
+    .catch(e => {
+      console.error('Cloud sync push failed for', person.id, e);
+      recordSyncError('Nie udało się zapisać zmian w chmurze — sprawdź reguły Firestore lub połączenie.');
+    });
 }
 
 function queueSyncDelete(personId) {
   if (!isSyncActive() || !personId) return;
-  syncApi.deletePerson(syncState.uid, personId).catch(e => console.error('Cloud sync delete failed for', personId, e));
+  syncApi.deletePerson(syncState.uid, personId)
+    .then(clearSyncError)
+    .catch(e => {
+      console.error('Cloud sync delete failed for', personId, e);
+      recordSyncError('Nie udało się usunąć wpisu w chmurze — sprawdź reguły Firestore lub połączenie.');
+    });
 }
 
 function queueSyncUpsertAll(list) {
@@ -1529,7 +1614,7 @@ function handleSignOut() {
     syncState.unsubscribePeople();
   }
   syncApi?.signOutUser().catch(e => console.error('Sign out failed:', e));
-  syncState = { uid: null, email: null, verified: false, unsubscribePeople: null };
+  syncState = { uid: null, email: null, verified: false, cloudCount: null, unsubscribePeople: null };
   try { localStorage.removeItem(SYNCED_BEFORE_KEY); } catch (_) { /* ignore */ }
   restoreLocalSnapshot();
   showAccountScreen('entry');
