@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
 const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
-const APP_VERSION = 'v0.9.81';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.81' -> '0.9.81', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.82';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.82' -> '0.9.82', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands),
 // 'off' (neutral/colorless), or 'blurred' (bands feather into each other via a
@@ -643,8 +643,10 @@ function renderAnswerSummaries(person) {
   const applyCollapsedSummary = (card, tier, answer) => {
     if (!card) return;
     const summaryText = card.querySelector('.answer-summary__text');
-    if (summaryText) summaryText.textContent = answer ? answer.text : 'Brak odpowiedzi';
+    if (summaryText) summaryText.textContent = answer ? answer.text : 'Brak';
     card.dataset.tier = tier;
+    const toggle = card.querySelector('.answer-summary__toggle');
+    if (toggle) toggle.style.display = '';
     setCardCollapsed(card, true);
   };
 
@@ -668,6 +670,12 @@ function resetQuestionCollapse() {
   questionsContainer.querySelectorAll('.question-card').forEach(card => {
     setCardCollapsed(card, false);
     delete card.dataset.tier;
+    // A brand-new survey has no current answers to summarize, so the
+    // collapse toggle (only meaningful once there's something to collapse
+    // to) has no reason to show — only openEditModal()/renderAnswerSummaries()
+    // reveal it again for an existing person.
+    const toggle = card.querySelector('.answer-summary__toggle');
+    if (toggle) toggle.style.display = 'none';
   });
 }
 
