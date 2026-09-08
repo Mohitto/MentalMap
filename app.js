@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v0.9.88';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.88' -> '0.9.88', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.89';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.89' -> '0.9.89', matches the ?v= convention used elsewhere
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
@@ -849,7 +849,12 @@ function distributePlanets() {
     const levelData = dynamicLayout[level];
 
     list
-      .sort((a, b) => b.totalScore - a.totalScore || a.name.localeCompare(b.name, 'pl'))
+      // (a.name || '') guards against a malformed record with no name at
+      // all (e.g. a leftover pre-migration cloud document) — without it,
+      // sorting alongside any other person in the same level throws and
+      // takes down every other person's rendering with it, not just this
+      // one's.
+      .sort((a, b) => b.totalScore - a.totalScore || (a.name || '').localeCompare(b.name || '', 'pl'))
       .forEach((p, index) => {
         // Find the orbit for this planet's score
         const orbit = levelData.orbits.find(o => o.score === p.totalScore);
@@ -1048,9 +1053,10 @@ function refreshAccountSignedInScreen() {
   const emailEl = $('#account-signed-in-email');
   if (emailEl) emailEl.textContent = syncState.email || '';
 
+  const err = readSyncError();
+
   const statusEl = $('#account-sync-status');
   if (statusEl) {
-    const err = readSyncError();
     if (err) {
       statusEl.textContent = err.message;
       statusEl.classList.add('sync-status--warn');
@@ -1061,6 +1067,27 @@ function refreshAccountSignedInScreen() {
       statusEl.classList.remove('sync-status--warn');
     }
   }
+
+  // Surfaced only alongside an active sync error — a one-off safety net for
+  // when the cloud copy can't be trusted, never a routine nag to back up.
+  const backupBtn = $('#btn-download-backup');
+  if (backupBtn) backupBtn.hidden = !err;
+}
+
+// One-way export, offered only when a sync error is active (see
+// refreshAccountSignedInScreen) — not a return of the full backup/restore
+// flow removed in #24, just a safety net so a broken cloud account can't
+// also take the local map down with it.
+function downloadLocalBackup() {
+  const blob = new Blob([JSON.stringify(people, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mentalmap-kopia-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function openAccountModal() {
@@ -1435,12 +1462,25 @@ async function pullAndReconcile() {
   }
   clearSyncError();
 
-  const pulled = records.map(rec => Object.assign({
-    id: rec.id,
-    angle: Math.random() * Math.PI * 2,
-    speed: 0.1,
-    syncUpdatedAt: rec.updatedAtMs || Date.now()
-  }, pickSyncFields(rec)));
+  const pulled = records
+    .map(rec => Object.assign({
+      id: rec.id,
+      angle: Math.random() * Math.PI * 2,
+      speed: 0.1,
+      syncUpdatedAt: rec.updatedAtMs || Date.now()
+    }, pickSyncFields(rec)))
+    // A doc with no name at all isn't a real person — almost certainly a
+    // leftover from before the plain-fields migration (#24), when records
+    // stored encrypted ciphertext under different field names entirely.
+    // Dropping it here (never deleted from Firestore, just not displayed)
+    // is what actually matters: rendering it would produce a nameless
+    // planet, and worse, previously could crash the entire reconcile pass
+    // for every other, perfectly valid person pulled alongside it.
+    .filter(p => {
+      if (typeof p.name === 'string' && p.name.trim()) return true;
+      console.warn('Skipping malformed cloud person record (no name):', p.id);
+      return false;
+    });
   pulled.forEach(recomputeDerived);
   syncState.cloudCount = pulled.length;
 
@@ -1486,6 +1526,14 @@ function handleRemoteChanges(changes) {
     }
 
     const rec = change.data;
+    // Same malformed-record guard as pullAndReconcile() — the realtime
+    // listener replays every existing document as an "added" change on its
+    // first snapshot, so a leftover nameless doc would otherwise slip back
+    // in here even after being filtered out of the initial pull.
+    if (!(typeof rec.name === 'string' && rec.name.trim())) {
+      console.warn('Skipping malformed cloud person record (no name):', personId);
+      continue;
+    }
     const incomingMs = rec.updatedAtMs || 0;
     const existing = people.find(p => p.id === personId);
     if (existing && (existing.syncUpdatedAt || 0) >= incomingMs) continue;
@@ -1564,6 +1612,7 @@ function bindAccountEvents() {
   $('#btn-resend-verification')?.addEventListener('click', handleResendVerification);
   $('#btn-verify-sign-out')?.addEventListener('click', handleSignOut);
 
+  $('#btn-download-backup')?.addEventListener('click', downloadLocalBackup);
   $('#btn-sign-out')?.addEventListener('click', handleSignOut);
 }
 
@@ -2284,7 +2333,7 @@ function renderPlanets() {
     // Built as nodes rather than interpolated HTML: the name is user-supplied and,
     // once names sync through a server, an injected string would become stored XSS
     // affecting whoever views it.
-    const nameParts = person.name.trim().split(' ');
+    const nameParts = (person.name || '').trim().split(' ');
     const firstName = document.createElement('strong');
     firstName.textContent = nameParts[0];
     label.appendChild(firstName);
@@ -2584,7 +2633,7 @@ function renderRanking() {
     const colors = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
     
     // Initials
-    const initials = person.name.substring(0, 2).toUpperCase();
+    const initials = (person.name || '').substring(0, 2).toUpperCase();
     
     // Level name
     let levelName = 'Poza orbitami';
