@@ -21,7 +21,7 @@ service cloud.firestore {
       match /people/{personId} {
         allow read, delete: if request.auth != null && request.auth.uid == uid;
         allow create, update: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['name', 'answers', 'answerIndices', 'gateAnswer', 'secretCap', 'gradientIndex', 'updatedAt', 'updatedAtClient']);
+          && request.resource.data.keys().hasOnly(['name', 'answers', 'answerIndices', 'gateAnswer', 'secretCap', 'gradientIndex', 'personalityType', 'personalityAnswers', 'updatedAt', 'updatedAtClient']);
       }
 
       // App preferences (level colors / trajectories visibility) — one small
