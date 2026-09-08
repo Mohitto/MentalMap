@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v0.9.85';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.85' -> '0.9.85', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.86';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.86' -> '0.9.86', matches the ?v= convention used elsewhere
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
