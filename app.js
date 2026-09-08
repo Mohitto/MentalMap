@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v0.9.86';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.86' -> '0.9.86', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.87';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.87' -> '0.9.87', matches the ?v= convention used elsewhere
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
@@ -905,7 +905,6 @@ let syncApi = null; // cached module namespace from the lazily-imported firebase
 // cloudCount: last known number of people docs found for this account, purely
 // for display — refreshed on connect and after every full pull.
 let syncState = { uid: null, email: null, verified: false, cloudCount: null, unsubscribePeople: null };
-let pendingCloudPeople = null; // set only while #account-screen-merge is showing
 
 function isSyncActive() {
   return !!(syncState.uid && syncState.verified);
@@ -1030,7 +1029,7 @@ async function attemptSilentReconnect() {
 }
 
 function showAccountScreen(id) {
-  ['entry', 'verify', 'merge', 'signed-in'].forEach(name => {
+  ['entry', 'verify', 'signed-in'].forEach(name => {
     const el = $(`#account-screen-${name}`);
     if (el) el.hidden = name !== id;
   });
@@ -1402,6 +1401,14 @@ async function refreshCloudCount() {
 // One-time reconciliation the first time a device connects a given account —
 // see the alreadySynced check in completeSignIn() for why a routine relaunch
 // skips this. Not used for ongoing sync — that's startPeopleListener() below.
+//
+// No merge prompt: the account's own cloud data always wins outright once it
+// exists (e.g. a friend signing into their account on your device should see
+// their map, not be asked whether to keep yours). The one case local data
+// survives is a brand-new account with nothing in the cloud yet — then
+// whatever's currently on the device becomes that account's first upload.
+// Either way the device's pre-sign-in state was already snapshotted in
+// completeSignIn() and comes back untouched on sign-out.
 async function pullAndReconcile() {
   showAccountStatus('Pobieranie danych…', 'info');
   let records;
@@ -1424,72 +1431,19 @@ async function pullAndReconcile() {
   pulled.forEach(recomputeDerived);
   syncState.cloudCount = pulled.length;
 
-  const localHasData = people.length > 0;
-  const cloudHasData = pulled.length > 0;
-
-  if (localHasData && cloudHasData) {
-    pendingCloudPeople = pulled;
-    showAccountScreen('merge');
-    showAccountStatus('');
-    return;
-  }
-
-  if (cloudHasData) {
+  if (pulled.length > 0) {
     people = pulled;
     distributePlanets();
     savePeople();
     renderPlanets();
     updateEmptyState();
-  } else if (localHasData) {
+  } else if (people.length > 0) {
     queueSyncUpsertAll(people);
   }
 
   showAccountScreen('signed-in');
   refreshAccountSignedInScreen();
   showAccountStatus('');
-  startPeopleListener();
-}
-
-function applyMergeCombine() {
-  if (!pendingCloudPeople) return;
-  const byId = new Map(people.map(p => [p.id, p]));
-  pendingCloudPeople.forEach(p => { if (!byId.has(p.id)) byId.set(p.id, p); });
-  people = Array.from(byId.values());
-  people.forEach(recomputeDerived);
-  distributePlanets();
-  savePeople();
-  renderPlanets();
-  updateEmptyState();
-  queueSyncUpsertAll(people);
-  finishMerge();
-}
-
-function applyMergeUseCloud() {
-  if (!pendingCloudPeople) return;
-  people = pendingCloudPeople;
-  distributePlanets();
-  savePeople();
-  renderPlanets();
-  updateEmptyState();
-  finishMerge();
-}
-
-function applyMergeUseLocal() {
-  const localIds = new Set(people.map(p => p.id));
-  const cloudOnlyIds = (pendingCloudPeople || []).filter(p => !localIds.has(p.id)).map(p => p.id);
-  distributePlanets();
-  savePeople();
-  renderPlanets();
-  updateEmptyState();
-  queueSyncUpsertAll(people);
-  cloudOnlyIds.forEach(queueSyncDelete);
-  finishMerge();
-}
-
-function finishMerge() {
-  pendingCloudPeople = null;
-  showAccountScreen('signed-in');
-  refreshAccountSignedInScreen();
   startPeopleListener();
 }
 
@@ -1596,18 +1550,6 @@ function bindAccountEvents() {
   $('#btn-check-verified')?.addEventListener('click', handleCheckVerified);
   $('#btn-resend-verification')?.addEventListener('click', handleResendVerification);
   $('#btn-verify-sign-out')?.addEventListener('click', handleSignOut);
-
-  $('#btn-merge-combine')?.addEventListener('click', applyMergeCombine);
-  $('#btn-merge-use-cloud')?.addEventListener('click', () => {
-    if (confirm('Dane, które są tylko na tym urządzeniu, zostaną odrzucone na rzecz danych z chmury. Kontynuować?')) {
-      applyMergeUseCloud();
-    }
-  });
-  $('#btn-merge-use-local')?.addEventListener('click', () => {
-    if (confirm('Dane w chmurze, których nie ma na tym urządzeniu, zostaną nadpisane danymi lokalnymi. Kontynuować?')) {
-      applyMergeUseLocal();
-    }
-  });
 
   $('#btn-sign-out')?.addEventListener('click', handleSignOut);
 }
