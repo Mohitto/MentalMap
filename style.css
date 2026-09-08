@@ -1821,7 +1821,13 @@ body.incognito-mode .stats-person-chip__name {
   }
 }
 
-.color-picker { display: flex; gap: 16px; overflow-x: auto; padding: 8px 6px; scrollbar-width: none; }
+/* overflow-x: auto implicitly makes overflow-y auto too (per spec, an axis
+   can't stay 'visible' once the other is scrolling), so the selected
+   swatch's glow — which extends past its box via box-shadow, not affecting
+   layout — was getting clipped top/bottom by this container itself, not
+   just by neighboring swatches. Generous vertical padding gives the glow
+   room to render before that clipping kicks in. */
+.color-picker { display: flex; gap: 16px; overflow-x: auto; padding: 18px 8px; scrollbar-width: none; }
 .color-picker::-webkit-scrollbar { display: none; }
 .color-swatch { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.5); position: relative; }
 /* Scaling up the selected swatch doesn't affect its flex layout box, so
@@ -1840,6 +1846,13 @@ body.incognito-mode .stats-person-chip__name {
 #survey-modal[data-mode="survey"] .color-group,
 #survey-modal[data-mode="survey"] #summary-container {
   display: none !important;
+}
+
+/* Extra room below the color picker so the selected swatch's glow doesn't
+   sit right on top of question 1's title — separate from the padding fix
+   above, which only stops the picker's own scroll box from clipping it. */
+.color-group {
+  margin-bottom: 12px;
 }
 
 #survey-modal[data-mode="summary"] #questions-container,
