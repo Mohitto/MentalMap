@@ -188,32 +188,26 @@ const SECRET_QUESTION = {
 
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
-const LEVEL_VIEW_KEY = 'mentalmap_level_view';
-const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
-const APP_VERSION = 'v0.9.84';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.84' -> '0.9.84', matches the ?v= convention used elsewhere
+const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
+const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
+const APP_VERSION = 'v0.9.85';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.85' -> '0.9.85', matches the ?v= convention used elsewhere
 
-// How the level zones (green/yellow/red) render on the map: 'on' (solid bands),
-// 'off' (neutral/colorless), or 'blurred' (bands feather into each other via a
-// blur filter instead of cutting off sharply — the default). Persisted so the
-// choice sticks.
-let levelViewMode = 'blurred';
+// Whether the level zones (green/yellow/red, blurred at the edges — the one
+// fixed look, no longer user-tunable) and their "Poziom N" labels render at
+// all, and whether each planet's dashed orbit path renders. Both default on;
+// persisted so the choice sticks.
+let showLevelColors = true;
 try {
-  const savedLevelView = localStorage.getItem(LEVEL_VIEW_KEY);
-  if (savedLevelView === 'on' || savedLevelView === 'off' || savedLevelView === 'blurred') {
-    levelViewMode = savedLevelView;
-  }
-} catch (_) { /* ignore — default 'on' */ }
+  const saved = localStorage.getItem(SHOW_LEVEL_COLORS_KEY);
+  if (saved !== null) showLevelColors = saved === '1';
+} catch (_) { /* ignore — default true */ }
 
-// User-adjustable opacity for the level fields (0-1), shared by 'on' and
-// 'blurred' so switching between them never changes how visible the fields are.
-let levelViewOpacity = 0.3;
+let showTrajectories = true;
 try {
-  const savedOpacity = parseFloat(localStorage.getItem(LEVEL_OPACITY_KEY));
-  if (Number.isFinite(savedOpacity) && savedOpacity >= 0.05 && savedOpacity <= 0.9) {
-    levelViewOpacity = savedOpacity;
-  }
-} catch (_) { /* ignore — default 0.3 */ }
+  const saved = localStorage.getItem(SHOW_TRAJECTORIES_KEY);
+  if (saved !== null) showTrajectories = saved === '1';
+} catch (_) { /* ignore — default true */ }
 
 // Guards for the persistence layer (see loadPeople / savePeople).
 let saveBlocked = false;
@@ -336,6 +330,7 @@ function init() {
   bindAccountEvents();
   bindSettingsEvents();
   setAppVersion();
+  if (orbitLinesContainer) orbitLinesContainer.style.display = showTrajectories ? '' : 'none';
   startAnimation();
   updateEmptyState();
   attemptSilentReconnect();
@@ -1118,34 +1113,10 @@ function refreshSettingsModal() {
     }
   }
 
-  $$('.level-tile').forEach(tile => {
-    tile.classList.toggle('is-selected', tile.dataset.levelView === levelViewMode);
-  });
-
-  const slider = $('#level-opacity-slider');
-  if (slider) slider.value = String(levelViewTransparencyPercent());
-  updateLevelOpacityLabel();
-  updateLevelOpacityControlVisibility();
-}
-
-// The slider reads as "transparency" (higher = more see-through), which is
-// the inverse of levelViewOpacity (the alpha actually used to paint the
-// rings — higher = more solid). Keep that inversion in this one spot rather
-// than storing transparency directly, so the rendering code (and the
-// persisted/synced value) still just means "alpha", unambiguously.
-function levelViewTransparencyPercent() {
-  return Math.round((1 - levelViewOpacity) * 100);
-}
-
-function updateLevelOpacityLabel() {
-  const label = $('#level-opacity-value');
-  if (label) label.textContent = `${levelViewTransparencyPercent()}%`;
-}
-
-// No colored fields to adjust once the user has turned them off entirely.
-function updateLevelOpacityControlVisibility() {
-  const control = $('#level-opacity-control');
-  if (control) control.hidden = levelViewMode === 'off';
+  const colorsChk = $('#chk-show-level-colors');
+  if (colorsChk) colorsChk.checked = showLevelColors;
+  const trajChk = $('#chk-show-trajectories');
+  if (trajChk) trajChk.checked = showTrajectories;
 }
 
 function openSettingsModal() {
@@ -1165,31 +1136,23 @@ function closeSettingsModal(fromPopState = false) {
   }
 }
 
-function setLevelViewMode(mode) {
-  if (mode !== 'on' && mode !== 'off' && mode !== 'blurred') return;
-  levelViewMode = mode;
-  try { localStorage.setItem(LEVEL_VIEW_KEY, mode); } catch (_) { /* ignore */ }
-  $$('.level-tile').forEach(tile => {
-    tile.classList.toggle('is-selected', tile.dataset.levelView === mode);
-  });
-  updateLevelOpacityControlVisibility();
+function setShowLevelColors(show) {
+  showLevelColors = !!show;
+  try { localStorage.setItem(SHOW_LEVEL_COLORS_KEY, showLevelColors ? '1' : '0'); } catch (_) { /* ignore */ }
   queueSyncSettings();
 }
 
-// `transparencyPercent` is what the slider hands us (higher = more
-// see-through) — invert it to get the alpha actually used for painting.
-function setLevelViewOpacity(transparencyPercent) {
-  const clamped = Math.min(90, Math.max(5, transparencyPercent));
-  levelViewOpacity = 1 - (clamped / 100);
-  try { localStorage.setItem(LEVEL_OPACITY_KEY, String(levelViewOpacity)); } catch (_) { /* ignore */ }
-  updateLevelOpacityLabel();
+function setShowTrajectories(show) {
+  showTrajectories = !!show;
+  try { localStorage.setItem(SHOW_TRAJECTORIES_KEY, showTrajectories ? '1' : '0'); } catch (_) { /* ignore */ }
+  if (orbitLinesContainer) orbitLinesContainer.style.display = showTrajectories ? '' : 'none';
   queueSyncSettings();
 }
 
 // No-op whenever sync isn't active, same convention as queueSyncUpsert for people.
 function queueSyncSettings() {
   if (!isSyncActive()) return;
-  syncApi.pushSettings(syncState.uid, { levelViewMode, levelViewOpacity })
+  syncApi.pushSettings(syncState.uid, { showLevelColors, showTrajectories })
     .then(clearSyncError)
     .catch(e => {
       console.error('Cloud sync of settings failed:', e);
@@ -1214,13 +1177,14 @@ async function pullAndApplySettings() {
     return;
   }
 
-  if (remote.levelViewMode === 'on' || remote.levelViewMode === 'off' || remote.levelViewMode === 'blurred') {
-    levelViewMode = remote.levelViewMode;
-    try { localStorage.setItem(LEVEL_VIEW_KEY, levelViewMode); } catch (_) { /* ignore */ }
+  if (typeof remote.showLevelColors === 'boolean') {
+    showLevelColors = remote.showLevelColors;
+    try { localStorage.setItem(SHOW_LEVEL_COLORS_KEY, showLevelColors ? '1' : '0'); } catch (_) { /* ignore */ }
   }
-  if (Number.isFinite(remote.levelViewOpacity) && remote.levelViewOpacity >= 0.05 && remote.levelViewOpacity <= 0.9) {
-    levelViewOpacity = remote.levelViewOpacity;
-    try { localStorage.setItem(LEVEL_OPACITY_KEY, String(levelViewOpacity)); } catch (_) { /* ignore */ }
+  if (typeof remote.showTrajectories === 'boolean') {
+    showTrajectories = remote.showTrajectories;
+    try { localStorage.setItem(SHOW_TRAJECTORIES_KEY, showTrajectories ? '1' : '0'); } catch (_) { /* ignore */ }
+    if (orbitLinesContainer) orbitLinesContainer.style.display = showTrajectories ? '' : 'none';
   }
   refreshSettingsModal();
 }
@@ -1240,11 +1204,8 @@ function bindSettingsEvents() {
     openAccountModal();
   });
 
-  $$('.level-tile').forEach(tile => {
-    tile.addEventListener('click', () => setLevelViewMode(tile.dataset.levelView));
-  });
-
-  $('#level-opacity-slider')?.addEventListener('input', (e) => setLevelViewOpacity(Number(e.target.value)));
+  $('#chk-show-level-colors')?.addEventListener('change', (e) => setShowLevelColors(e.target.checked));
+  $('#chk-show-trajectories')?.addEventListener('change', (e) => setShowTrajectories(e.target.checked));
 }
 
 async function handleGoogleSignIn() {
@@ -2507,33 +2468,30 @@ function handlePlanetAction(id, action) {
 }
 
 // ═══════════════════════════════════════════
-// LEVEL ZONE RENDERING (orbit rings: off / on / blurred)
+// LEVEL ZONE RENDERING (orbit rings)
 // ═══════════════════════════════════════════
+//
+// One fixed look — settled on after trying a user-tunable mode/opacity and
+// finding this was preferred over every alternative: soft-edged (blurred)
+// rings at 10% opacity (i.e. "90% transparent"). The only thing left
+// user-controlled is whether these render at all — see showLevelColors.
 
 const LEVEL_RGB = { 1: '239, 68, 68', 2: '245, 158, 11', 3: '34, 197, 94' };
-const LEVEL_OFF_OPACITY = { 3: 0.09, 2: 0.06, 1: 0.04 };
-// Blurred mode's feather radius, in px — enough to visibly melt one ring's
-// edge into the next, scaled against typical ring sizes (tens to hundreds of px).
+const LEVEL_FIXED_OPACITY = 0.10;
+// Feather radius, in px — enough to visibly melt one ring's edge into the
+// next, scaled against typical ring sizes (tens to hundreds of px).
 const LEVEL_BLUR_PX = 26;
 
-// 'on' and 'blurred' render each ring as the same flat, user-adjustable-opacity
-// color (levelViewOpacity) — the only difference is 'blurred' also feathers the
-// ring's edge with an actual blur filter, so it visually melts into whichever
-// ring sits behind it instead of cutting off sharply. That's a real optical
-// blur, not a color gradient — a gradient still has a crisp edge, it just
-// changes hue along the way, which reads as "different colors", not "blurred".
 function applyLevelRingStyle(ring, level) {
-  if (!ring || level === 0) {
-    if (ring) { ring.style.background = ''; ring.style.filter = ''; }
+  if (!ring) return;
+  if (level === 0 || !showLevelColors) {
+    ring.style.background = '';
+    ring.style.filter = '';
+    if (level !== 0) ring.style.display = 'none';
     return;
   }
-  if (levelViewMode === 'off') {
-    ring.style.background = `rgba(255, 255, 255, ${LEVEL_OFF_OPACITY[level]})`;
-    ring.style.filter = '';
-  } else {
-    ring.style.background = `rgba(${LEVEL_RGB[level]}, ${levelViewOpacity})`;
-    ring.style.filter = levelViewMode === 'blurred' ? `blur(${LEVEL_BLUR_PX}px)` : '';
-  }
+  ring.style.background = `rgba(${LEVEL_RGB[level]}, ${LEVEL_FIXED_OPACITY})`;
+  ring.style.filter = `blur(${LEVEL_BLUR_PX}px)`;
 }
 
 // ═══════════════════════════════════════════
@@ -2601,12 +2559,11 @@ function startAnimation() {
         }
 
         if (label) {
-          label.style.display = '';
+          label.style.display = showLevelColors ? '' : 'none';
           label.style.top = `calc(50% - ${r}px)`;
           label.style.left = '50%';
           label.style.right = 'auto';
           label.style.transform = 'translate(-50%, -100%)';
-          label.style.color = levelViewMode === 'off' ? 'var(--text-secondary)' : '';
         }
       });
     }

@@ -24,12 +24,12 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['name', 'answers', 'answerIndices', 'gateAnswer', 'secretCap', 'gradientIndex', 'updatedAt', 'updatedAtClient']);
       }
 
-      // App preferences (currently just the level-field view) — one small doc,
-      // not a per-item collection like people.
+      // App preferences (level colors / trajectories visibility) — one small
+      // doc, not a per-item collection like people.
       match /settings/{settingsDoc} {
         allow read: if request.auth != null && request.auth.uid == uid;
         allow create, update: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['levelViewMode', 'levelViewOpacity', 'updatedAt']);
+          && request.resource.data.keys().hasOnly(['showLevelColors', 'showTrajectories', 'updatedAt']);
       }
     }
 
