@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v0.9.89';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.89' -> '0.9.89', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.90';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.90' -> '0.9.90', matches the ?v= convention used elsewhere
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
@@ -904,6 +904,10 @@ function savePeople() {
 const PENDING_SIGNIN_KEY = 'mentalmap_pending_redirect_signin';
 const SYNCED_BEFORE_KEY = 'mentalmap_synced_before'; // set once sign-in succeeds, so a relaunch knows to check Firebase's auth state at all
 const PRE_SIGNIN_SNAPSHOT_KEY = 'mentalmap_pre_signin_snapshot';
+// Never cleared on sign-out (unlike SYNCED_BEFORE_KEY) — its whole job is to
+// survive the sign-out so the *next* sign-in can tell whether it's the same
+// account resuming versus a different one taking over. See completeSignIn().
+const LAST_SYNCED_UID_KEY = 'mentalmap_last_synced_uid';
 const SYNC_ERROR_KEY = 'mentalmap_last_sync_error';
 
 let syncApi = null; // cached module namespace from the lazily-imported firebase-sync.js
@@ -971,10 +975,12 @@ function pickSyncFields(obj) {
   };
 }
 
-// Snapshot local data the first time this device signs into anything, so a
-// guest sign-in (e.g. showing someone your map on their device, or a demo)
-// can be undone cleanly. Guarded so a relaunch of an already-connected
-// device never overwrites the true original with an already-synced state.
+// Snapshot local data right before a genuinely different account's cloud
+// data takes over this device, so a guest sign-in (e.g. showing someone
+// your map on their device, or a demo) can be undone cleanly on sign-out.
+// Only called when the signing-in uid differs from this device's last one
+// (see completeSignIn()) — this internal guard just protects against being
+// called twice for the same incoming session.
 function captureLocalSnapshotIfNeeded() {
   let already;
   try { already = localStorage.getItem(PRE_SIGNIN_SNAPSHOT_KEY); } catch (_) { return; }
@@ -984,15 +990,18 @@ function captureLocalSnapshotIfNeeded() {
   try { localStorage.setItem(PRE_SIGNIN_SNAPSHOT_KEY, JSON.stringify({ raw })); } catch (_) { /* ignore */ }
 }
 
-// Undoes whatever cloud data this device pulled in since it last signed in,
-// restoring exactly what was on it before. Nothing done while signed in is
-// lost — every change was already pushed live to that account's own copy —
-// so this is safe even for the account's actual owner, not just a guest.
+// Undoes whatever a *different* account's cloud data replaced on this
+// device, restoring exactly what was there before it signed in — a no-op
+// when the account signing out is the same one that was already associated
+// with this device (captureLocalSnapshotIfNeeded() never ran for it, so
+// there's nothing recorded to restore). Nothing done while signed in is
+// ever lost either way — every change was already pushed live to that
+// account's own cloud copy.
 function restoreLocalSnapshot() {
   let raw;
   try {
     const snap = localStorage.getItem(PRE_SIGNIN_SNAPSHOT_KEY);
-    if (snap === null) return; // this device was never actually signed into anything
+    if (snap === null) return; // no foreign account ever took over this device
     raw = JSON.parse(snap).raw;
   } catch (_) { return; }
   try {
@@ -1088,6 +1097,63 @@ function downloadLocalBackup() {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// Emergency recovery counterpart to downloadLocalBackup() above — reads a
+// previously-downloaded backup file back in, overwrites the local map with
+// it, and (if signed in) pushes the result up to the account so it becomes
+// the synced data going forward, everywhere. Always available on the
+// signed-in screen: unlike the download button this requires the user to
+// actively pick a file, so there's no passive-spam risk in leaving it up.
+function restoreFromBackupFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(reader.result);
+    } catch (e) {
+      alert('Nie udało się odczytać pliku — to nie jest poprawny plik JSON.');
+      return;
+    }
+    const rawList = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.people) ? parsed.people : null);
+    if (!rawList) {
+      alert('Ten plik nie wygląda na kopię zapasową MentalMap.');
+      return;
+    }
+    // Same normalization + malformed-record guard as a cloud pull
+    // (pullAndReconcile) — a backup file deserves exactly the same
+    // protection against a record with no name crashing the whole import.
+    const restored = rawList
+      .map(rec => Object.assign({
+        id: rec.id || `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.1
+      }, pickSyncFields(rec)))
+      .filter(p => {
+        if (typeof p.name === 'string' && p.name.trim()) return true;
+        console.warn('Skipping malformed backup record (no name).');
+        return false;
+      });
+    if (!restored.length) {
+      alert('Ten plik nie zawiera żadnych osób do przywrócenia.');
+      return;
+    }
+    const cloudNote = isSyncActive() ? ' i w koncie w chmurze' : '';
+    if (!confirm(`Wczytać ${pluralOsob(restored.length)} z pliku? Zastąpi to obecną mapę na tym urządzeniu${cloudNote}.`)) {
+      return;
+    }
+    people = restored;
+    people.forEach(recomputeDerived);
+    distributePlanets();
+    savePeople();
+    renderPlanets();
+    updateEmptyState();
+    if (isSyncActive()) {
+      queueSyncUpsertAll(people);
+    }
+  };
+  reader.onerror = () => alert('Nie udało się odczytać pliku.');
+  reader.readAsText(file);
 }
 
 function openAccountModal() {
@@ -1395,7 +1461,23 @@ async function completeSignIn(user) {
   try { alreadySynced = !!localStorage.getItem(SYNCED_BEFORE_KEY); } catch (_) { /* ignore */ }
 
   try { localStorage.setItem(SYNCED_BEFORE_KEY, '1'); } catch (_) { /* ignore */ }
-  captureLocalSnapshotIfNeeded();
+
+  // Only protect local data as a "guest snapshot" when a *different* account
+  // is taking over this device than last time (a genuine stranger, or a
+  // friend demoing their own map) — never for the same account resuming
+  // after an ordinary sign-out/sign-in cycle, which used to wipe the local
+  // map down to whatever ancient (often empty) snapshot this device had
+  // captured on its very first-ever sign-in, with no way back short of a
+  // successful cloud re-pull. Signing out and back into your own account
+  // should be a complete no-op for local data — there is no "original
+  // owner" to protect it from, you.
+  let lastSyncedUid = null;
+  try { lastSyncedUid = localStorage.getItem(LAST_SYNCED_UID_KEY); } catch (_) { /* ignore */ }
+  if (lastSyncedUid !== user.uid) {
+    captureLocalSnapshotIfNeeded();
+  }
+  try { localStorage.setItem(LAST_SYNCED_UID_KEY, user.uid); } catch (_) { /* ignore */ }
+
   showAccountScreen('signed-in');
   refreshAccountSignedInScreen();
   showAccountStatus('');
@@ -1613,6 +1695,12 @@ function bindAccountEvents() {
   $('#btn-verify-sign-out')?.addEventListener('click', handleSignOut);
 
   $('#btn-download-backup')?.addEventListener('click', downloadLocalBackup);
+  $('#btn-restore-backup')?.addEventListener('click', () => $('#input-restore-backup')?.click());
+  $('#input-restore-backup')?.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) restoreFromBackupFile(file);
+    e.target.value = ''; // allow re-selecting the same file afterward
+  });
   $('#btn-sign-out')?.addEventListener('click', handleSignOut);
 }
 
