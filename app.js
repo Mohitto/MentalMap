@@ -190,8 +190,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const LEVEL_VIEW_KEY = 'mentalmap_level_view';
 const LEVEL_OPACITY_KEY = 'mentalmap_level_opacity';
-const APP_VERSION = 'v0.9.84';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.84' -> '0.9.84', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.85';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.85' -> '0.9.85', matches the ?v= convention used elsewhere
 
 // How the level zones (green/yellow/red) render on the map: 'on' (solid bands),
 // 'off' (neutral/colorless), or 'blurred' (bands feather into each other via a
