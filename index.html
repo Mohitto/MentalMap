@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=0.9.88">
+    <link rel="stylesheet" href="style.css?v=0.9.89">
 </head>
 <body>
     <script>
@@ -279,6 +279,11 @@
                 <div id="account-screen-signed-in" hidden>
                     <p class="backup-note">Zalogowano jako <strong id="account-signed-in-email"></strong>.</p>
                     <div class="backup-stat"><span id="account-sync-status">Synchronizacja aktywna</span></div>
+                    <!-- Only ever shown alongside an active sync error (see
+                         refreshAccountSignedInScreen) — a one-off safety net for
+                         when the cloud copy can't be trusted, not a routine backup
+                         flow. -->
+                    <button type="button" id="btn-download-backup" class="btn backup-btn backup-btn--secondary" hidden>Zapisz kopię zapasową na urządzeniu</button>
                     <button type="button" id="btn-sign-out" class="btn backup-btn backup-btn--secondary">Wyloguj</button>
                 </div>
 
@@ -338,7 +343,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v0.9.88</div>
-    <script src="app.js?v=0.9.88"></script>
+    <div id="app-version">v0.9.89</div>
+    <script src="app.js?v=0.9.89"></script>
 </body>
 </html>
