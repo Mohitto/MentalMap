@@ -186,12 +186,162 @@ const SECRET_QUESTION = {
   ]
 };
 
+// ═══════════════════════════════════════════
+// PERSONALITY (DISC / 4 colors) MINI-SURVEY
+// ═══════════════════════════════════════════
+//
+// A second, optional way to pick a planet's color, independent of the manual
+// swatch picker below. Each answer carries a hidden `color` field used only
+// for scoring — the visible `text` never names a color, a DISC letter, or
+// otherwise hints which type it belongs to. The 4 answers per question are
+// pre-shuffled once here (not reshuffled on every load) so a saved survey
+// reopens looking exactly as it did when answered.
+const PERSONALITY_QUESTIONS = [
+  {
+    text: 'Gdy zaskoczysz tę osobę trudnym pytaniem w rozmowie, zazwyczaj:',
+    answers: [
+      { color: 'green', text: 'Milknie na chwilę, chce dobrze przemyśleć odpowiedź.' },
+      { color: 'red', text: 'Odpowiada od razu, wprost, bez owijania w bawełnę.' },
+      { color: 'blue', text: 'Prosi o chwilę, żeby przeanalizować sprawę dokładnie.' },
+      { color: 'yellow', text: 'Żartuje, rozładowuje napięcie, potem odpowiada.' }
+    ]
+  },
+  {
+    text: 'Jak osoba zachowuje się w sytuacji konfliktowej?',
+    answers: [
+      { color: 'blue', text: 'Analizuje fakty, chce dojść do logicznego rozwiązania.' },
+      { color: 'yellow', text: 'Próbuje rozładować atmosferę żartem lub emocjami.' },
+      { color: 'red', text: 'Konfrontuje się wprost, mówi co myśli.' },
+      { color: 'green', text: 'Wycofuje się, unika eskalacji, szuka zgody.' }
+    ]
+  },
+  {
+    text: 'Jak ta osoba wchodzi w nowe towarzystwo?',
+    answers: [
+      { color: 'yellow', text: 'Łatwo nawiązuje kontakt, dużo mówi, otwiera się na innych.' },
+      { color: 'green', text: 'Czeka, obserwuje, woli żeby ktoś zagaił pierwszy.' },
+      { color: 'blue', text: 'Trzyma dystans, ocenia sytuację zanim się włączy.' },
+      { color: 'red', text: 'Od razu przejmuje kontrolę nad sytuacją, wyznacza kierunek rozmowy.' }
+    ]
+  },
+  {
+    text: 'Jak Twoim zdaniem wygląda idealne wolne popołudnie tej osoby?',
+    answers: [
+      { color: 'red', text: 'Coś ambitnego, co daje poczucie osiągnięcia celu.' },
+      { color: 'blue', text: 'Czas poświęcony na hobby wymagające skupienia i precyzji.' },
+      { color: 'yellow', text: 'Spotkanie z ludźmi, dużo bodźców i rozmów.' },
+      { color: 'green', text: 'Spokojny czas z bliską osobą lub w samotności.' }
+    ]
+  },
+  {
+    text: 'Co jest dla tej osoby priorytetem w rozmowie?',
+    answers: [
+      { color: 'green', text: 'Wzajemne zrozumienie i brak napięcia.' },
+      { color: 'blue', text: 'Precyzja, fakty i logiczna spójność wypowiedzi.' },
+      { color: 'red', text: 'Dojście do konkretu i podjęcie decyzji.' },
+      { color: 'yellow', text: 'Dobra atmosfera i emocje rozmówcy.' }
+    ]
+  },
+  {
+    text: 'Jak ta osoba reaguje, gdy ktoś inny popełni błąd w grupie czy rodzinie?',
+    answers: [
+      { color: 'blue', text: 'Analizuje przyczynę błędu, żeby się nie powtórzył.' },
+      { color: 'red', text: 'Mówi o tym wprost, żeby szybko to naprawić.' },
+      { color: 'green', text: 'Wspiera, stara się nie robić z tego problemu.' },
+      { color: 'yellow', text: 'Od razu obraca to w żart, żeby wszyscy poczuli się swobodnie i ruszyli dalej.' }
+    ]
+  },
+  {
+    text: 'Jak ta osoba podejmuje ważne decyzje?',
+    answers: [
+      { color: 'yellow', text: 'Szybko, kierując się tym, co czuje i jak zareagują inni.' },
+      { color: 'blue', text: 'Na podstawie dokładnej analizy danych i faktów.' },
+      { color: 'green', text: 'Powoli, chcąc uniknąć ryzyka i konfliktu.' },
+      { color: 'red', text: 'Szybko, na podstawie własnej intuicji i celu.' }
+    ]
+  },
+  {
+    text: 'Jak wygląda typowy dzień tej osoby?',
+    answers: [
+      { color: 'green', text: 'Trzyma się stałego, przewidywalnego rytmu dnia.' },
+      { color: 'red', text: 'Ma jasny cel, reszta ma się temu podporządkować.' },
+      { color: 'yellow', text: 'Działa spontanicznie, plan bywa elastyczny.' },
+      { color: 'blue', text: 'Trzyma się szczegółowego harmonogramu.' }
+    ]
+  }
+];
+
+const PERSONALITY_COLOR_LABELS = { red: 'Czerwony', yellow: 'Żółty', green: 'Zielony', blue: 'Niebieski' };
+
+const PERSONALITY_PROFILES = {
+  red: {
+    name: 'Czerwony — Styl D (Choleryk)',
+    color: '#E53935',
+    traits: ['Pewny siebie', 'Zorientowany na cel', 'Konkretny', 'Rywalizacyjny', 'Zdecydowany'],
+    howToTalk: [
+      'Mów bezpośrednio i przechodź od razu do konkretów — nie owijaj w bawełnę.',
+      'Skupiaj się na wynikach, celach i rozwiązaniach, nie na procesie czy problemach.',
+      'Formułuj wypowiedzi zwięźle, unikaj długich dygresji, pogawędek i zbędnych szczegółów.',
+      'Daj tej osobie przestrzeń do podejmowania decyzji i poczucia kontroli nad sytuacją.',
+      'Nie traktuj jej bezpośredniości jako ataku — to jej naturalny sposób komunikacji.'
+    ]
+  },
+  yellow: {
+    name: 'Żółty — Styl I (Sangwinik)',
+    color: '#FBC02D',
+    traits: ['Entuzjastyczny', 'Towarzyski', 'Otwarty', 'Radosny', 'Gadatliwy'],
+    howToTalk: [
+      'Zostaw czas na luźną rozmowę przed przejściem do konkretów — to buduje relację.',
+      'Okazuj entuzjazm i pozytywne nastawienie wobec jej pomysłów i historii.',
+      'Słuchaj aktywnie, ale delikatnie pomagaj jej wracać do tematu, gdy dygresuje.',
+      'Chwal ją i doceniaj publicznie — to dla niej ważne paliwo motywacyjne.',
+      'Nie zasypuj jej suchymi danymi, tabelami i szczegółową analizą — to ją zniechęci.'
+    ]
+  },
+  green: {
+    name: 'Zielony — Styl S (Flegmatyk)',
+    color: '#43A047',
+    traits: ['Spokojny', 'Cierpliwy', 'Empatyczny', 'Unika konfliktów', 'Lojalny'],
+    howToTalk: [
+      'Mów spokojnym, łagodnym tonem — nie wywieraj presji czasu ani nagłych zmian.',
+      'Buduj rozmowę na zaufaniu i bezpieczeństwie, okazuj, że Ci na niej zależy.',
+      'Uprzedzaj ją z wyprzedzeniem o nadchodzących zmianach — niespodzianki ją stresują.',
+      'Trzymaj emocje pod kontrolą w jej obecności, unikaj podniesionego głosu.',
+      'Doceniaj jej lojalność i cierpliwość, nie wymuszaj szybkich decyzji.'
+    ]
+  },
+  blue: {
+    name: 'Niebieski — Styl C (Melancholik)',
+    color: '#1E88E5',
+    traits: ['Analityczny', 'Precyzyjny', 'Dba o szczegóły', 'Zdystansowany', 'Refleksyjny'],
+    howToTalk: [
+      'Opieraj argumenty na faktach, liczbach, logice i sprawdzonych dowodach.',
+      'Przygotuj się dobrze i zachowaj precyzję oraz punktualność — chaos ją irytuje.',
+      'Daj jej czas na samodzielne przeanalizowanie informacji przed podjęciem decyzji.',
+      'Unikaj nadmiernej emocjonalności i powierzchownych, niczym niepopartych deklaracji.',
+      'Szanuj jej potrzebę dystansu — nie traktuj tego jako chłodu czy braku zaangażowania.'
+    ]
+  }
+};
+
+// Tallies the 8 chosen colors and reports every color tied for the highest
+// count — a genuine tie (2+ colors sharing the max) is a real result, not an
+// error to break: it means the array comes back with more than one element.
+// No tie-break rule on purpose — see the feature's spec for why.
+function computePersonalityResult(answerColors) {
+  const counts = { red: 0, yellow: 0, green: 0, blue: 0 };
+  answerColors.forEach(c => { if (counts[c] !== undefined) counts[c]++; });
+  const max = Math.max(...Object.values(counts));
+  const personalityType = Object.keys(counts).filter(c => counts[c] === max);
+  return { counts, personalityType };
+}
+
 const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v0.9.90';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.90' -> '0.9.90', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.91';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.91' -> '0.9.91', matches the ?v= convention used elsewhere
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
@@ -240,6 +390,18 @@ const PLANET_GRADIENTS = [
   ['#ff4757', '#c44569']
 ];
 
+// Indices into PLANET_GRADIENTS that read as a plain Red/Yellow/Green/Blue —
+// now reserved for the personality-based color method (PERSONALITY_PROFILES)
+// and hidden from the manual picker so the two methods never visually clash.
+// Left in the array itself rather than removed, so anyone who already picked
+// one of these before this change keeps rendering their original color.
+const RESERVED_GRADIENT_INDICES = new Set([0, 5, 10, 11]);
+
+function pickRandomGradientIndex() {
+  const options = PLANET_GRADIENTS.map((_, i) => i).filter(i => !RESERVED_GRADIENT_INDICES.has(i));
+  return options[Math.floor(Math.random() * options.length)];
+}
+
 // ═══════════════════════════════════════════
 // DOM REFERENCES
 // ═══════════════════════════════════════════
@@ -285,6 +447,14 @@ let editingId = null;
 let selectedPlanetId = null; // Currently selected planet (menu open)
 let preSelectMapState = null; // Store map state before zooming to planet
 let selectedGradientIndex = 0;
+// Staged personality-survey result for the person currently open in the
+// modal — null means "not using the personality method" (falls back to
+// selectedGradientIndex, exactly like before this feature existed). Set from
+// the person's own data on open, updated when the mini-survey is confirmed
+// or cleared, and only written back onto the person in handleSubmit(), same
+// lifecycle as selectedGradientIndex.
+let selectedPersonalityType = null;
+let selectedPersonalityAnswers = null;
 // Remembers each person's scroll position in the survey form (id -> scrollTop) so
 // reopening the same person resumes where you left off, without leaking that
 // position onto a different (or brand new) person.
@@ -295,6 +465,79 @@ function updateColorPickerSelection(index) {
   document.querySelectorAll('.color-swatch').forEach(s => {
     s.classList.toggle('selected', parseInt(s.dataset.index) === index);
   });
+}
+
+// Reflects the current staged personality state in the color-group's trigger
+// row (hint text + small color dots), and shows/hides the "back to manual"
+// action inside the personality modal itself.
+function updatePersonalityColorStatus() {
+  const hint = $('#personality-color-hint');
+  const dots = $('#personality-color-dots');
+  const clearBtn = $('#btn-personality-clear');
+  const active = Array.isArray(selectedPersonalityType) && selectedPersonalityType.length > 0;
+
+  if (hint) {
+    hint.textContent = active
+      ? `Aktywny: ${selectedPersonalityType.map(c => PERSONALITY_COLOR_LABELS[c]).join(' + ')}`
+      : 'Rozwiąż mini-ankietę (8 pytań)';
+  }
+  if (dots) {
+    dots.innerHTML = '';
+    if (active) {
+      selectedPersonalityType.forEach(c => {
+        const dot = document.createElement('span');
+        dot.className = 'personality-color-dot';
+        dot.style.background = PERSONALITY_PROFILES[c].color;
+        dots.appendChild(dot);
+      });
+    }
+  }
+  if (clearBtn) clearBtn.style.display = active ? 'flex' : 'none';
+}
+
+// Resolves what a person's planet should look like: a completed personality
+// survey takes over whenever it's active, otherwise this falls back to the
+// manually picked gradient — that fallback path is entirely unchanged from
+// before this feature existed.
+function getPersonColors(person) {
+  const types = Array.isArray(person.personalityType) ? person.personalityType : null;
+  if (types && types.length > 0) {
+    return { mode: 'personality', colors: types.map(c => PERSONALITY_PROFILES[c].color) };
+  }
+  return { mode: 'manual', colors: PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length] };
+}
+
+// Lightens (positive percent) or darkens (negative) a #rrggbb color — used to
+// turn a single personality color into a light-to-base pair so a one-color
+// result still gets the same sphere-like gradient look as the manual swatches.
+function shadeColor(hex, percent) {
+  const num = parseInt(hex.slice(1), 16);
+  const amt = Math.round(2.55 * percent);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xff) + amt));
+  const b = Math.min(255, Math.max(0, (num & 0xff) + amt));
+  return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+}
+
+// CSS background (+ a base color for the glow) for a planet-shaped element,
+// given a person. Three cases:
+//  - manual color (personalityType null/empty): unchanged two-stop gradient.
+//  - single personality winner: same two-stop gradient look, built from that
+//    one color instead of a fixed pair.
+//  - tie between 2+ colors: the disc is split into equal angular sectors, one
+//    per tied color — the simplest way, in plain CSS, to show "all of these,
+//    equally" without touching how planets are positioned or laid out.
+function getPlanetBackground(person) {
+  const { mode, colors } = getPersonColors(person);
+  if (mode === 'manual') {
+    return { background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`, glowBase: colors[0] };
+  }
+  if (colors.length === 1) {
+    return { background: `linear-gradient(135deg, ${shadeColor(colors[0], 35)}, ${colors[0]})`, glowBase: colors[0] };
+  }
+  const step = 360 / colors.length;
+  const stops = colors.map((c, i) => `${c} ${i * step}deg ${(i + 1) * step}deg`).join(', ');
+  return { background: `conic-gradient(${stops})`, glowBase: colors[0] };
 }
 let animationFrameId = null;
 let lastTimestamp = 0;
@@ -354,14 +597,24 @@ function buildSurveyForm() {
   if (picker) {
     picker.innerHTML = '';
     PLANET_GRADIENTS.forEach((grad, index) => {
+      if (RESERVED_GRADIENT_INDICES.has(index)) return;
       const swatch = document.createElement('div');
       swatch.className = 'color-swatch';
       swatch.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
       swatch.dataset.index = index;
-      swatch.addEventListener('click', () => updateColorPickerSelection(index));
+      swatch.addEventListener('click', () => {
+        updateColorPickerSelection(index);
+        // Picking a manual color is a deliberate "use this instead" choice —
+        // it wins over an active personality result, same way confirming the
+        // personality survey wins over whatever manual swatch was selected.
+        selectedPersonalityType = null;
+        updatePersonalityColorStatus();
+      });
       picker.appendChild(swatch);
     });
   }
+
+  buildPersonalityForm();
 
   // ── Gate question (rendered first, stored separately) ──
   const gateCard = document.createElement('div');
@@ -477,6 +730,131 @@ function buildSurveyForm() {
 
   secretCard.appendChild(secretOptions);
   questionsContainer.appendChild(secretCard);
+}
+
+// ═══════════════════════════════════════════
+// PERSONALITY (DISC / 4 colors) MODAL
+// ═══════════════════════════════════════════
+
+const personalityModal = $('#personality-modal');
+const personalityForm = $('#personality-form');
+const personalityQuestionsContainer = $('#personality-questions-container');
+
+// Built once at startup, like buildSurveyForm() — reused across every
+// open/close of the personality modal.
+function buildPersonalityForm() {
+  if (!personalityQuestionsContainer) return;
+  personalityQuestionsContainer.innerHTML = '';
+
+  PERSONALITY_QUESTIONS.forEach((q, qIndex) => {
+    const card = document.createElement('div');
+    card.className = 'question-card';
+    card.id = `pcard-${qIndex}`;
+
+    const header = document.createElement('div');
+    header.className = 'question-card__header';
+    const title = document.createElement('h3');
+    title.textContent = `${qIndex + 1}. ${q.text}`;
+    header.appendChild(title);
+    card.appendChild(header);
+
+    const optionsWrap = document.createElement('div');
+    optionsWrap.className = 'options-container';
+
+    q.answers.forEach((answer) => {
+      const label = document.createElement('label');
+      label.className = 'answer-option';
+
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = `pq${qIndex}`;
+      radio.value = answer.color; // hidden internal field — never shown to the user
+      radio.required = true;
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'answer-text';
+      textSpan.textContent = answer.text;
+
+      label.appendChild(radio);
+      label.appendChild(textSpan);
+      optionsWrap.appendChild(label);
+    });
+
+    card.appendChild(optionsWrap);
+    personalityQuestionsContainer.appendChild(card);
+  });
+}
+
+// Re-checks the radios matching previously saved colors, so reopening an
+// already-answered survey shows it exactly as it was left — matched by the
+// hidden color value, not by position, so it's unaffected by answer order.
+function fillPersonalityForm(answerColors) {
+  if (!personalityForm) return;
+  personalityForm.reset();
+  if (!Array.isArray(answerColors)) return;
+  answerColors.forEach((color, qIndex) => {
+    const radio = personalityForm.querySelector(`input[name="pq${qIndex}"][value="${color}"]`);
+    if (radio) radio.checked = true;
+  });
+}
+
+function openPersonalityModal() {
+  if (!personalityModal) return;
+  fillPersonalityForm(selectedPersonalityAnswers);
+  updatePersonalityColorStatus();
+  personalityModal.setAttribute('aria-hidden', 'false');
+  history.pushState({ personalityModalOpen: true }, '');
+}
+
+function closePersonalityModal(fromPopState = false) {
+  if (!personalityModal) return;
+  // Unlike every other modal in this app, this one can be open *on top of* the
+  // still-open survey modal — the first case of two modals open at once. Hiding
+  // eagerly here (like the others do) would make this function's own
+  // history.back() call fall through the popstate chain below into closing the
+  // survey modal too, since by the time that popstate fires this modal would
+  // already read as closed. Deferring the hide to the fromPopState branch keeps
+  // this modal matching first in that chain, so the survey modal is untouched.
+  if (!fromPopState && history.state && history.state.personalityModalOpen) {
+    history.back();
+    return;
+  }
+  personalityModal.setAttribute('aria-hidden', 'true');
+}
+
+function handlePersonalitySubmit(e) {
+  e.preventDefault();
+  if (!personalityForm) return;
+
+  const colors = [];
+  for (let i = 0; i < PERSONALITY_QUESTIONS.length; i++) {
+    const checked = personalityForm.querySelector(`input[name="pq${i}"]:checked`);
+    if (!checked) {
+      const card = document.getElementById(`pcard-${i}`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.outline = '2px solid #ef476f';
+        card.style.outlineOffset = '4px';
+        setTimeout(() => { card.style.outline = ''; card.style.outlineOffset = ''; }, 2000);
+      }
+      return;
+    }
+    colors.push(checked.value);
+  }
+
+  const { personalityType } = computePersonalityResult(colors);
+  selectedPersonalityType = personalityType;
+  selectedPersonalityAnswers = colors;
+  updatePersonalityColorStatus();
+  closePersonalityModal();
+}
+
+// Deactivates the personality result (falls back to the manual color) without
+// discarding the answers themselves, so reopening the survey still shows them.
+function handlePersonalityClear() {
+  selectedPersonalityType = null;
+  updatePersonalityColorStatus();
+  closePersonalityModal();
 }
 
 // Builds a question card's title row (question text + a chevron toggle that
@@ -831,7 +1209,7 @@ function distributePlanets() {
     p.level = Math.min(getLevel(p.totalScore), p.secretCap !== undefined ? p.secretCap : 3);
 
     if (typeof p.gradientIndex !== 'number') {
-      p.gradientIndex = Math.floor(Math.random() * PLANET_GRADIENTS.length);
+      p.gradientIndex = pickRandomGradientIndex();
     }
 
     byLevel[p.level].push(p);
@@ -971,7 +1349,9 @@ function pickSyncFields(obj) {
     // gateAnswer at all, and Firestore rejects an undefined field outright.
     gateAnswer: typeof obj.gateAnswer === 'number' ? obj.gateAnswer : null,
     secretCap: obj.secretCap,
-    gradientIndex: obj.gradientIndex
+    gradientIndex: obj.gradientIndex,
+    personalityType: obj.personalityType || null,
+    personalityAnswers: obj.personalityAnswers || null
   };
 }
 
@@ -1788,9 +2168,20 @@ function bindEvents() {
     if (e.target === surveyModal) closeModal();
   });
 
+  // Personality (DISC) mini-survey modal — opened from the color-group as an
+  // alternative to the manual swatch picker.
+  $('#btn-personality-color')?.addEventListener('click', openPersonalityModal);
+  $('#btn-close-personality')?.addEventListener('click', () => closePersonalityModal());
+  $('#btn-personality-clear')?.addEventListener('click', handlePersonalityClear);
+  personalityForm?.addEventListener('submit', handlePersonalitySubmit);
+  personalityModal?.addEventListener('click', e => {
+    if (e.target === personalityModal) closePersonalityModal();
+  });
+
   // Close modal on Escape key
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
+      if (personalityModal?.getAttribute('aria-hidden') === 'false') closePersonalityModal();
       if (surveyModal?.getAttribute('aria-hidden') === 'false') closeModal();
       if (infoModal?.getAttribute('aria-hidden') === 'false') closeInfoModal();
       if ($('#account-modal')?.getAttribute('aria-hidden') === 'false') closeAccountModal();
@@ -1928,7 +2319,10 @@ function openAddModal() {
   resetQuestionOrder();
   resetQuestionCollapse();
   surveyForm.scrollTop = 0;
-  updateColorPickerSelection(Math.floor(Math.random() * PLANET_GRADIENTS.length));
+  updateColorPickerSelection(pickRandomGradientIndex());
+  selectedPersonalityType = null;
+  selectedPersonalityAnswers = null;
+  updatePersonalityColorStatus();
   modalTitle.textContent = 'Nowa relacja';
   btnDelete.style.display = 'none';
   resetScorePreview();
@@ -1947,8 +2341,12 @@ function openEditModal(id, mode = 'survey') {
   surveyForm.reset();
   personNameInput.value = person.name;
 
-  const colorIndex = person.gradientIndex !== undefined ? person.gradientIndex : Math.floor(Math.random() * PLANET_GRADIENTS.length);
+  const colorIndex = person.gradientIndex !== undefined ? person.gradientIndex : pickRandomGradientIndex();
   updateColorPickerSelection(colorIndex);
+
+  selectedPersonalityType = Array.isArray(person.personalityType) ? [...person.personalityType] : null;
+  selectedPersonalityAnswers = Array.isArray(person.personalityAnswers) ? [...person.personalityAnswers] : null;
+  updatePersonalityColorStatus();
 
   // Pre-fill gate
   if (typeof person.gateAnswer === 'number') {
@@ -1984,7 +2382,7 @@ function openEditModal(id, mode = 'survey') {
   renderAnswerSummaries(person);
   surveyForm.scrollTop = surveyScrollPositions[id] || 0;
 
-  modalTitle.textContent = `Edytuj: ${person.name}`;
+  modalTitle.textContent = mode === 'summary' ? `Podsumowanie: ${person.name}` : `Edytuj: ${person.name}`;
   btnDelete.style.display = 'flex';
 
   updateScorePreview();
@@ -2001,17 +2399,63 @@ function openEditModal(id, mode = 'survey') {
   history.pushState({ modalOpen: true }, '');
 }
 
+// One-word profile name (drops the " — Styl X (Archetyp)" suffix) for the
+// short "Typ mieszany: A + B" heading and the per-group labels in a tie.
+function personalityShortName(color) {
+  return PERSONALITY_PROFILES[color].name.split(' — ')[0];
+}
+
+const PERSONALITY_TIE_COUNT_WORDS = { 2: 'dwóch', 3: 'trzech', 4: 'czterech' };
+
+// Renders the personality-survey result at the top of the summary — nothing
+// at all when the mini-survey hasn't been completed for this person.
+function buildPersonalitySummaryBlock(person) {
+  const types = Array.isArray(person.personalityType) ? person.personalityType : null;
+  if (!types || types.length === 0) return '';
+
+  const profiles = types.map(c => PERSONALITY_PROFILES[c]);
+  let html = '<div class="personality-summary">';
+  html += '<p class="personality-summary__eyebrow">Typ osobowości (na podstawie mini-ankiety)</p>';
+
+  if (types.length >= 2) {
+    const countWord = PERSONALITY_TIE_COUNT_WORDS[types.length] || `${types.length}`;
+    html += `<p class="personality-summary__note">Ta osoba wykazuje cechy ${countWord} typów osobowości w równym stopniu — w komunikacji warto brać pod uwagę wskazówki z obu profili, w zależności od sytuacji.</p>`;
+    html += `<h3 class="personality-summary__title">Typ mieszany: ${types.map(personalityShortName).join(' + ')}</h3>`;
+    html += '<div class="personality-summary__swatches">' + profiles.map(p => `<span class="personality-summary__swatch" style="background:${p.color}"></span>`).join('') + '</div>';
+
+    const allTraits = [...new Set(profiles.flatMap(p => p.traits))];
+    html += '<div class="personality-summary__traits">' + allTraits.map(t => `<span class="personality-summary__trait">${t}</span>`).join('') + '</div>';
+
+    html += '<h4 class="personality-summary__subtitle">Jak z nią rozmawiać</h4>';
+    types.forEach((color, i) => {
+      const p = profiles[i];
+      html += `<p class="personality-summary__group-label" style="color:${p.color}">${personalityShortName(color)}</p>`;
+      html += '<ul class="personality-summary__list">' + p.howToTalk.map(t => `<li>${t}</li>`).join('') + '</ul>';
+    });
+  } else {
+    const p = profiles[0];
+    html += `<h3 class="personality-summary__title" style="color:${p.color}">${p.name}</h3>`;
+    html += `<div class="personality-summary__swatches"><span class="personality-summary__swatch" style="background:${p.color}"></span></div>`;
+    html += '<div class="personality-summary__traits">' + p.traits.map(t => `<span class="personality-summary__trait">${t}</span>`).join('') + '</div>';
+    html += '<h4 class="personality-summary__subtitle">Jak z nią rozmawiać</h4>';
+    html += '<ul class="personality-summary__list">' + p.howToTalk.map(t => `<li>${t}</li>`).join('') + '</ul>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
 function generateSummary(person) {
   if (!summaryContainer) return;
   summaryContainer.innerHTML = '';
 
-  let html = '';
+  let relHtml = '';
 
   // Gate check
   if (typeof person.gateAnswer === 'number' && person.gateAnswer < 0) {
     const answerObj = GATE_QUESTION.answers.find(a => a.penalty === person.gateAnswer);
     if (answerObj) {
-      html += `
+      relHtml += `
         <div class="summary-item" onclick="switchToSurveyAndScroll('card-gate')" style="cursor: pointer;" title="Kliknij, aby poprawić">
           <div class="summary-item__question">${GATE_QUESTION.text}</div>
           <div class="summary-item__answer">Twoja odpowiedź: ${answerObj.text}</div>
@@ -2025,13 +2469,13 @@ function generateSummary(person) {
   person.answers.forEach((pts, i) => {
     const q = SURVEY_QUESTIONS[i];
     if (!q) return;
-    
+
     // Some questions might have 0 as max if they are all negative, but typically index 0 is max
     const maxPts = Math.max(...q.answers.map(a => a.points));
     if (pts < maxPts) {
       const idx = person.answerIndices?.[i];
       const answerObj = (typeof idx === 'number' && q.answers[idx]) ? q.answers[idx] : q.answers.find(a => a.points === pts);
-      html += `
+      relHtml += `
         <div class="summary-item" onclick="switchToSurveyAndScroll('card-q${i}')" style="cursor: pointer;" title="Kliknij, aby poprawić">
           <div class="summary-item__question">${q.text}</div>
           <div class="summary-item__answer">Twoja odpowiedź: ${answerObj ? answerObj.text : '-'}</div>
@@ -2045,7 +2489,7 @@ function generateSummary(person) {
   if (typeof person.secretCap === 'number' && person.secretCap < 3) {
     const answerObj = SECRET_QUESTION.answers.find(a => a.cap === person.secretCap);
     if (answerObj) {
-      html += `
+      relHtml += `
         <div class="summary-item" onclick="switchToSurveyAndScroll('card-secret')" style="cursor: pointer;" title="Kliknij, aby poprawić">
           <div class="summary-item__question">${SECRET_QUESTION.text}</div>
           <div class="summary-item__answer">Twoja odpowiedź: ${answerObj.text}</div>
@@ -2055,11 +2499,11 @@ function generateSummary(person) {
     }
   }
 
-  if (html === '') {
-    html = '<div style="text-align:center; color:var(--text-muted); padding:20px;">Ta osoba uzyskała maksymalną liczbę punktów we wszystkich kategoriach!</div>';
+  if (relHtml === '') {
+    relHtml = '<div style="text-align:center; color:var(--text-muted); padding:20px;">Ta osoba uzyskała maksymalną liczbę punktów we wszystkich kategoriach!</div>';
   }
 
-  summaryContainer.innerHTML = html;
+  summaryContainer.innerHTML = buildPersonalitySummaryBlock(person) + relHtml;
 }
 
 window.switchToSurveyAndScroll = function(cardId) {
@@ -2100,7 +2544,9 @@ function closeModal(fromPopState = false) {
 
 // Handle hardware back button
 window.addEventListener('popstate', (e) => {
-  if (surveyModal.getAttribute('aria-hidden') === 'false') {
+  if (personalityModal?.getAttribute('aria-hidden') === 'false') {
+    closePersonalityModal(true);
+  } else if (surveyModal.getAttribute('aria-hidden') === 'false') {
     closeModal(true);
   } else if (infoModal?.getAttribute('aria-hidden') === 'false') {
     closeInfoModal(true);
@@ -2241,6 +2687,8 @@ function handleSubmit(e) {
       person.gateAnswer = gatePenalty;
       person.totalScore = totalScore;
       person.gradientIndex = selectedGradientIndex;
+      person.personalityType = selectedPersonalityType;
+      person.personalityAnswers = selectedPersonalityAnswers;
       person.secretCap = secretCap;
       const oldLevel = person.level;
       person.level = cappedLevel;
@@ -2261,7 +2709,9 @@ function handleSubmit(e) {
       secretCap,
       angle: Math.random() * Math.PI * 2,
       speed: getSpeedByScore(totalScore),
-      gradientIndex: selectedGradientIndex
+      gradientIndex: selectedGradientIndex,
+      personalityType: selectedPersonalityType,
+      personalityAnswers: selectedPersonalityAnswers
     };
     people.push(savedPerson);
   }
@@ -2324,9 +2774,9 @@ function renderPlanets() {
     // The planet
     const planetEl = document.createElement('div');
     planetEl.className = 'planet';
-    const grad = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
-    planetEl.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
-    planetEl.style.setProperty('--planet-glow', `${grad[0]}66`);
+    const { background: planetBg, glowBase } = getPlanetBackground(person);
+    planetEl.style.background = planetBg;
+    planetEl.style.setProperty('--planet-glow', `${glowBase}66`);
 
     // +/- indicators converted to background glow
     const { glow: customGlow, color: customGlowColor } = getPlanetGlowStyle(person);
@@ -2717,9 +3167,9 @@ function renderRanking() {
     const item = document.createElement('div');
     item.className = 'ranking-item';
     
-    // Gradient colors
-    const colors = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
-    
+    // Planet colors (manual or personality-derived)
+    const { background: avatarBg } = getPlanetBackground(person);
+
     // Initials
     const initials = (person.name || '').substring(0, 2).toUpperCase();
     
@@ -2742,7 +3192,7 @@ function renderRanking() {
     // set as text rather than interpolated into markup.
     const avatarEl = document.createElement('div');
     avatarEl.className = 'ranking-avatar';
-    avatarEl.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
+    avatarEl.style.background = avatarBg;
 
     const infoEl = document.createElement('div');
     infoEl.className = 'ranking-info';
@@ -2871,7 +3321,7 @@ function renderStats() {
         const peopleEl = document.createElement('div');
         peopleEl.className = 'stats-people';
         answerPeople.forEach(person => {
-          const colors = PLANET_GRADIENTS[person.gradientIndex % PLANET_GRADIENTS.length];
+          const { background: chipBg, glowBase: chipGlowBase } = getPlanetBackground(person);
           const chip = document.createElement('div');
           chip.className = 'stats-person-chip';
           chip.dataset.personId = person.id;
@@ -2887,8 +3337,8 @@ function renderStats() {
 
           const planetEl = document.createElement('span');
           planetEl.className = 'stats-person-chip__planet';
-          planetEl.style.background = `linear-gradient(135deg, ${colors[0]}, ${colors[1]})`;
-          planetEl.style.setProperty('--planet-glow', `${colors[0]}66`);
+          planetEl.style.background = chipBg;
+          planetEl.style.setProperty('--planet-glow', `${chipGlowBase}66`);
           const { glow: customGlow } = getPlanetGlowStyle(person);
           if (customGlow) planetEl.style.setProperty('--custom-glow', customGlow);
           planetEl.textContent = `${person.totalScore}`;
@@ -2980,12 +3430,14 @@ function setupMapNavigation() {
     const info = document.getElementById('info-modal');
     const account = document.getElementById('account-modal');
     const settings = document.getElementById('settings-modal');
+    const personality = document.getElementById('personality-modal');
     if (ranking && !ranking.classList.contains('hidden')) return true;
     if (stats && !stats.classList.contains('hidden')) return true;
     if (survey && survey.getAttribute('aria-hidden') === 'false') return true;
     if (info && info.getAttribute('aria-hidden') === 'false') return true;
     if (account && account.getAttribute('aria-hidden') === 'false') return true;
     if (settings && settings.getAttribute('aria-hidden') === 'false') return true;
+    if (personality && personality.getAttribute('aria-hidden') === 'false') return true;
     return false;
   };
 
