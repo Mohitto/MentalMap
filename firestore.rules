@@ -2,35 +2,34 @@
 //
 // Not wired to any CLI/deploy tooling (this repo has no build system and no
 // firebase.json) — paste this into Firebase Console → Firestore Database →
-// Rules → publish, whenever it changes.
+// Rules → publish. This should be the last time: the rule below is
+// deliberately field-shape-agnostic, so it never needs to change again no
+// matter how the app's schema evolves.
 //
 // Person records are stored as plain fields — there is no client-side
-// encryption (see firebase-sync.js for why). This per-uid restriction is
-// therefore the only protection: even a compromised or buggy client can
-// never read or write another user's subtree, but the data itself is only
-// as private as this rule and the Firebase project's own access controls.
+// encryption (see firebase-sync.js for why). Owning your own uid's subtree
+// is therefore the only real protection, and it's also the only thing this
+// rule checks: previous versions also allow-listed the exact field names
+// each collection could contain (hasOnly([...])), which meant every schema
+// change in the app — a renamed field, a new settings checkbox, a new
+// subcollection — needed a matching manual re-paste into the Firebase
+// Console. That step kept getting missed, and every single time it was,
+// every write silently failed with permission-denied — the actual root
+// cause behind more than one "my map disappeared" investigation in this
+// project's history. The field allow-list never added real security (only
+// the account owner, or someone with their Firebase Auth credentials, can
+// ever write here regardless of which fields are allowed) — it was
+// defense-in-depth against malformed data, which the client already
+// validates and guards against on its own (see the malformed-record checks
+// in app.js). Dropping it trades that redundant, fragile check for a rule
+// that can't drift out of sync with the code ever again.
 
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    match /users/{uid} {
+    match /users/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
-
-      match /people/{personId} {
-        allow read, delete: if request.auth != null && request.auth.uid == uid;
-        allow create, update: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['name', 'answers', 'answerIndices', 'gateAnswer', 'secretCap', 'gradientIndex', 'personalityType', 'personalityAnswers', 'updatedAt', 'updatedAtClient']);
-      }
-
-      // App preferences (level colors / trajectories visibility) — one small
-      // doc, not a per-item collection like people.
-      match /settings/{settingsDoc} {
-        allow read: if request.auth != null && request.auth.uid == uid;
-        allow create, update: if request.auth != null && request.auth.uid == uid
-          && request.resource.data.keys().hasOnly(['showLevelColors', 'showTrajectories', 'updatedAt']);
-      }
     }
 
     match /{document=**} {
