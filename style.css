@@ -1763,7 +1763,8 @@ body.incognito-mode .stats-person-chip__name {
 
 #survey-modal[data-mode="color"] #questions-container,
 #survey-modal[data-mode="color"] #score-preview,
-#survey-modal[data-mode="color"] #summary-container {
+#survey-modal[data-mode="color"] #summary-container,
+#survey-modal[data-mode="color"] .personality-group {
   display: none !important;
 }
 
@@ -1779,10 +1780,11 @@ body.incognito-mode .stats-person-chip__name {
   margin-bottom: 12px;
 }
 
-/* ── Personality-based color method (alternative to the swatch picker above) ── */
+/* ── Personality-based color method — lives with the relationship-survey
+   questions ("Edycja ankiety"), not the manual color picker above. ── */
 
-.personality-trigger-btn {
-  margin-top: 14px;
+.personality-group {
+  margin-bottom: 20px;
 }
 
 .personality-color-dot-group {
@@ -1913,6 +1915,7 @@ body.incognito-mode .stats-person-chip__name {
 
 #survey-modal[data-mode="summary"] #questions-container,
 #survey-modal[data-mode="summary"] .color-group,
+#survey-modal[data-mode="summary"] .personality-group,
 #survey-modal[data-mode="summary"] #score-preview,
 #survey-modal[data-mode="summary"] .btn--save {
   display: none !important;
