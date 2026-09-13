@@ -340,8 +340,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v0.9.92';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.92' -> '0.9.92', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v0.9.93';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v0.9.93' -> '0.9.93', matches the ?v= convention used elsewhere
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
@@ -846,6 +846,7 @@ function handlePersonalitySubmit(e) {
   selectedPersonalityType = personalityType;
   selectedPersonalityAnswers = colors;
   updatePersonalityColorStatus();
+  persistPersonalityIfEditingExistingPerson();
   closePersonalityModal();
 }
 
@@ -854,7 +855,27 @@ function handlePersonalitySubmit(e) {
 function handlePersonalityClear() {
   selectedPersonalityType = null;
   updatePersonalityColorStatus();
+  persistPersonalityIfEditingExistingPerson();
   closePersonalityModal();
+}
+
+// Confirming or clearing the personality survey should take effect on the
+// planet right away — it's a self-contained action with its own confirm
+// button, not a draft the user expects to also need the outer "Zapisz" for.
+// For a brand-new person (no editingId yet — nothing to save onto until the
+// whole form is submitted), this is a no-op and the staged
+// selectedPersonalityType/selectedPersonalityAnswers are picked up by
+// handleSubmit() as usual.
+function persistPersonalityIfEditingExistingPerson() {
+  if (!editingId) return;
+  const person = people.find(p => p.id === editingId);
+  if (!person) return;
+  person.personalityType = selectedPersonalityType;
+  person.personalityAnswers = selectedPersonalityAnswers;
+  distributePlanets();
+  savePeople();
+  renderPlanets();
+  queueSyncUpsert(person);
 }
 
 // Builds a question card's title row (question text + a chevron toggle that
