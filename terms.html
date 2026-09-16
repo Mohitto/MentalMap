@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a1a">
+<title>Regulamin — MentalMap</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-color: #0a0a1a;
+    --text-primary: #ffffff;
+    --text-secondary: #9ba1a6;
+    --text-muted: #5a5f65;
+    --card-bg: #1a1a30;
+    --input-border: #2a2a45;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .doc-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  .doc-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .doc-back:hover { color: var(--text-primary); }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0 0 6px;
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 32px 0 10px;
+    color: var(--text-primary);
+  }
+  p, li {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+  }
+  p { margin: 0 0 12px; }
+  ul, ol { margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text-primary); }
+  a { color: #8ea2ff; }
+  .doc-card {
+    background: var(--card-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin: 0 0 12px;
+  }
+  .doc-card p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="doc-wrap">
+  <a class="doc-back" href="./index.html">&larr; Powrót do aplikacji</a>
+  <h1>Regulamin korzystania z MentalMap</h1>
+  <p class="doc-meta">Wersja dokumentu: 1.0 · Obowiązuje od: 16 września 2026 r.</p>
+
+  <h2>1. Postanowienia ogólne</h2>
+  <p>Niniejszy Regulamin określa zasady korzystania z aplikacji MentalMap („Aplikacja”) — narzędzia służącego do samodzielnej, wizualnej oceny relacji z innymi osobami w formie układu planetarnego, udostępnianego jako aplikacja webowa (PWA) oraz aplikacja na Androida.</p>
+  <p>Korzystanie z Aplikacji oznacza akceptację niniejszego Regulaminu oraz <a href="./privacy-policy.html">Polityki Prywatności</a>. Aplikacja wymaga jednoznacznego zaakceptowania obu dokumentów przed pierwszym użyciem oraz każdorazowo po ich istotnej aktualizacji.</p>
+
+  <h2>2. Definicje</h2>
+  <ul>
+    <li><strong>Aplikacja</strong> — MentalMap, w wersji webowej (PWA) i/lub na Androida.</li>
+    <li><strong>Twórca</strong> — podmiot udostępniający Aplikację, kontaktowy poprzez repozytorium projektu wskazane w pkt 10.</li>
+    <li><strong>Użytkownik</strong> — osoba korzystająca z Aplikacji.</li>
+    <li><strong>Konto</strong> — opcjonalne konto zakładane w celu synchronizacji danych między urządzeniami, obsługiwane przez Firebase Authentication.</li>
+    <li><strong>Dane</strong> — informacje wprowadzane przez Użytkownika do Aplikacji, w tym dane o osobach trzecich dodanych do mapy relacji.</li>
+  </ul>
+
+  <h2>3. Warunki korzystania z Aplikacji</h2>
+  <ol>
+    <li>Z Aplikacji może korzystać osoba, która ukończyła 16 lat. Osoby młodsze mogą korzystać z Aplikacji wyłącznie za zgodą i pod nadzorem rodzica lub opiekuna prawnego.</li>
+    <li>Warunkiem korzystania z Aplikacji jest zapoznanie się z treścią niniejszego Regulaminu i Polityki Prywatności oraz ich akceptacja w widocznym w Aplikacji oknie zgody. Brak akceptacji uniemożliwia korzystanie z Aplikacji.</li>
+    <li>Do korzystania z podstawowych funkcji Aplikacji nie jest wymagane założenie Konta — dane mogą być przechowywane wyłącznie lokalnie na urządzeniu Użytkownika.</li>
+  </ol>
+
+  <h2>4. Zakres usługi</h2>
+  <p>Aplikacja umożliwia tworzenie osobistej, subiektywnej mapy relacji na podstawie odpowiedzi udzielanych przez Użytkownika w krótkich ankietach. Wyniki mają charakter poglądowy, samopoznawczy i rekreacyjny — <strong>nie stanowią porady psychologicznej, terapeutycznej ani żadnej innej formy profesjonalnej pomocy</strong> i nie powinny zastępować konsultacji ze specjalistą.</p>
+  <p>Po założeniu Konta Aplikacja umożliwia dodatkowo synchronizację Danych między urządzeniami za pośrednictwem usług Firebase (Google). Zakres przetwarzanych w ten sposób danych opisuje Polityka Prywatności.</p>
+
+  <h2>5. Konto Użytkownika</h2>
+  <ol>
+    <li>Konto można założyć przy użyciu adresu e-mail i hasła lub konta Google.</li>
+    <li>Użytkownik zobowiązany jest do zachowania poufności danych logowania i ponosi odpowiedzialność za działania podejmowane przy użyciu swojego Konta.</li>
+    <li>Użytkownik może w każdej chwili usunąć swoje Konto oraz przechowywane na nim Dane, kontaktując się z Twórcą zgodnie z pkt 10.</li>
+  </ol>
+
+  <h2>6. Obowiązki Użytkownika</h2>
+  <ol>
+    <li>Użytkownik wprowadza do Aplikacji dane o osobach trzecich (np. imiona znajomych) wyłącznie na własną odpowiedzialność i w ramach dozwolonego użytku osobistego. Użytkownik zobowiązuje się nie wykorzystywać Aplikacji do przetwarzania danych osobowych w sposób naruszający obowiązujące przepisy o ochronie danych osobowych ani dobra osobiste osób trzecich.</li>
+    <li>Zabronione jest korzystanie z Aplikacji w sposób naruszający prawo, dobre obyczaje lub prawa osób trzecich, w tym podejmowanie prób nieuprawnionego dostępu do Kont innych Użytkowników lub infrastruktury Aplikacji.</li>
+  </ol>
+
+  <h2>7. Odpowiedzialność</h2>
+  <ol>
+    <li>Aplikacja udostępniana jest w formule „tak jak jest” (as is), bez gwarancji nieprzerwanego i bezbłędnego działania.</li>
+    <li>Twórca nie ponosi odpowiedzialności za utratę Danych przechowywanych wyłącznie lokalnie na urządzeniu Użytkownika (np. w wyniku wyczyszczenia danych przeglądarki, utraty lub uszkodzenia urządzenia) — Użytkownik korzystający wyłącznie z trybu lokalnego odpowiada samodzielnie za wykonywanie kopii zapasowych.</li>
+    <li>Twórca nie ponosi odpowiedzialności za decyzje podejmowane przez Użytkownika na podstawie wyników generowanych przez Aplikację, mających charakter wyłącznie poglądowy — patrz pkt 4.</li>
+    <li>Twórca nie ponosi odpowiedzialności za przerwy w działaniu Aplikacji wynikające z awarii usług zewnętrznych (w szczególności Firebase/Google), z których Aplikacja korzysta.</li>
+  </ol>
+
+  <h2>8. Dane osobowe</h2>
+  <p>Zasady przetwarzania danych osobowych w związku z korzystaniem z Aplikacji określa odrębny dokument — <a href="./privacy-policy.html">Polityka Prywatności</a>, stanowiąca integralne uzupełnienie niniejszego Regulaminu.</p>
+
+  <h2>9. Reklamacje</h2>
+  <p>Reklamacje dotyczące działania Aplikacji można zgłaszać w sposób wskazany w pkt 10. Twórca dokłada starań, aby rozpatrzyć zgłoszenie w rozsądnym terminie, mając na uwadze niekomercyjny, projektowy charakter Aplikacji.</p>
+
+  <h2>10. Kontakt</h2>
+  <p>Wszelkie pytania, zgłoszenia i żądania związane z Aplikacją, niniejszym Regulaminem lub Polityką Prywatności można kierować poprzez zgłoszenie na <a href="https://github.com/Mohitto/MentalMap/issues" target="_blank" rel="noopener">github.com/Mohitto/MentalMap/issues</a>.</p>
+
+  <h2>11. Zmiany Regulaminu</h2>
+  <p>Twórca zastrzega sobie prawo do zmiany niniejszego Regulaminu, w szczególności w związku ze zmianą funkcjonalności Aplikacji lub przepisów prawa. Każda zmiana skutkuje aktualizacją numeru wersji i daty widocznych na początku dokumentu. Istotne zmiany wymagają ponownej akceptacji Regulaminu przy najbliższym uruchomieniu Aplikacji — do tego czasu Użytkownik korzysta z Aplikacji na zasadach wcześniej zaakceptowanej wersji.</p>
+
+  <h2>12. Postanowienia końcowe</h2>
+  <p>W sprawach nieuregulowanych niniejszym Regulaminem zastosowanie mają przepisy prawa polskiego. Jeżeli którekolwiek postanowienie Regulaminu okaże się nieważne lub bezskuteczne, pozostałe postanowienia pozostają w mocy.</p>
+</div>
+</body>
+</html>

@@ -23,13 +23,29 @@
 // validates and guards against on its own (see the malformed-record checks
 // in app.js). Dropping it trades that redundant, fragile check for a rule
 // that can't drift out of sync with the code ever again.
+//
+// The consent rule below enforces server-side that every account has
+// accepted the Privacy Policy / Terms (app.js's CONSENT section writes
+// users/{uid}/consent/current right after sign-in, before touching
+// anything else). It's split into its own match block, always allowed for
+// the owner, so a brand-new account can write its very first acceptance —
+// if it were folded into the general rule below, the exists() check would
+// make that first write impossible. Cloud Firestore evaluates overlapping
+// match blocks with a logical OR, so this block being unconditionally true
+// for /users/{uid}/consent/** doesn't weaken the exists() check the general
+// rule applies to every other path.
 
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{uid}/{document=**} {
+    match /users/{uid}/consent/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid
+        && exists(/databases/$(database)/documents/users/$(uid)/consent/current);
     }
 
     match /{document=**} {

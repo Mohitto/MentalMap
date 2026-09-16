@@ -340,8 +340,14 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v1.0.0';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v1.0.0' -> '1.0.0', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v1.0.1';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v1.0.1' -> '1.0.1', matches the ?v= convention used elsewhere
+
+// Bumping CONSENT_VERSION forces every user — including ones who accepted a
+// previous version — to accept again on next launch. Keep it in sync with
+// the "Wersja dokumentu" shown in privacy-policy.html and terms.html.
+const CONSENT_VERSION = '1.0';
+const CONSENT_KEY = 'mentalmap_consent';
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
@@ -358,6 +364,80 @@ try {
   const saved = localStorage.getItem(SHOW_TRAJECTORIES_KEY);
   if (saved !== null) showTrajectories = saved === '1';
 } catch (_) { /* ignore — default true */ }
+
+// ═══════════════════════════════════════════
+// CONSENT (Privacy Policy / Terms)
+// ═══════════════════════════════════════════
+//
+// Every user — local-only or signed in — must accept the Privacy Policy and
+// Terms before the app becomes usable. Acceptance is recorded locally
+// (localStorage, gates every device/browser independently) and, once the
+// user is signed in, mirrored to their Firestore account under
+// users/{uid}/consent/current — see pushConsentToCloud() in the ACCOUNT /
+// CLOUD SYNC section below. firestore.rules then refuses every other read
+// or write under that uid until that document exists, so the requirement is
+// enforced server-side too, not just by this client.
+//
+// The gate modal (#consent-modal) is a plain .modal-overlay with no close
+// button, no backdrop-click handler and no Escape binding (see bindEvents),
+// so it cannot be dismissed except by accepting.
+
+let pendingConsentCallback = null;
+
+function readStoredConsent() {
+  try {
+    const raw = localStorage.getItem(CONSENT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+}
+
+function hasAcceptedConsent() {
+  const consent = readStoredConsent();
+  return !!consent && consent.version === CONSENT_VERSION;
+}
+
+function writeStoredConsent() {
+  try {
+    localStorage.setItem(CONSENT_KEY, JSON.stringify({
+      version: CONSENT_VERSION,
+      acceptedAt: new Date().toISOString()
+    }));
+  } catch (_) { /* ignore */ }
+}
+
+// Called once from init(). Shows the blocking modal and defers `onAccepted`
+// until the user actually accepts; runs `onAccepted` immediately if this
+// browser already has a matching acceptance on record.
+function ensureConsentGate(onAccepted) {
+  if (hasAcceptedConsent()) {
+    if (typeof onAccepted === 'function') onAccepted();
+    return;
+  }
+  pendingConsentCallback = typeof onAccepted === 'function' ? onAccepted : null;
+  $('#consent-modal')?.setAttribute('aria-hidden', 'false');
+}
+
+function bindConsentEvents() {
+  const privacyChk = $('#chk-consent-privacy');
+  const termsChk = $('#chk-consent-terms');
+  const acceptBtn = $('#btn-consent-accept');
+  if (!privacyChk || !termsChk || !acceptBtn) return;
+
+  const refreshAcceptButton = () => {
+    acceptBtn.disabled = !(privacyChk.checked && termsChk.checked);
+  };
+  privacyChk.addEventListener('change', refreshAcceptButton);
+  termsChk.addEventListener('change', refreshAcceptButton);
+
+  acceptBtn.addEventListener('click', () => {
+    if (!privacyChk.checked || !termsChk.checked) return;
+    writeStoredConsent();
+    $('#consent-modal')?.setAttribute('aria-hidden', 'true');
+    const callback = pendingConsentCallback;
+    pendingConsentCallback = null;
+    if (typeof callback === 'function') callback();
+  });
+}
 
 // Guards for the persistence layer (see loadPeople / savePeople).
 let saveBlocked = false;
@@ -572,11 +652,15 @@ function init() {
   bindEvents();
   bindAccountEvents();
   bindSettingsEvents();
+  bindConsentEvents();
   setAppVersion();
   if (orbitLinesContainer) orbitLinesContainer.style.display = showTrajectories ? '' : 'none';
   startAnimation();
   updateEmptyState();
-  attemptSilentReconnect();
+  // Deferred behind the consent gate: a device that already has a signed-in
+  // session (syncedBefore) must not silently pull or push cloud data before
+  // this browser has recorded acceptance — see ensureConsentGate() above.
+  ensureConsentGate(attemptSilentReconnect);
 }
 
 function setAppVersion() {
@@ -1653,6 +1737,21 @@ function queueSyncSettings() {
     });
 }
 
+// Called once per successful (re)connect, before anything else touches this
+// account's Firestore data — see completeSignIn(). Local consent is always
+// present by this point: reaching a signed-in state requires having passed
+// through the consent modal on this device first (see ensureConsentGate()).
+// Pushes rather than pulls, same direction as queueSyncSettings — local
+// acceptance is the source of truth, the cloud copy only ever mirrors it.
+async function pushConsentToCloud() {
+  const local = readStoredConsent();
+  if (!local) return; // shouldn't happen — see comment above
+  await syncApi.pushConsent(syncState.uid, {
+    version: local.version,
+    acceptedAtClient: local.acceptedAt
+  });
+}
+
 // Called once per successful (re)connect — see completeSignIn(). Cloud wins
 // when it already has a value (another device set it); otherwise this is the
 // first device to connect this account, so it pushes its own local choice up.
@@ -1846,6 +1945,19 @@ async function completeSignIn(user) {
     const el = $('#account-verify-email');
     if (el) el.textContent = syncState.email;
     showAccountScreen('verify');
+    showAccountStatus('');
+    return;
+  }
+
+  // Must succeed before anything else touches this account's Firestore data:
+  // firestore.rules refuses every other read/write under this uid until
+  // users/{uid}/consent/current exists (see pushConsentToCloud() above).
+  try {
+    await pushConsentToCloud();
+  } catch (e) {
+    console.error('Failed to record consent on account:', e);
+    showAccountScreen('signed-in');
+    recordSyncError('Zalogowano, ale nie udało się zapisać zgody na Regulamin i Politykę Prywatności w chmurze — spróbuj ponownie.');
     showAccountStatus('');
     return;
   }

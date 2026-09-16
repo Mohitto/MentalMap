@@ -1009,6 +1009,34 @@ body.incognito-mode .stats-person-chip__name {
   cursor: pointer;
 }
 
+.settings-doc-link {
+  margin: 0 0 10px;
+}
+
+/* ── Consent (Privacy Policy / Terms) modal ── */
+
+#consent-modal {
+  align-items: center;
+  justify-content: center;
+}
+
+.consent-checkbox-row {
+  align-items: flex-start;
+  line-height: 1.4;
+}
+
+.consent-checkbox-row input[type="checkbox"] {
+  margin-top: 2px;
+}
+
+.consent-checkbox-row a {
+  color: #8ea2ff;
+}
+
+.consent-actions {
+  margin-top: 10px;
+}
+
 #stats-view {
   position: fixed;
   top: 0;
