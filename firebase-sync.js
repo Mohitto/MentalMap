@@ -196,3 +196,18 @@ export async function fetchSettingsOnce(uid) {
   const snap = await getDoc(doc(db, 'users', uid, 'settings', 'preferences'));
   return snap.exists() ? snap.data() : null;
 }
+
+// Records that this account's owner has accepted the Privacy Policy and
+// Terms — see the CONSENT section of app.js. firestore.rules requires this
+// exact document to exist before it allows any other read/write under this
+// uid, so this call always has to succeed before pushPerson/pushSettings/
+// fetchAllPeopleOnce etc. are attempted for a freshly-signed-in user.
+export async function pushConsent(uid, consent) {
+  const ref = doc(db, 'users', uid, 'consent', 'current');
+  await setDoc(ref, Object.assign({}, consent, { updatedAt: serverTimestamp() }));
+}
+
+export async function fetchConsentOnce(uid) {
+  const snap = await getDoc(doc(db, 'users', uid, 'consent', 'current'));
+  return snap.exists() ? snap.data() : null;
+}

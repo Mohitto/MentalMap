@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a1a">
+<title>Polityka Prywatności — MentalMap</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-color: #0a0a1a;
+    --text-primary: #ffffff;
+    --text-secondary: #9ba1a6;
+    --text-muted: #5a5f65;
+    --card-bg: #1a1a30;
+    --input-border: #2a2a45;
+    --accent: #4361ee;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .doc-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  .doc-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .doc-back:hover { color: var(--text-primary); }
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin: 0 0 6px;
+  }
+  .doc-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 32px 0 10px;
+    color: var(--text-primary);
+  }
+  p, li {
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+  }
+  p { margin: 0 0 12px; }
+  ul { margin: 0 0 12px; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text-primary); }
+  a { color: #8ea2ff; }
+  .doc-card {
+    background: var(--card-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin: 0 0 12px;
+  }
+  .doc-card p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="doc-wrap">
+  <a class="doc-back" href="./index.html">&larr; Powrót do aplikacji</a>
+  <h1>Polityka Prywatności MentalMap</h1>
+  <p class="doc-meta">Wersja dokumentu: 1.0 · Obowiązuje od: 16 września 2026 r.</p>
+
+  <h2>1. Postanowienia ogólne</h2>
+  <p>Niniejsza Polityka Prywatności opisuje, jakie dane są przetwarzane w związku z korzystaniem z aplikacji MentalMap („Aplikacja”) — narzędzia do wizualnego mapowania własnych relacji w formie układu planetarnego, dostępnego jako aplikacja webowa (PWA) oraz aplikacja na Androida.</p>
+  <p>Korzystanie z Aplikacji jest możliwe wyłącznie po zapoznaniu się z niniejszą Polityką Prywatności oraz <a href="./terms.html">Regulaminem</a> i ich zaakceptowaniu. Fakt i moment akceptacji są zapisywane zgodnie z opisem w pkt 5.</p>
+
+  <h2>2. Administrator danych</h2>
+  <p>Administratorem danych w rozumieniu RODO (Rozporządzenia Parlamentu Europejskiego i Rady (UE) 2016/679) jest twórca Aplikacji MentalMap („Administrator”), dostępny pod adresem zgłoszeniowym repozytorium projektu: <a href="https://github.com/Mohitto/MentalMap/issues" target="_blank" rel="noopener">github.com/Mohitto/MentalMap/issues</a>.</p>
+  <div class="doc-card">
+    <p><strong>Dane o osobach trzecich wpisywane przez Ciebie do mapy relacji</strong> (np. imię i nazwisko znajomego, oceny relacji) wprowadzasz do Aplikacji dobrowolnie i na własną odpowiedzialność jako administrator tych danych — patrz pkt 4 i pkt 8. Administrator Aplikacji, o którym mowa wyżej, dostarcza w takim przypadku wyłącznie narzędzie oraz — w razie założenia konta — infrastrukturę do ich przechowywania (jako podmiot przetwarzający dane w rozumieniu art. 28 RODO, korzystający z usług Google/Firebase opisanych w pkt 4).</p>
+  </div>
+
+  <h2>3. Jakie dane zbieramy</h2>
+  <p>W zależności od tego, czy korzystasz z Aplikacji lokalnie, czy zakładasz konto, zbierane są następujące kategorie danych:</p>
+  <ul>
+    <li><strong>Dane mapy relacji</strong> — imiona/nazwy dodanych osób, kolory planet, odpowiedzi na pytania ankiety relacji, wynik ankiety, wyniki mini-ankiety osobowości.</li>
+    <li><strong>Dane konta</strong> (tylko jeśli się zalogujesz) — adres e-mail, unikalny identyfikator konta (UID) nadawany przez Firebase Authentication, status weryfikacji adresu e-mail. Przy logowaniu przez Google przekazywany jest adres e-mail powiązany z kontem Google.</li>
+    <li><strong>Dane o zgodach</strong> — informacja, że zaakceptowano Politykę Prywatności i Regulamin, wersja zaakceptowanych dokumentów oraz data i godzina akceptacji (patrz pkt 5).</li>
+    <li><strong>Ustawienia aplikacji</strong> — np. widoczność kolorów poziomów i trajektorii na mapie.</li>
+    <li><strong>Dane techniczne</strong> — znaczniki czasu ostatniej modyfikacji rekordów, niezbędne do synchronizacji między urządzeniami.</li>
+  </ul>
+  <p>Aplikacja nie zawiera skryptów analitycznych, reklamowych ani innych mechanizmów śledzenia użytkownika (np. Google Analytics, piksele reklamowe). Jedynym miejscem, w którym dane są zapisywane po stronie klienta, jest lokalna pamięć przeglądarki (<code>localStorage</code>) lub, w aplikacji Android, lokalna pamięć urządzenia.</p>
+
+  <h2>4. Gdzie przechowywane są dane</h2>
+  <p><strong>Tryb domyślny (bez logowania):</strong> wszystkie dane opisane w pkt 3 pozostają wyłącznie na Twoim urządzeniu, w pamięci lokalnej przeglądarki. Nie są przesyłane na żaden serwer. Administrator nie ma do nich dostępu.</p>
+  <p><strong>Tryb z kontem (logowanie e-mailem lub przez Google):</strong> jeśli zdecydujesz się założyć konto, dane mapy relacji, ustawienia oraz informacja o akceptacji Polityki Prywatności i Regulaminu są dodatkowo przesyłane i przechowywane w usługach Firebase Authentication oraz Firestore, dostarczanych przez Google Ireland Limited / Google LLC („Google”), w infrastrukturze Google Cloud. Dostęp do tych danych mają wyłącznie Ty (po zalogowaniu na dowolnym urządzeniu tym samym kontem) oraz Google jako dostawca infrastruktury, na zasadach opisanych w jego własnej polityce prywatności. Dane w bazie nie są szyfrowane po stronie Aplikacji przed wysłaniem — dostęp do konkretnego konta jest ograniczony regułami bezpieczeństwa Firestore wyłącznie do zalogowanego właściciela konta.</p>
+  <p>Google może przetwarzać dane poza Europejskim Obszarem Gospodarczym; takie przekazanie odbywa się na podstawie standardowych klauzul umownych stosowanych przez Google zgodnie z RODO.</p>
+
+  <h2>5. Cele i podstawy prawne przetwarzania</h2>
+  <ul>
+    <li>Świadczenie funkcjonalności Aplikacji, w tym synchronizacja danych między urządzeniami po zalogowaniu — art. 6 ust. 1 lit. b RODO (wykonanie umowy o korzystanie z Aplikacji, do której zawarcia dochodzi w momencie akceptacji Regulaminu).</li>
+    <li>Rejestrowanie i weryfikowanie faktu akceptacji Polityki Prywatności i Regulaminu — art. 6 ust. 1 lit. c RODO (obowiązek wykazania, że użytkownik wyraził wymaganą zgodę) w związku z art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes Administratora w postaci rozliczalności).</li>
+    <li>Obsługa zgłoszeń i kontaktu zwrotnego — art. 6 ust. 1 lit. f RODO (prawnie uzasadniony interes w postaci wsparcia użytkowników).</li>
+  </ul>
+
+  <h2>6. Odbiorcy danych</h2>
+  <p>Dane przekazywane są wyłącznie: (a) Google jako dostawcy usług Firebase Authentication i Firestore, na podstawie umowy powierzenia przetwarzania danych stosowanej przez Google dla klientów Firebase, oraz (b) organom państwowym, jeśli wynika to z obowiązku prawnego. Dane nie są sprzedawane ani udostępniane podmiotom trzecim w celach marketingowych.</p>
+
+  <h2>7. Okres przechowywania danych</h2>
+  <p>Dane przechowywane lokalnie pozostają na urządzeniu do czasu ich ręcznego usunięcia przez Ciebie (np. wyczyszczenia danych przeglądarki lub usunięcia poszczególnych osób w Aplikacji). Dane konta w chmurze przechowywane są do czasu usunięcia konta lub poszczególnych rekordów przez Ciebie. Zapis akceptacji Polityki Prywatności i Regulaminu jest przechowywany przez cały okres posiadania konta, jako dowód spełnienia wymogu opisanego w pkt 5.</p>
+
+  <h2>8. Twoje prawa</h2>
+  <p>W zakresie danych, dla których Administrator Aplikacji pełni rolę administratora (dane konta, dane o zgodach), przysługuje Ci prawo do: dostępu do danych, sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia danych, wniesienia sprzeciwu wobec przetwarzania opartego na uzasadnionym interesie oraz wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych (UODO). Większość tych praw możesz zrealizować samodzielnie z poziomu Aplikacji (edycja lub usunięcie danych, usunięcie konta poprzez kontakt z Administratorem) — patrz pkt 2 w sprawie danych kontaktowych.</p>
+  <p>W zakresie danych osób trzecich, które sam(a) wprowadzasz do mapy relacji, to Ty jesteś administratorem tych danych i to na Tobie spoczywają obowiązki informacyjne wobec tych osób wynikające z RODO, jeśli przetwarzanie takich danych wykracza poza wyłącznie osobisty użytek.</p>
+
+  <h2>9. Dobrowolność podania danych</h2>
+  <p>Podanie danych jest dobrowolne, ale niezbędne do korzystania z odpowiednich funkcji Aplikacji: bez zaakceptowania niniejszej Polityki Prywatności i Regulaminu korzystanie z Aplikacji nie jest możliwe, a bez założenia konta niedostępna jest funkcja synchronizacji w chmurze.</p>
+
+  <h2>10. Bezpieczeństwo danych</h2>
+  <p>Dostęp do danych konta w chmurze jest ograniczony regułami bezpieczeństwa Firestore do zalogowanego właściciela konta. Zalecamy używanie silnego, unikalnego hasła do konta oraz nieudostępnianie danych logowania osobom trzecim.</p>
+
+  <h2>11. Dzieci</h2>
+  <p>Aplikacja nie jest kierowana do osób poniżej 16 roku życia i nie są od nich świadomie zbierane żadne dane.</p>
+
+  <h2>12. Zmiany Polityki Prywatności</h2>
+  <p>Administrator może aktualizować niniejszą Politykę Prywatności, w szczególności w związku ze zmianą funkcjonalności Aplikacji lub przepisów prawa. Każda zmiana skutkuje aktualizacją numeru wersji i daty widocznych na początku dokumentu. Istotne zmiany wymagają ponownej akceptacji dokumentu przy najbliższym uruchomieniu Aplikacji.</p>
+
+  <h2>13. Kontakt</h2>
+  <p>W sprawach dotyczących niniejszej Polityki Prywatności oraz realizacji praw, o których mowa w pkt 8, skontaktuj się poprzez zgłoszenie na <a href="https://github.com/Mohitto/MentalMap/issues" target="_blank" rel="noopener">github.com/Mohitto/MentalMap/issues</a>.</p>
+</div>
+</body>
+</html>

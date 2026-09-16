@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1.0.1">
+    <link rel="stylesheet" href="style.css?v=1.0.2">
 </head>
 <body>
     <script>
@@ -387,6 +387,40 @@
                     <span>Pokaż trajektorie planet</span>
                 </label>
 
+                <hr class="backup-sep">
+
+                <p class="settings-section-label">Dokumenty</p>
+                <a href="./privacy-policy.html" target="_blank" rel="noopener" class="link-btn settings-doc-link">Polityka Prywatności</a>
+                <a href="./terms.html" target="_blank" rel="noopener" class="link-btn settings-doc-link">Regulamin</a>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Consent modal: gates use of the app until Privacy Policy + Terms are
+         accepted. Deliberately not dismissible (no close button, no
+         backdrop-click-to-close, no Escape) until the user accepts — see
+         ensureConsentGate() in app.js. -->
+    <div id="consent-modal" class="modal-overlay consent-modal" aria-hidden="true">
+        <div class="info-container">
+            <div class="info-header">
+                <h2>Zanim zaczniesz</h2>
+            </div>
+            <div class="info-content">
+                <p class="backup-note">Aby korzystać z MentalMap, zapoznaj się z poniższymi dokumentami i zaakceptuj je. Twoje dane zostają wyłącznie na tym urządzeniu, chyba że założysz konto — szczegóły w Polityce Prywatności.</p>
+
+                <label class="settings-checkbox-row consent-checkbox-row">
+                    <input type="checkbox" id="chk-consent-privacy">
+                    <span>Przeczytałem/-am i akceptuję <a href="./privacy-policy.html" target="_blank" rel="noopener">Politykę Prywatności</a></span>
+                </label>
+                <label class="settings-checkbox-row consent-checkbox-row">
+                    <input type="checkbox" id="chk-consent-terms">
+                    <span>Przeczytałem/-am i akceptuję <a href="./terms.html" target="_blank" rel="noopener">Regulamin</a></span>
+                </label>
+
+                <div class="form-actions consent-actions">
+                    <button type="button" id="btn-consent-accept" class="btn btn--save" disabled>Akceptuję i kontynuuję</button>
+                </div>
             </div>
         </div>
     </div>
@@ -397,7 +431,7 @@
         <p class="empty-state__hint">Kliknij <strong>+</strong> aby rozpocząć</p>
     </div>
 
-    <div id="app-version">v1.0.1</div>
-    <script src="app.js?v=1.0.1"></script>
+    <div id="app-version">v1.0.2</div>
+    <script src="app.js?v=1.0.2"></script>
 </body>
 </html>

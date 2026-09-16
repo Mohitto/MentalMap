@@ -1,5 +1,5 @@
 // Keep this in sync with APP_VERSION in app.js and the ?v= query strings in index.html.
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const CACHE_NAME = `mentalmap-cache-v${VERSION}`;
 const ASSETS = [
   './',
@@ -8,7 +8,9 @@ const ASSETS = [
   `./app.js?v=${VERSION}`,
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './privacy-policy.html',
+  './terms.html'
 ];
 
 self.addEventListener('install', event => {
