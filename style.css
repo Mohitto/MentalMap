@@ -1856,6 +1856,15 @@ body.incognito-mode .stats-person-chip__name {
 .personality-summary__title {
   font-size: 17px;
   font-weight: 700;
+  margin-bottom: 4px;
+}
+
+/* Evocative name for a reconciled tie blend (e.g. "Zdecydowany opiekun"),
+   shown under the raw "Typ mieszany: A + B" heading. */
+.personality-summary__blend-name {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-secondary);
   margin-bottom: 10px;
 }
 
@@ -1894,12 +1903,6 @@ body.incognito-mode .stats-person-chip__name {
   margin: 10px 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-}
-
-.personality-summary__group-label {
-  font-size: 13px;
-  font-weight: 700;
-  margin: 12px 0 4px;
 }
 
 .personality-summary__list {
