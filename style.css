@@ -1829,12 +1829,10 @@ body.incognito-mode .stats-person-chip__name {
   display: inline-block;
 }
 
-.personality-intro {
-  font-size: 13px;
-  line-height: 1.5;
+.personality-intro-name {
+  font-size: 14px;
+  font-weight: 400;
   color: var(--text-secondary);
-  padding: 0 24px 16px;
-  flex-shrink: 0;
 }
 
 #personality-form {
