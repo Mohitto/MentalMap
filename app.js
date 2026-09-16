@@ -194,8 +194,9 @@ const SECRET_QUESTION = {
 // swatch picker below. Each answer carries a hidden `color` field used only
 // for scoring — the visible `text` never names a color, a DISC letter, or
 // otherwise hints which type it belongs to. The 4 answers per question are
-// pre-shuffled once here (not reshuffled on every load) so a saved survey
-// reopens looking exactly as it did when answered.
+// reshuffled every time the survey is opened (see buildPersonalityForm) —
+// answers are matched back by their hidden color value, not by position, so
+// reopening an already-answered survey still shows the right one checked.
 const PERSONALITY_QUESTIONS = [
   {
     text: 'Gdy zaskoczysz tę osobę trudnym pytaniem w rozmowie, zazwyczaj:',
@@ -323,6 +324,16 @@ const PERSONALITY_PROFILES = {
     ]
   }
 };
+
+// Fisher-Yates shuffle — returns a new array, leaves the input untouched.
+function shuffle(array) {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
 
 // Fixed canonical ordering (matches the counts object below), used to key
 // PERSONALITY_BLEND_PROFILES regardless of what order a tie's colors were
@@ -883,8 +894,9 @@ const personalityModal = $('#personality-modal');
 const personalityForm = $('#personality-form');
 const personalityQuestionsContainer = $('#personality-questions-container');
 
-// Built once at startup, like buildSurveyForm() — reused across every
-// open/close of the personality modal.
+// Rebuilt every time the personality modal is opened (see openPersonalityModal)
+// so each answer's on-screen position is freshly randomized per launch. Also
+// called once at startup so the container isn't empty before the first open.
 function buildPersonalityForm() {
   if (!personalityQuestionsContainer) return;
   personalityQuestionsContainer.innerHTML = '';
@@ -904,7 +916,7 @@ function buildPersonalityForm() {
     const optionsWrap = document.createElement('div');
     optionsWrap.className = 'options-container';
 
-    q.answers.forEach((answer) => {
+    shuffle(q.answers).forEach((answer) => {
       const label = document.createElement('label');
       label.className = 'answer-option';
 
@@ -943,6 +955,7 @@ function fillPersonalityForm(answerColors) {
 
 function openPersonalityModal() {
   if (!personalityModal) return;
+  buildPersonalityForm();
   fillPersonalityForm(selectedPersonalityAnswers);
   updatePersonalityColorStatus();
   personalityModal.setAttribute('aria-hidden', 'false');
