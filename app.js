@@ -335,6 +335,149 @@ function shuffle(array) {
   return result;
 }
 
+// Fixed canonical ordering (matches the counts object below), used to key
+// PERSONALITY_BLEND_PROFILES regardless of what order a tie's colors were
+// produced or loaded in.
+const PERSONALITY_COLOR_ORDER = ['red', 'yellow', 'green', 'blue'];
+
+function personalityBlendKey(colors) {
+  return [...colors].sort((a, b) => PERSONALITY_COLOR_ORDER.indexOf(a) - PERSONALITY_COLOR_ORDER.indexOf(b)).join('-');
+}
+
+// Hand-written, reconciled profiles for every possible tie (6 pairs, 4
+// triples, 1 four-way) — not a mechanical merge of the tied colors' own
+// traits/howToTalk. A straight concatenation stacks each color's full list
+// (up to 20 tips for a four-way tie) and some of those tips actively pull in
+// opposite directions (e.g. red's "move fast, be brief" vs green's "no time
+// pressure, don't rush"); read together they read as contradictory advice
+// rather than a coherent picture of one blended personality. Each entry
+// below is written as a single person who genuinely holds both/all of the
+// tied traits at once, so the advice is short, internally consistent, and
+// describes how those styles actually combine rather than listing them
+// side by side.
+const PERSONALITY_BLEND_PROFILES = {
+  'red-yellow': {
+    name: 'Ekspresyjny lider',
+    traits: ['Pewny siebie', 'Entuzjastyczny', 'Zorientowany na cel', 'Towarzyski', 'Szybki w działaniu'],
+    howToTalk: [
+      'Mów energicznie i przechodź do konkretów, ale zostaw miejsce na pozytywne emocje i entuzjazm.',
+      'Przedstawiaj cele i wyniki w sposób inspirujący, nie suchy — to ją napędza.',
+      'Nie zanudzaj długim procesem ani szczegółami — ta osoba chce działać szybko i widowiskowo.',
+      'Daj jej przestrzeń do przejęcia inicjatywy i bycia w centrum uwagi.',
+      'Jej bezpośredniość i żywiołowość to naturalny styl, nie atak ani niepowaga.'
+    ]
+  },
+  'red-green': {
+    name: 'Zdecydowany opiekun',
+    traits: ['Zdecydowany', 'Lojalny', 'Zorientowany na cel', 'Opiekuńczy', 'Ceniący stabilność'],
+    howToTalk: [
+      'Mów wprost i konkretnie, ale spokojnym, łagodnym tonem — bez presji i pośpiechu.',
+      'Wyznaczaj jasne cele, jednak zostaw czas na oswojenie się z decyzją zamiast jej wymuszać.',
+      'Doceniaj jej lojalność i zaangażowanie, nie tylko końcowe efekty.',
+      'Uprzedzaj o zmianach planu z wyprzedzeniem, nawet jeśli sam(a) wolisz działać szybko.',
+      'Jej stanowczość i troska o innych nie muszą się wykluczać — pozwól jej łączyć jedno z drugim.'
+    ]
+  },
+  'red-blue': {
+    name: 'Analityczny strateg',
+    traits: ['Zdecydowany', 'Analityczny', 'Precyzyjny', 'Zorientowany na cel', 'Niezależny'],
+    howToTalk: [
+      'Mów konkretnie i rzeczowo — łącz bezpośredniość z twardymi faktami i danymi.',
+      'Szanuj jej potrzebę kontroli, ale też czasu na dokładne przeanalizowanie sprawy przed decyzją.',
+      'Bądź dobrze przygotowany(a) — chaos i niedopracowane argumenty irytują ją tak samo jak zbędne dygresje.',
+      'Nie mieszaj emocji do rozmowy — liczą się fakty, logika i jasny cel.',
+      'Daj jej autonomię w działaniu, jednocześnie oczekując precyzji w wykonaniu.'
+    ]
+  },
+  'yellow-green': {
+    name: 'Ciepły łącznik',
+    traits: ['Towarzyski', 'Empatyczny', 'Lojalny', 'Unika konfliktów', 'Ciepły'],
+    howToTalk: [
+      'Buduj rozmowę na zaufaniu i cieple — dla niej relacja liczy się bardziej niż tempo.',
+      'Bądź pozytywny(a) i cierpliwy(a) jednocześnie — nie spiesz się i nie wywieraj presji.',
+      'Unikaj konfrontacji i podniesionego tonu — to ją zniechęca i wycofuje.',
+      'Doceniaj ją i chwal, ale też uprzedzaj o zmianach z wyprzedzeniem.',
+      'Daj jej czas na oswojenie się z tematem, zachowując przy tym ciepłą, otwartą atmosferę.'
+    ]
+  },
+  'yellow-blue': {
+    name: 'Ekspresyjny perfekcjonista',
+    traits: ['Entuzjastyczny', 'Analityczny', 'Towarzyski', 'Precyzyjny', 'Refleksyjny'],
+    howToTalk: [
+      'Łącz ciepłą, pozytywną atmosferę rozmowy z konkretnymi faktami — jedno nie wyklucza drugiego.',
+      'Daj jej czas na przemyślenie sprawy, nawet jeśli chętnie rozmawia i szybko reaguje emocjonalnie.',
+      'Chwal ją, ale opieraj pochwały na czymś konkretnym, nie na ogólnikach.',
+      'Bądź dobrze przygotowany(a) — niedopracowane szczegóły mogą ją rozczarować mimo dobrej atmosfery.',
+      'Nie zaskakuj jej nagłymi zmianami — potrzebuje chwili, by ochłonąć i przeanalizować nową sytuację.'
+    ]
+  },
+  'green-blue': {
+    name: 'Spokojny analityk',
+    traits: ['Spokojny', 'Analityczny', 'Cierpliwy', 'Precyzyjny', 'Zdystansowany'],
+    howToTalk: [
+      'Mów spokojnym, wyważonym tonem — bez pośpiechu, presji i nagłych zwrotów akcji.',
+      'Daj jej czas na dokładne przemyślenie sprawy, zanim oczekujesz decyzji.',
+      'Bądź precyzyjny(a) i dobrze przygotowany(a) — chaos i niedopowiedzenia ją stresują.',
+      'Szanuj jej potrzebę dystansu i przestrzeni — to nie chłód, tylko sposób na oswojenie tematu.',
+      'Uprzedzaj o zmianach z wyprzedzeniem i unikaj podniesionego głosu.'
+    ]
+  },
+  'red-yellow-green': {
+    name: 'Energiczny lider zespołowy',
+    traits: ['Zdecydowany', 'Entuzjastyczny', 'Towarzyski', 'Lojalny', 'Zorientowany na cel'],
+    howToTalk: [
+      'Mów wprost i z energią, ale dbaj o dobrą atmosferę i relacje w grupie.',
+      'Wyznaczaj jasne cele i działaj szybko, jednak nie kosztem czyjegoś komfortu czy spokoju.',
+      'Doceniaj ją publicznie za zaangażowanie, nie tylko za wyniki.',
+      'Unikaj nagłych, niezapowiedzianych zmian — nawet jeśli sam(a) wolisz tempo.',
+      'Daj jej przestrzeń do przejęcia inicjatywy, ale w sposób, który nie wywołuje konfliktu.'
+    ]
+  },
+  'red-yellow-blue': {
+    name: 'Wymagający profesjonalista',
+    traits: ['Zdecydowany', 'Entuzjastyczny', 'Analityczny', 'Zorientowany na cel', 'Precyzyjny'],
+    howToTalk: [
+      'Mów konkretnie i energicznie, ale poparte solidnymi faktami i danymi.',
+      'Utrzymuj wysokie tempo rozmowy, jednocześnie dbając o precyzję i przygotowanie.',
+      'Daj jej przestrzeń do inicjatywy, ale oczekuj dopracowanych, przemyślanych rozwiązań.',
+      'Chwal konkretne osiągnięcia, nie ogólniki — doceni to bardziej niż puste pochwały.',
+      'Nie trać czasu na zbędne dygresje, ale też nie pomijaj istotnych szczegółów.'
+    ]
+  },
+  'red-green-blue': {
+    name: 'Rzeczowy realizator',
+    traits: ['Zdecydowany', 'Analityczny', 'Lojalny', 'Precyzyjny', 'Zorientowany na cel'],
+    howToTalk: [
+      'Mów konkretnie i rzeczowo, bez zbędnych emocji i pogawędek.',
+      'Wyznaczaj jasne cele, ale daj czas na spokojne, dokładne ich zrealizowanie.',
+      'Bądź dobrze przygotowany(a) — ceni precyzję równie mocno jak skuteczność.',
+      'Unikaj presji i nagłych zmian — informuj o nich z wyprzedzeniem.',
+      'Doceniaj jej solidność i lojalność, nie tylko efekty końcowe.'
+    ]
+  },
+  'yellow-green-blue': {
+    name: 'Empatyczny obserwator',
+    traits: ['Towarzyski', 'Empatyczny', 'Analityczny', 'Cierpliwy', 'Precyzyjny'],
+    howToTalk: [
+      'Bądź ciepły/a i pozytywny/a, ale też precyzyjny/a — dla niej liczy się i atmosfera, i konkret.',
+      'Daj jej czas na przemyślenie sprawy w spokojnej, bezpiecznej atmosferze.',
+      'Unikaj presji czasu, konfrontacji i nagłych zmian planu.',
+      'Doceniaj ją i chwal, opierając to na konkretnych, przemyślanych argumentach.',
+      'Szanuj jej potrzebę dystansu i dokładności — to nie oznacza braku zaangażowania.'
+    ]
+  },
+  'red-yellow-green-blue': {
+    name: 'Wszechstronny typ mieszany',
+    traits: ['Wszechstronny', 'Sytuacyjny', 'Elastyczny', 'Trudny do jednoznacznego zaszufladkowania'],
+    howToTalk: [
+      'Ta osoba w równym stopniu wykazuje cechy wszystkich czterech stylów — obserwuj, w jakim jest trybie w danej chwili, i dopasuj się do niego.',
+      'Czasem oczekuje konkretu i tempa, czasem ciepła i rozmowy, czasem spokoju, a czasem precyzji — żadne z tych podejść nie jest "domyślne".',
+      'Nie zakładaj z góry jednego stylu komunikacji — elastyczność z Twojej strony będzie tu kluczowa.',
+      'Zwracaj uwagę na sygnały (ton, tempo, pytania), które pokażą, czego w danym momencie potrzebuje.'
+    ]
+  }
+};
+
 // Tallies the 8 chosen colors and reports every color tied for the highest
 // count — a genuine tie (2+ colors sharing the max) is a real result, not an
 // error to break: it means the array comes back with more than one element.
@@ -351,8 +494,8 @@ const STORAGE_KEY = 'mentalmap_people';
 const CORRUPT_BACKUP_KEY = 'mentalmap_people_corrupt_backup';
 const SHOW_LEVEL_COLORS_KEY = 'mentalmap_show_level_colors';
 const SHOW_TRAJECTORIES_KEY = 'mentalmap_show_trajectories';
-const APP_VERSION = 'v1.0.0';
-const ASSET_VERSION = APP_VERSION.slice(1); // 'v1.0.0' -> '1.0.0', matches the ?v= convention used elsewhere
+const APP_VERSION = 'v1.0.1';
+const ASSET_VERSION = APP_VERSION.slice(1); // 'v1.0.1' -> '1.0.1', matches the ?v= convention used elsewhere
 
 // Whether the level zones (green/yellow/red, blurred at the edges — the one
 // fixed look, no longer user-tunable) and their "Poziom N" labels render at
@@ -2452,20 +2595,23 @@ function buildPersonalitySummaryBlock(person) {
   html += '<p class="personality-summary__eyebrow">Typ osobowości (na podstawie mini-ankiety)</p>';
 
   if (types.length >= 2) {
+    // Hand-written, reconciled content for this exact combination (see
+    // PERSONALITY_BLEND_PROFILES) — never a raw concatenation of each tied
+    // color's own 5 points, which would stack up to 20 tips that can
+    // actively contradict each other.
+    const blend = PERSONALITY_BLEND_PROFILES[personalityBlendKey(types)];
     const countWord = PERSONALITY_TIE_COUNT_WORDS[types.length] || `${types.length}`;
-    html += `<p class="personality-summary__note">Ta osoba wykazuje cechy ${countWord} typów osobowości w równym stopniu — w komunikacji warto brać pod uwagę wskazówki z obu profili, w zależności od sytuacji.</p>`;
+    html += `<p class="personality-summary__note">Ta osoba wykazuje cechy ${countWord} typów osobowości w równym stopniu — poniższy opis łączy je w jeden spójny obraz tego, jak z nią rozmawiać.</p>`;
     html += `<h3 class="personality-summary__title">Typ mieszany: ${types.map(personalityShortName).join(' + ')}</h3>`;
+    if (blend) html += `<p class="personality-summary__blend-name">${blend.name}</p>`;
     html += '<div class="personality-summary__swatches">' + profiles.map(p => `<span class="personality-summary__swatch" style="background:${p.color}"></span>`).join('') + '</div>';
 
-    const allTraits = [...new Set(profiles.flatMap(p => p.traits))];
-    html += '<div class="personality-summary__traits">' + allTraits.map(t => `<span class="personality-summary__trait">${t}</span>`).join('') + '</div>';
+    const traits = blend ? blend.traits : [...new Set(profiles.flatMap(p => p.traits))];
+    html += '<div class="personality-summary__traits">' + traits.map(t => `<span class="personality-summary__trait">${t}</span>`).join('') + '</div>';
 
     html += '<h4 class="personality-summary__subtitle">Jak z nią rozmawiać</h4>';
-    types.forEach((color, i) => {
-      const p = profiles[i];
-      html += `<p class="personality-summary__group-label" style="color:${p.color}">${personalityShortName(color)}</p>`;
-      html += '<ul class="personality-summary__list">' + p.howToTalk.map(t => `<li>${t}</li>`).join('') + '</ul>';
-    });
+    const howToTalk = blend ? blend.howToTalk : profiles.flatMap(p => p.howToTalk);
+    html += '<ul class="personality-summary__list">' + howToTalk.map(t => `<li>${t}</li>`).join('') + '</ul>';
   } else {
     const p = profiles[0];
     html += `<h3 class="personality-summary__title" style="color:${p.color}">${p.name}</h3>`;

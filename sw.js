@@ -1,5 +1,5 @@
 // Keep this in sync with APP_VERSION in app.js and the ?v= query strings in index.html.
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const CACHE_NAME = `mentalmap-cache-v${VERSION}`;
 const ASSETS = [
   './',
