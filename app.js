@@ -945,6 +945,8 @@ function openPersonalityModal() {
   if (!personalityModal) return;
   fillPersonalityForm(selectedPersonalityAnswers);
   updatePersonalityColorStatus();
+  const introEl = document.getElementById('personality-intro-name');
+  if (introEl) introEl.textContent = personNameInput?.value.trim() || 'Nowa relacja';
   personalityModal.setAttribute('aria-hidden', 'false');
   history.pushState({ personalityModalOpen: true }, '');
 }
@@ -2569,8 +2571,6 @@ function personalityShortName(color) {
   return PERSONALITY_PROFILES[color].name.split(' — ')[0];
 }
 
-const PERSONALITY_TIE_COUNT_WORDS = { 2: 'dwóch', 3: 'trzech', 4: 'czterech' };
-
 // Renders the personality-survey result at the top of the summary — nothing
 // at all when the mini-survey hasn't been completed for this person.
 function buildPersonalitySummaryBlock(person) {
@@ -2579,7 +2579,6 @@ function buildPersonalitySummaryBlock(person) {
 
   const profiles = types.map(c => PERSONALITY_PROFILES[c]);
   let html = '<div class="personality-summary">';
-  html += '<p class="personality-summary__eyebrow">Typ osobowości (na podstawie mini-ankiety)</p>';
 
   if (types.length >= 2) {
     // Hand-written, reconciled content for this exact combination (see
@@ -2587,8 +2586,6 @@ function buildPersonalitySummaryBlock(person) {
     // color's own 5 points, which would stack up to 20 tips that can
     // actively contradict each other.
     const blend = PERSONALITY_BLEND_PROFILES[personalityBlendKey(types)];
-    const countWord = PERSONALITY_TIE_COUNT_WORDS[types.length] || `${types.length}`;
-    html += `<p class="personality-summary__note">Ta osoba wykazuje cechy ${countWord} typów osobowości w równym stopniu — poniższy opis łączy je w jeden spójny obraz tego, jak z nią rozmawiać.</p>`;
     html += `<h3 class="personality-summary__title">Typ mieszany: ${types.map(personalityShortName).join(' + ')}</h3>`;
     if (blend) html += `<p class="personality-summary__blend-name">${blend.name}</p>`;
     html += '<div class="personality-summary__swatches">' + profiles.map(p => `<span class="personality-summary__swatch" style="background:${p.color}"></span>`).join('') + '</div>';
