@@ -1030,7 +1030,10 @@ function openPersonalityModal() {
   fillPersonalityForm(selectedPersonalityAnswers);
   updatePersonalityColorStatus();
   const introEl = document.getElementById('personality-intro-name');
-  if (introEl) introEl.textContent = personNameInput?.value.trim() || 'Nowa relacja';
+  if (introEl) {
+    const name = personNameInput?.value.trim();
+    introEl.textContent = name ? `— ${name}` : '';
+  }
   personalityModal.setAttribute('aria-hidden', 'false');
   history.pushState({ personalityModalOpen: true }, '');
 }
