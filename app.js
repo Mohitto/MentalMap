@@ -594,35 +594,27 @@ const LEVEL_GAP = 25;        // px gap between level bands
 // Computed dynamic layout (recalculated when planets change)
 let dynamicLayout = {}; // { level: { innerR, outerR, orbits: [{score, radius}] } }
 
-// Planet gradient presets for visual variety
+// Planet gradient presets for visual variety.
+// None of these read as a plain Red/Yellow/Green/Blue — those four are
+// reserved for the personality-based color method (PERSONALITY_PROFILES),
+// so the manual picker and the personality result never visually clash.
 const PLANET_GRADIENTS = [
-  ['#ff6b6b', '#ee5a24'],
-  ['#a29bfe', '#6c5ce7'],
-  ['#55efc4', '#00b894'],
-  ['#fd79a8', '#e84393'],
-  ['#74b9ff', '#0984e3'],
-  ['#ffeaa7', '#fdcb6e'],
-  ['#dfe6e9', '#b2bec3'],
-  ['#ff9ff3', '#f368e0'],
-  ['#48dbfb', '#0abde3'],
-  ['#ff6348', '#ff4757'],
-  ['#7bed9f', '#2ed573'],
-  ['#70a1ff', '#1e90ff'],
-  ['#ffa502', '#ff6348'],
-  ['#5352ed', '#3742fa'],
-  ['#ff4757', '#c44569']
+  ['#a29bfe', '#6c5ce7'], // purple
+  ['#fd79a8', '#e84393'], // pink
+  ['#dfe6e9', '#b2bec3'], // gray
+  ['#ff9ff3', '#f368e0'], // orchid
+  ['#d4a373', '#a9744f'], // brown
+  ['#b39ddb', '#7e57c2'], // violet
+  ['#e0a458', '#b6752b'], // bronze
+  ['#9aa5b1', '#64748b'], // slate
+  ['#e0b0d5', '#c48bbd'], // mauve
+  ['#c2b8a3', '#8d8270'], // taupe
+  ['#c893d9', '#8e44ad'], // plum
+  ['#7f8c9a', '#4b5563']  // charcoal
 ];
 
-// Indices into PLANET_GRADIENTS that read as a plain Red/Yellow/Green/Blue —
-// now reserved for the personality-based color method (PERSONALITY_PROFILES)
-// and hidden from the manual picker so the two methods never visually clash.
-// Left in the array itself rather than removed, so anyone who already picked
-// one of these before this change keeps rendering their original color.
-const RESERVED_GRADIENT_INDICES = new Set([0, 5, 10, 11]);
-
 function pickRandomGradientIndex() {
-  const options = PLANET_GRADIENTS.map((_, i) => i).filter(i => !RESERVED_GRADIENT_INDICES.has(i));
-  return options[Math.floor(Math.random() * options.length)];
+  return Math.floor(Math.random() * PLANET_GRADIENTS.length);
 }
 
 // ═══════════════════════════════════════════
@@ -824,7 +816,6 @@ function buildSurveyForm() {
   if (picker) {
     picker.innerHTML = '';
     PLANET_GRADIENTS.forEach((grad, index) => {
-      if (RESERVED_GRADIENT_INDICES.has(index)) return;
       const swatch = document.createElement('div');
       swatch.className = 'color-swatch';
       swatch.style.background = `linear-gradient(135deg, ${grad[0]}, ${grad[1]})`;
