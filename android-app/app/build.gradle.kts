@@ -37,7 +37,7 @@ kotlin {
 
 dependencies {
   implementation(libs.androidx.core.ktx)
-  implementation("androidx.appcompat:appcompat:1.6.1")
+  implementation("androidx.appcompat:appcompat:1.8.0")
   // Trusted Web Activity: renders the real Chrome origin (not an embedded
   // WebView), which is required for Google Sign-In to work at all — Google
   // blocks its OAuth flow inside plain WebViews.
